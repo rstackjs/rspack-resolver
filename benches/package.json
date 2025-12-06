@@ -656,7 +656,7 @@
     "natural-compare": "^1.4.0",
     "negotiator": "^1.0.0",
     "neo-async": "^2.6.2",
-    "next": "^15.2.4",
+    "next": "^15.4.8",
     "nice-try": "^3.0.1",
     "node-addon-api": "^8.3.1",
     "node-fetch": "^3.3.2",
