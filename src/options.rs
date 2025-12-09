@@ -52,6 +52,12 @@ pub struct ResolveOptions {
   #[cfg(feature = "yarn_pnp")]
   pub enable_pnp: bool,
 
+  /// The path to the PnP manifest file.
+  ///
+  /// Default `None`
+  #[cfg(feature = "yarn_pnp")]
+  pub pnp_manifest: Option<PathBuf>,
+
   /// Set to [EnforceExtension::Enabled] for [ESM Mandatory file extensions](https://nodejs.org/api/esm.html#mandatory-file-extensions).
   ///
   /// If `enforce_extension` is set to [EnforceExtension::Enabled], resolution will not allow extension-less files.
