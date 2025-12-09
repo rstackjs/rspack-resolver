@@ -144,3 +144,26 @@ async fn resolve_pnp_pkg_should_failed_while_disable_pnp_mode() {
     Err(NotFound("is-even".to_string()))
   );
 }
+
+#[tokio::test]
+async fn resolve_pnp_with_manifest_option() {
+  let fixture = super::fixture_root().join("pnp");
+  let manifest = fixture.join(".pnp.cjs");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    condition_names: vec!["import".into()],
+    pnp_manifest: Some(manifest),
+    ..ResolveOptions::default()
+  });
+
+  assert_eq!(
+    resolver
+      .resolve(&fixture, "lodash.zip")
+      .await
+      .map(|r| r.full_path()),
+    Ok(fixture.join(
+      ".yarn/cache/lodash.zip-npm-4.2.0-5299417ec8-e596da80a6.zip/node_modules/lodash.zip/index.js"
+    ))
+  );
+}
