@@ -501,6 +501,8 @@ impl Default for ResolveOptions {
       modules: vec!["node_modules".into()],
       #[cfg(feature = "yarn_pnp")]
       enable_pnp: true,
+      #[cfg(feature = "yarn_pnp")]
+      pnp_manifest: None,
       resolve_to_context: false,
       prefer_relative: false,
       prefer_absolute: false,
@@ -641,6 +643,8 @@ mod test {
       description_files: vec![],
       #[cfg(feature = "yarn_pnp")]
       enable_pnp: true,
+      #[cfg(feature = "yarn_pnp")]
+      pnp_manifest: None,
       enforce_extension: EnforceExtension::Disabled,
       exports_fields: vec![],
       extension_alias: vec![],
