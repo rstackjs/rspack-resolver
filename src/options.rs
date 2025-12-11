@@ -52,7 +52,7 @@ pub struct ResolveOptions {
   #[cfg(feature = "yarn_pnp")]
   pub enable_pnp: bool,
 
-  /// The path to the PnP manifest file.
+  /// The path to the yarn Plug'n'Play manifest file.
   ///
   /// Default `None`
   #[cfg(feature = "yarn_pnp")]
