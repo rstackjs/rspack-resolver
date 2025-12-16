@@ -895,7 +895,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .pnp_manifest_path_cache
       .entry(base_path.clone())
       .or_insert_with(|| {
-        self.options.pnp_manifest.as_ref().map_or_else(|| pnp::find_closest_pnp_manifest_path(&base_path).map(|p| self.cache.value(&p)), |manifest_path| Some(self.cache.value(manifest_path)))
+        self.options.pnp_manifest.as_ref().map_or_else(
+          || pnp::find_closest_pnp_manifest_path(&base_path).map(|p| self.cache.value(&p)),
+          |manifest_path| Some(self.cache.value(manifest_path)),
+        )
       });
 
     let cache_key = cached_manifest_path.as_ref().unwrap_or(cached_path);
