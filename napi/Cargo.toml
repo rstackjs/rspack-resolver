@@ -13,6 +13,7 @@ test       = false
 napi               = { version = "3.5.2", default-features = false, features = ["napi3", "serde-json", "async"] }
 napi-build         = { version = "2.3.1", default-features = false }
 napi-derive        = { version = "3.3.3" }
+pnp                = "0.12.5"
 regex              = "1.11.1"
 rspack_resolver    = { path = "..", package = "rspack_resolver" }
 tracing-subscriber = { version = "0.3.18", default-features = false, features = ["std", "fmt", "ansi"] }
