@@ -942,7 +942,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "pnp",
  "regex",
  "rspack_resolver",
  "tracing-subscriber",
