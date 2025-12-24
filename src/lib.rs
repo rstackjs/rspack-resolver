@@ -233,7 +233,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// Wrap `resolve_impl` with `tracing` information
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %directory.to_string_lossy(), specifier = specifier)))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %directory.to_string_lossy(), specifier = specifier)))]
   async fn resolve_tracing(
     &self,
     directory: &Path,
@@ -254,6 +254,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     r
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %path.to_string_lossy(), specifier = specifier )))]
   async fn resolve_impl(
     &self,
     path: &Path,
@@ -308,6 +309,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Box::pin(fut)
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = % cached_path.path().to_string_lossy())))]
   async fn require_without_parse(
     &self,
     cached_path: &CachedPath,
@@ -388,6 +390,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(())
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = % cached_path.path().to_string_lossy())))]
   async fn require_absolute(
     &self,
     cached_path: &CachedPath,
@@ -430,7 +433,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   // 3. If X begins with './' or '/' or '../'
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
   async fn require_relative(
     &self,
     cached_path: &CachedPath,
@@ -459,6 +462,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Err(ResolveError::NotFound(specifier.to_string()))
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = % cached_path.path().to_string_lossy())))]
   async fn require_hash(
     &self,
     cached_path: &CachedPath,
@@ -478,7 +482,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .await
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier)))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier)))]
   async fn require_bare(
     &self,
     cached_path: &CachedPath,
@@ -508,6 +512,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// When a # is resolved as path it will be escaped in the result. Here: `.../some\0#thing.js`.
   ///
   /// <https://github.com/webpack/enhanced-resolve#escaping>
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = % cached_path.path().to_string_lossy())))]
   async fn load_parse<'s>(
     &self,
     cached_path: &CachedPath,
@@ -530,7 +535,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok((parsed, None))
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
   async fn load_package_self_or_node_modules(
     &self,
     cached_path: &CachedPath,
@@ -580,7 +585,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
   async fn load_as_file(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     // enhanced-resolve feature: extension_alias
     if let Some(path) = self.load_extension_alias(cached_path, ctx).await? {
@@ -604,6 +609,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(path = % cached_path.path().to_string_lossy())))]
   async fn load_as_directory(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     // TODO: Only package.json is supported, so warn about having other values
     // Checking for empty files is needed for omitting checks on package.json
@@ -643,7 +649,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     self.load_index(cached_path, ctx).await
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
   async fn load_as_file_or_directory(
     &self,
     cached_path: &CachedPath,
@@ -671,7 +677,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %path.path().to_string_lossy())))]
   async fn load_extensions(
     &self,
     path: &CachedPath,
@@ -698,7 +704,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
   async fn load_realpath(
     &self,
     cached_path: &CachedPath,
@@ -748,7 +754,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     true
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
   async fn load_index(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     for main_file in &self.options.main_files {
       let main_path = cached_path.path().normalize_with(main_file);
@@ -773,6 +779,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(path = % cached_path.path().to_string_lossy())))]
   async fn load_alias_or_file(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     if !self.options.alias_fields.is_empty() {
       if let Some(package_json) = cached_path
@@ -802,7 +809,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
   async fn load_node_modules(
     &self,
     cached_path: &CachedPath,
@@ -884,7 +891,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
   fn find_pnp_manifest(
     &self,
     cached_path: &CachedPath,
@@ -911,7 +918,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
   async fn load_pnp(
     &self,
     cached_path: &CachedPath,
@@ -964,6 +971,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(path = % cached_path.path().to_string_lossy(), module_name = module_name)))]
   async fn get_module_directory(
     &self,
     cached_path: &CachedPath,
@@ -983,6 +991,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = % cached_path.path().to_string_lossy())))]
   async fn load_package_exports(
     &self,
     specifier: &str,
@@ -1015,7 +1024,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
   async fn load_package_self(
     &self,
     cached_path: &CachedPath,
@@ -1059,7 +1068,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// RESOLVE_ESM_MATCH(MATCH)
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
   async fn resolve_esm_match(
     &self,
     specifier: &str,
@@ -1099,7 +1108,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// enhanced-resolve: AliasFieldPlugin for [ResolveOptions::alias_fields]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = module_specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = module_specifier, path = %cached_path.path().to_string_lossy())))]
   async fn load_browser_field(
     &self,
     cached_path: &CachedPath,
@@ -1150,6 +1159,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// enhanced-resolve: AliasPlugin for [ResolveOptions::alias] and [ResolveOptions::fallback].
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(path = % cached_path.path().to_string_lossy())))]
   async fn load_alias(
     &self,
     cached_path: &CachedPath,
@@ -1207,6 +1217,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(path = % cached_path.path().to_string_lossy(), alias_key = alias_key)))]
   async fn load_alias_value(
     &self,
     cached_path: &CachedPath,
@@ -1262,6 +1273,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// # Errors
   ///
   /// * [ResolveError::ExtensionAlias]: When all of the aliased extensions are not found
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(path = % cached_path.path().to_string_lossy())))]
   async fn load_extension_alias(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     if self.options.extension_alias.is_empty() {
       return Ok(None);
@@ -1323,6 +1335,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// defaults to context configuration option.
   ///
   /// On non-Windows systems these requests are resolved as an absolute path first.
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier)))]
   async fn load_roots(&self, specifier: &str, ctx: &mut Ctx) -> Option<CachedPath> {
     if self.options.roots.is_empty() {
       return None;
@@ -1338,6 +1351,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     None
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = % cached_path.path().to_string_lossy())))]
   async fn load_tsconfig_paths(
     &self,
     cached_path: &CachedPath,
@@ -1364,7 +1378,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip(self), fields(path = path.display().to_string())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip(self), fields(path = path.display().to_string())))]
   fn load_tsconfig<'a>(
     &'a self,
     root: bool,
@@ -1455,6 +1469,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Box::pin(fut)
   }
 
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = % directory.path().to_string_lossy())))]
   async fn get_extended_tsconfig_path(
     &self,
     directory: &CachedPath,
@@ -1485,6 +1500,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// PACKAGE_RESOLVE(packageSpecifier, parentURL)
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = % cached_path.path().to_string_lossy())))]
   async fn package_resolve(
     &self,
     cached_path: &CachedPath,
@@ -1669,6 +1685,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// PACKAGE_IMPORTS_RESOLVE(specifier, parentURL, conditions)
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier)))]
   async fn package_imports_resolve(
     &self,
     specifier: &str,
@@ -1726,6 +1743,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// PACKAGE_IMPORTS_EXPORTS_RESOLVE(matchKey, matchObj, packageURL, isImports, conditions)
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all))]
   async fn package_imports_exports_resolve(
     &self,
     match_key: &str,
