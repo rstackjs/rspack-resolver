@@ -52,6 +52,12 @@ pub struct ResolveOptions {
   #[cfg(feature = "yarn_pnp")]
   pub enable_pnp: bool,
 
+  /// The path to the yarn Plug'n'Play manifest file.
+  ///
+  /// Default `None`
+  #[cfg(feature = "yarn_pnp")]
+  pub pnp_manifest: Option<PathBuf>,
+
   /// Set to [EnforceExtension::Enabled] for [ESM Mandatory file extensions](https://nodejs.org/api/esm.html#mandatory-file-extensions).
   ///
   /// If `enforce_extension` is set to [EnforceExtension::Enabled], resolution will not allow extension-less files.
@@ -495,6 +501,8 @@ impl Default for ResolveOptions {
       modules: vec!["node_modules".into()],
       #[cfg(feature = "yarn_pnp")]
       enable_pnp: true,
+      #[cfg(feature = "yarn_pnp")]
+      pnp_manifest: None,
       resolve_to_context: false,
       prefer_relative: false,
       prefer_absolute: false,
@@ -635,6 +643,8 @@ mod test {
       description_files: vec![],
       #[cfg(feature = "yarn_pnp")]
       enable_pnp: true,
+      #[cfg(feature = "yarn_pnp")]
+      pnp_manifest: None,
       enforce_extension: EnforceExtension::Disabled,
       exports_fields: vec![],
       extension_alias: vec![],

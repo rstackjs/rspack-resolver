@@ -157,6 +157,11 @@ pub struct NapiResolveOptions {
   ///
   /// Default `false`
   pub enable_pnp: Option<bool>,
+
+  /// Path to yarn Plug'n'Play manifest file.
+  ///
+  /// Default `None`
+  pub pnp_manifest: Option<String>,
 }
 
 #[napi]
