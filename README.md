@@ -8,6 +8,7 @@ Rust port of [enhanced-resolve](https://github.com/webpack/enhanced-resolve).
   - support project references defined `tsconfig.references`
   - support [template variable ${configDir} for substitution of config files directory path](https://github.com/microsoft/TypeScript/pull/58042)
 - supports in-memory file system via the `FileSystem` trait
+- supports Yarn's [Plug'n'Play](https://yarnpkg.com/features/pnp)
 - contains `tracing` instrumentation
 
 ## Usage
@@ -166,12 +167,13 @@ The options are aligned with [enhanced-resolve](https://github.com/webpack/enhan
 
 ### Other Options
 
-| Field               | Default | Description                                                                                                                                                                          |
-| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| pnpManifest         | None    | Path to yarn Plug'n'Play manifest file                                                                                                                                               |
-| tsconfig            | None    | TypeScript related config for resolver                                                                                                                                               |
-| tsconfig.configFile |         | A relative path to the tsconfig file based on `cwd`, or an absolute path of tsconfig file.                                                                                           |
-| tsconfig.references | `[]`    | - 'auto': inherits from TypeScript config <br/> - `string []`: relative path (based on directory of the referencing tsconfig file) or absolute path of referenced project's tsconfig |
+| Field               | Default | Description                                                                                                                                                                                                                                                                                                                            |
+|---------------------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tsconfig            | None   | TypeScript related config for resolver                                                                                                                                                                                                                                                                                                 |
+| tsconfig.configFile |        | A relative path to the tsconfig file based on `cwd`, or an absolute path of tsconfig file.                                                                                                                                                                                                                                             |
+| tsconfig.references | `[]`   | - 'auto': inherits from TypeScript config <br/> - `string []`: relative path (based on directory of the referencing tsconfig file) or absolute path of referenced project's tsconfig                                                                                                                                                   |
+| enablePnp           | false  | Enable Yarn Plug'n'Play support                                                                                                                                                                                                                                                                                                        |
+| pnpManifest         | None   | Absolute Path to yarn Plug'n'Play manifest file, takes effects when PnP enabled. <br/> - `None`: PnP Manifest located in nearest ancestor dir; <br/> - `Some(PathBuf)`: Stick to the Manifest file of Pnp, it's useful while enable PnP `enableGlobalCache: true`, but user has to ensure there is no require across Yarn PnP project |
 
 In the context of `@rspack/resolver`, the `tsconfig.references` option helps isolate the `paths` configurations of different TypeScript projects.
 This ensures that path aliases defined in one TypeScript project do not unintentionally affect the resolving behavior of another.
