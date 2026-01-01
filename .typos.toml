@@ -6,3 +6,8 @@
 extend-exclude = [
   "CHANGELOG.md",
 ]
+
+[default.extend-words]
+
+[default.extend-identifiers]
+PnP = "PnP"
