@@ -39,6 +39,6 @@
   "packageManager": "pnpm@9.15.9",
   "repository": {
     "type": "git",
-    "url": "git+https://web-infra-dev/rspack-resolver.git"
+    "url": "git+https://rstackjs/rspack-resolver.git"
   }
 }

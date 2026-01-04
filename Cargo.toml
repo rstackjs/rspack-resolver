@@ -7,13 +7,13 @@ authors      = ["Rspack"]
 categories   = ["development-tools"]
 description  = "ESM / CJS module resolution"
 edition      = "2021"
-homepage     = "https://github.com/web-infra-dev/rspack-resolver"
+homepage     = "https://github.com/rstackjs/rspack-resolver"
 include      = ["/src", "/examples", "/benches", "!/benches/pnpm-lock.yaml", "!/benches/node_modules"]
 keywords     = ["node", "resolve", "cjs", "esm", "enhanced-resolve"]
 license      = "MIT"
 name         = "rspack_resolver"
 readme       = "README.md"
-repository   = "https://github.com/web-infra-dev/rspack-resolver"
+repository   = "https://github.com/rstackjs/rspack-resolver"
 rust-version = "1.70"
 version      = "0.6.7"
 
