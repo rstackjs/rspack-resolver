@@ -3,7 +3,7 @@
 See
 
 - `index.d.ts` for `resolveSync` and `ResolverFactory` API.
-- [README.md](https://github.com/web-infra-dev/rspack-resolver?tab=readme-ov-file#rspack-resolver) for options.
+- [README.md](https://github.com/rstackjs/rspack-resolver?tab=readme-ov-file#rspack-resolver) for options.
 
 ## API
 

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.2](https://github.com/web-infra-dev/rspack-resolver/compare/rspack_resolver-v0.5.1...rspack_resolver-v0.5.2) - 2025-02-28
+## [0.5.2](https://github.com/rstackjs/rspack-resolver/compare/rspack_resolver-v0.5.1...rspack_resolver-v0.5.2) - 2025-02-28
 
 ### Added
 
@@ -17,35 +17,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - bump pnp 0.9.1 (#50)
 
-## [0.5.1](https://github.com/web-infra-dev/rspack-resolver/compare/rspack_resolver-v0.5.0...rspack_resolver-v0.5.1) - 2025-02-11
+## [0.5.1](https://github.com/rstackjs/rspack-resolver/compare/rspack_resolver-v0.5.0...rspack_resolver-v0.5.1) - 2025-02-11
 
 ### Fixed
 
 - 🐛 pnp feat respect options.enable_pnp (#47)
 
-## [0.4.0](https://github.com/web-infra-dev/rspack-resolver/compare/rspack_resolver-v0.3.6...rspack_resolver-v0.4.0) - 2024-12-26
+## [0.4.0](https://github.com/rstackjs/rspack-resolver/compare/rspack_resolver-v0.3.6...rspack_resolver-v0.4.0) - 2024-12-26
 
 ### Feat
 
-- Implements the PnP manifest lookup within the resolver ([#39](https://github.com/web-infra-dev/rspack-resolver/pull/39))
+- Implements the PnP manifest lookup within the resolver ([#39](https://github.com/rstackjs/rspack-resolver/pull/39))
 
-## [0.3.6](https://github.com/web-infra-dev/rspack-resolver/compare/rspack_resolver-v0.3.5...rspack_resolver-v0.3.6) - 2024-12-13
+## [0.3.6](https://github.com/rstackjs/rspack-resolver/compare/rspack_resolver-v0.3.5...rspack_resolver-v0.3.6) - 2024-12-13
 
 ### Fixed
 
 - alias match request end with slash (#35)
 
-## [0.3.5](https://github.com/web-infra-dev/rspack-resolver/compare/rspack_resolver-v0.3.4...rspack_resolver-v0.3.5) - 2024-10-21
+## [0.3.5](https://github.com/rstackjs/rspack-resolver/compare/rspack_resolver-v0.3.4...rspack_resolver-v0.3.5) - 2024-10-21
 
 ### Fixed
 
-- resolve mathjs error when using `extensionAlias` ([#31](https://github.com/web-infra-dev/rspack-resolver/pull/31))
+- resolve mathjs error when using `extensionAlias` ([#31](https://github.com/rstackjs/rspack-resolver/pull/31))
 
-## [0.3.4](https://github.com/web-infra-dev/rspack-resolver/compare/rspack_resolver-v0.3.3...rspack_resolver-v0.3.4) - 2024-10-21
+## [0.3.4](https://github.com/rstackjs/rspack-resolver/compare/rspack_resolver-v0.3.3...rspack_resolver-v0.3.4) - 2024-10-21
 
 ### Added
 
-- rebase and refine extension-alias error format ([#30](https://github.com/web-infra-dev/rspack-resolver/pull/30))
+- rebase and refine extension-alias error format ([#30](https://github.com/rstackjs/rspack-resolver/pull/30))
 
 ## [1.12.0](https://github.com/oxc-project/oxc_resolver/compare/oxc_resolver-v1.11.0...oxc_resolver-v1.12.0) - 2024-09-25
 

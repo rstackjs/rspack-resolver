@@ -178,7 +178,7 @@ The options are aligned with [enhanced-resolve](https://github.com/webpack/enhan
 In the context of `@rspack/resolver`, the `tsconfig.references` option helps isolate the `paths` configurations of different TypeScript projects.
 This ensures that path aliases defined in one TypeScript project do not unintentionally affect the resolving behavior of another.
 
-Given the following [project](https://github.com/web-infra-dev/rspack-resolver/blob/main/examples/tsconfig_references) structure:
+Given the following [project](https://github.com/rstackjs/rspack-resolver/blob/main/examples/tsconfig_references) structure:
 
 ```txt
 ├── app
@@ -227,5 +227,5 @@ the resolving result for `import foo` in `component/src/index.ts` differs based 
 > **Rspack-resolver** is a fork of [oxc-resolver](https://github.com/oxc-project/oxc-resolver?utm_source=chatgpt.com), maintained specifically for use in [Rspack](https://github.com/web-infra-dev/rspack?utm_source=chatgpt.com).
 >
 > While it originated from `oxc-resolver`,
-> we decided to maintain a fork because Rspack requires a different [file system API](https://github.com/web-infra-dev/rspack-resolver/pull/38).
+> we decided to maintain a fork because Rspack requires a different [file system API](https://github.com/rstackjs/rspack-resolver/pull/38).
 > This ensures better alignment with Rspack’s design and long-term stability, while still benefiting from the foundation laid by `oxc-resolver`.
