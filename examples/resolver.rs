@@ -9,19 +9,18 @@ fn init_tracing() {
 
   match trace_file {
     Some(file) => {
-      let file_writer = std::fs::File::create(&file).expect("Failed to create trace file");
+      // Use tracing-chrome to write Chrome-compatible trace directly
+      let (chrome_layer, _guard) = tracing_chrome::ChromeLayerBuilder::new()
+        .file(&file)
+        .include_args(true)
+        .build();
 
       tracing_subscriber::registry()
-        .with(
-          fmt::layer()
-            .json()
-            .with_span_events(fmt::format::FmtSpan::FULL)
-            .with_writer(Arc::new(file_writer)),
-        )
+        .with(chrome_layer)
         .with(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
         .init();
 
-      println!("Writing JSON trace to: {}", file);
+      println!("Writing Chrome trace to: {}", file);
     }
     None => {
       tracing_subscriber::registry()

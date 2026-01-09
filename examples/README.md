@@ -5,8 +5,7 @@ This example demonstrates the module resolution capabilities of rspack-resolver 
 ## Features
 
 - **Human-readable output**: Full span tracing with colored output
-- **JSON trace output**: Generate machine-readable traces for visualization
-- **Chrome/Perfetto compatible**: Convert traces to Chrome DevTools format
+- **Chrome/Perfetto compatible**: Direct Chrome DevTools trace output
 - **Call hierarchy visualization**: See the complete function call stack with timing
 
 ## Usage
@@ -18,60 +17,43 @@ cargo run -F=enable_instrument --example resolver /absolute/path/to/dir ./module
 ```
 
 Example:
+
 ```bash
 cargo run -F=enable_instrument --example resolver /Users/bytedance/project/app ./index.js
 ```
 
-### JSON Trace Output
+### Chrome Trace Output
 
-Set the `TRACE_FILE` environment variable to output tracing data in JSON format:
+Set the `TRACE_FILE` environment variable to output tracing data in Chrome-compatible format:
 
 ```bash
 TRACE_FILE=trace.json cargo run -F=enable_instrument --example resolver /absolute/path/to/dir ./module
 ```
 
-The JSON file will contain one JSON object per line with span events including:
-- `timestamp` - ISO 8601 timestamp
-- `level` - Log level (DEBUG, INFO, etc.)
-- `fields.message` - Event type (new, enter, exit, close)
-- `fields.time.busy`, `fields.time.idle` - Timing information
-- `fields.ret` - Return value on success
-- `fields.err` - Error value on failure
-- `span` - Span metadata (name, path, specifier)
-- `spans` - Parent span information for hierarchy
-
-### Convert JSON Trace to Chrome Format
-
-Convert the JSON trace to Chrome/Perfetto trace format:
-
-```bash
-python3 scripts/convert-trace.py trace.json chrome-trace.json
-```
-
-The script will:
-- Parse all JSON lines
-- Build span hierarchy from parent-child relationships
-- Convert timestamps to microseconds since epoch
-- Generate Chrome-compatible trace events
-- Output the number of converted events
+The file will be generated in Chrome trace format directly, ready for visualization.
 
 ### Visualize in Chrome DevTools
 
 1. Open Chrome and navigate to `chrome://tracing`
-2. Click "Load" and select `chrome-trace.json`
+2. Click "Load" and select `trace.json`
 3. You'll see an interactive timeline showing:
    - Function call hierarchy (nested spans)
    - Execution time for each function
    - Parent-child relationships
    - Span arguments (path, specifier)
    - Result values (ret, err)
-   - Duration breakdown (busy vs idle time)
+   - Duration breakdown
 
 4. Use the timeline controls to:
    - Zoom in/out with mouse wheel
    - Click on spans to see details
    - Search for specific function names
-   - Filter by thread ID (represents call depth)
+   - Filter by thread ID
+
+Alternatively, you can view the trace in [Perfetto UI](https://ui.perfetto.dev/):
+
+1. Open https://ui.perfetto.dev/
+2. Click "Open trace file" and select `trace.json`
 
 ## Log Levels
 
@@ -109,6 +91,7 @@ The default output shows colored span events:
 - `close` - Span closure with timing info (`time.busy`, `time.idle`)
 
 Example output:
+
 ```
 DEBUG resolve_tracing{path=/path specifier="./module"}: new
 DEBUG resolve_tracing{path=/path specifier="./module"}: enter
@@ -121,18 +104,20 @@ DEBUG resolve_tracing{path=/path specifier="./module"}: close time.busy=12.0ms t
 
 ### Chrome Trace Format
 
-The converted trace contains:
+The generated trace file contains Chrome-compatible trace events with:
 
-- **Complete events** (`ph: "B"`, `ph: "E"`): Begin/end pairs for each function
-- **Duration events** (`ph: "i"`, `name: "duration"`): Timing information
-- **Result events** (`ph: "i"`, `name: "result"`): Return values or errors
+- **Begin/End events** for each function call span
+- **Metadata** including function name, timestamps, thread ID
+- **Arguments** (path, specifier) included in the trace
+- **Timing information** showing execution duration
 
 Each event includes:
+
 - `name` - Function name
-- `ph` - Phase type (B=Begin, E=End, i=Instant)
+- `ph` - Phase type (B=Begin, E=End, etc.)
 - `ts` - Timestamp in microseconds
-- `pid` - Process ID (always 1)
-- `tid` - Thread ID (represents call depth)
+- `pid` - Process ID
+- `tid` - Thread ID
 - `args` - Additional arguments (path, specifier, return value, etc.)
 
 ## Traced Functions
@@ -161,9 +146,9 @@ The following resolution functions are instrumented with `tracing::instrument`:
 # Human-readable output
 cargo run -F=enable_instrument --example resolver /tmp/project ./index.js
 
-# JSON trace
+# Chrome trace
 TRACE_FILE=trace.json cargo run -F=enable_instrument --example resolver /tmp/project ./index.js
-python3 scripts/convert-trace.py trace.json chrome-trace.json
+# Then open chrome://tracing and load trace.json
 ```
 
 ### With Custom Log Level
@@ -172,12 +157,11 @@ python3 scripts/convert-trace.py trace.json chrome-trace.json
 RUST_LOG=rspack_resolver=trace cargo run -F=enable_instrument --example resolver /tmp/project ./module.js
 ```
 
-### Complex Resolve (with all traces)
+### Complex Resolve (with Chrome trace)
 
 ```bash
 TRACE_FILE=full-trace.json RUST_LOG=trace cargo run -F=enable_instrument --example resolver /tmp/project ./module.js
-python3 scripts/convert-trace.py full-trace.json chrome-trace.json
-# Open chrome://tracing and load chrome-trace.json
+# Open chrome://tracing or https://ui.perfetto.dev/ and load full-trace.json
 ```
 
 ## Troubleshooting
@@ -185,6 +169,7 @@ python3 scripts/convert-trace.py full-trace.json chrome-trace.json
 ### No tracing output
 
 Ensure you're using the `enable_instrument` feature:
+
 ```bash
 cargo run -F=enable_instrument --example resolver ...
 ```
@@ -192,13 +177,15 @@ cargo run -F=enable_instrument --example resolver ...
 ### Too much output
 
 Reduce log level:
+
 ```bash
 RUST_LOG=info cargo run -F=enable_instrument --example resolver ...
 ```
 
-### JSON trace file is empty
+### Chrome trace file is empty
 
 Make sure the `TRACE_FILE` path is writable:
+
 ```bash
 TRACE_FILE=/tmp/trace.json cargo run -F=enable_instrument --example resolver ...
 ls -la /tmp/trace.json
@@ -206,44 +193,18 @@ ls -la /tmp/trace.json
 
 ### Chrome trace shows no events
 
-1. Verify the JSON trace has content:
+1. Verify the trace file has content:
    ```bash
    wc -l trace.json
    ```
-2. Check for parsing errors during conversion
-3. Ensure the Chrome trace file is valid JSON:
+2. Check that the file is valid JSON:
    ```bash
-   cat chrome-trace.json | python3 -m json.tool > /dev/null
+   cat trace.json | python3 -m json.tool > /dev/null
    ```
-
-### Timeline shows wrong timing
-
-- Timestamps are converted from ISO 8601 to microseconds since Unix epoch
-- This conversion is done by `datetime.fromisoformat()` and `.timestamp()`
-- If you see incorrect timing, check your system clock
-
-## Advanced Usage
-
-### Filtering Specific Functions
-
-You can modify the `convert-trace.py` script to filter events:
-
-```python
-# Add this after events are created
-filtered_events = [e for e in events if 'resolve' in e['name']]
-events = filtered_events
-```
-
-### Custom Visualization
-
-The JSON trace format can be imported into other tools:
-- **Perfetto** - https://ui.perfetto.dev/
-- **FlameGraph** - After converting to flamegraph format
-- **Jaeger** - With appropriate adapter
 
 ## Performance Notes
 
 - Tracing adds minimal overhead (< 5%)
-- JSON output is slightly slower due to serialization
+- Chrome trace output is efficient and production-ready
 - For production use, consider disabling tracing or using higher log levels
 - The `enable_instrument` feature is off by default in release builds

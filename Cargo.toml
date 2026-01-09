@@ -72,7 +72,8 @@ missing_const_for_fn = "allow"
 multiple_crate_versions = "allow"
 
 [[example]]
-name = "resolver"
+name              = "resolver"
+required-features = ["enable_instrument"]
 
 [dependencies]
 dashmap = "6.1.0"
@@ -81,6 +82,7 @@ serde_json = { version = "1.0.145", features = [
   "preserve_order",
 ] } # preserve_order: package_json.exports requires order such as `["require", "import", "default"]`
 tracing = "0.1.41"
+
 
 simd-json = { version = "0.17.0", features = ["serde_impl", "runtime-detection"], default-features = false }
 
@@ -105,9 +107,10 @@ tokio = { version = "1.48.0", default-features = false, features = ["sync", "rt"
 [dev-dependencies]
 criterion2     = { version = "3.0.0", default-features = false, features = ["async_tokio"] }
 normalize-path = { version = "0.2.1" }
-rayon          = { version = "1.11.0" }
 regex          = "1.12.2"
 vfs            = "0.12.2"                                                                    # for testing with in memory file system
+tracing-chrome = "0.7"
+tracing-subscriber = "0.3.22"
 
 [features]
 default = ["yarn_pnp"]
