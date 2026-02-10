@@ -18,9 +18,9 @@ fn init_tracing() -> TracingGuard {
     Some(file) => {
       // Use tracing-chrome to write Chrome-compatible trace directly
       let (chrome_layer, guard) = tracing_chrome::ChromeLayerBuilder::new()
+        .trace_style(tracing_chrome::TraceStyle::Async)
         .file(&file)
         .include_args(true)
-        .trace_style(tracing_chrome::TraceStyle::Async)
         .build();
 
       tracing_subscriber::registry()

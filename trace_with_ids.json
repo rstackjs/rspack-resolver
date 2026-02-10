@@ -1,0 +1,5155 @@
+[
+  {
+    "ph": "M",
+    "pid": 1,
+    "name": "thread_name",
+    "tid": 0,
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 2612.917,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 2726.542,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 2,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 2769.458,
+    "name": "resolve",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 244,
+    "args": {
+      "path": "\"/Users/bytedance/git/problem/yarn_pnp_test/app\"",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 3,
+    "parentId": 2
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 2804.0,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 4,
+    "parentId": 3
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 2959.375,
+    "name": "load_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 516,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 5,
+    "parentId": 4
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3006.667,
+    "name": "load_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 516,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 5
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3011.125,
+    "name": "load_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 516,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 6,
+    "parentId": 4
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3014.542,
+    "name": "load_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 516,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 6
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3063.5,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 7,
+    "parentId": 4
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3110.292,
+    "name": "load_tsconfig_paths",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1355,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 8,
+    "parentId": 7
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3114.125,
+    "name": "load_tsconfig_paths",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1355,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 8
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3117.458,
+    "name": "load_tsconfig_paths",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1355,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 9,
+    "parentId": 7
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3120.875,
+    "name": "load_tsconfig_paths",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1355,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 9
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3141.292,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 10,
+    "parentId": 7
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3148.0,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 10
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3151.167,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 11,
+    "parentId": 7
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3154.333,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 11
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3175.292,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 12,
+    "parentId": 7
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3271.5,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 13,
+    "parentId": 12
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3308.5,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 14,
+    "parentId": 13
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3331.167,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 15,
+    "parentId": 14
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3385.667,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 16,
+    "parentId": 15
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3401.833,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 17,
+    "parentId": 16
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3740.625,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 17
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3747.375,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 16
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3750.458,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 15
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3753.25,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 14
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3756.5,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 13
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3759.542,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 12
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3763.208,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 7
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3771.792,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 4
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3775.625,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 3
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3779.667,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 2
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3841.333,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 18,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3847.917,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 19,
+    "parentId": 18
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3851.0,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 20,
+    "parentId": 19
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3854.958,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 21,
+    "parentId": 20
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3857.708,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 22,
+    "parentId": 21
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3860.458,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 23,
+    "parentId": 22
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3863.292,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 24,
+    "parentId": 23
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3865.917,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 25,
+    "parentId": 24
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3868.917,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 26,
+    "parentId": 25
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3871.542,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 27,
+    "parentId": 26
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3921.167,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 27
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3925.542,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 26
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3928.583,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 25
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3931.583,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 24
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3934.125,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 23
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3936.625,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 22
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3939.125,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 21
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3941.792,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 20
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3944.417,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 19
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 3947.167,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 18
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3958.0,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 28,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3960.958,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 29,
+    "parentId": 28
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3963.292,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 30,
+    "parentId": 29
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3965.792,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 31,
+    "parentId": 30
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3968.25,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 32,
+    "parentId": 31
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3970.583,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 33,
+    "parentId": 32
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3973.042,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 34,
+    "parentId": 33
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3975.5,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 35,
+    "parentId": 34
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3980.167,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 36,
+    "parentId": 35
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 3982.792,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 37,
+    "parentId": 36
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 4033.708,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 38,
+    "parentId": 37
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4100.292,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 38
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4103.625,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 37
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4106.25,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 36
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4109.375,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 35
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4111.833,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 34
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4114.75,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 33
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4117.417,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 32
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4120.042,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 31
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4122.75,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 30
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4125.5,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 29
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 4128.292,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 28
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5417.958,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 39,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5448.167,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 40,
+    "parentId": 39
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5452.083,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 41,
+    "parentId": 40
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5456.917,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 42,
+    "parentId": 41
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5460.542,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 43,
+    "parentId": 42
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5464.208,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 44,
+    "parentId": 43
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5467.5,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 45,
+    "parentId": 44
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5470.875,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 46,
+    "parentId": 45
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5474.75,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 47,
+    "parentId": 46
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5478.583,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 48,
+    "parentId": 47
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5481.917,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 49,
+    "parentId": 48
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5527.542,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 49
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5530.958,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 48
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5533.208,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 47
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5535.542,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 46
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5537.875,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 45
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5540.167,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 44
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5544.375,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 43
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5546.708,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 42
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5549.083,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 41
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5551.375,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 40
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5553.708,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 39
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5567.0,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 50,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5571.208,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 51,
+    "parentId": 50
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5573.542,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 52,
+    "parentId": 51
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5576.0,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 53,
+    "parentId": 52
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5578.333,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 54,
+    "parentId": 53
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5580.667,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 55,
+    "parentId": 54
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5583.0,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 56,
+    "parentId": 55
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5585.375,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 57,
+    "parentId": 56
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5587.625,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 58,
+    "parentId": 57
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5589.917,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 59,
+    "parentId": 58
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5592.333,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 60,
+    "parentId": 59
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5616.833,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 60
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5620.0,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 59
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5622.333,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 58
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5624.667,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 57
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5627.0,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 56
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5629.25,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 55
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5631.792,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 54
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5634.083,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 53
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5636.542,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 52
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5638.833,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 51
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5641.208,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 50
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5643.917,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 61,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5646.375,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 62,
+    "parentId": 61
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5648.625,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 63,
+    "parentId": 62
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5650.958,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 64,
+    "parentId": 63
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5654.458,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 65,
+    "parentId": 64
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5656.708,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 66,
+    "parentId": 65
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5659.292,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 67,
+    "parentId": 66
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5661.667,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 68,
+    "parentId": 67
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5663.917,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 69,
+    "parentId": 68
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5666.208,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 70,
+    "parentId": 69
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5668.542,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 71,
+    "parentId": 70
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5678.167,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 71
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5681.0,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 70
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5683.25,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 69
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5685.5,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 68
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5687.792,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 67
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5690.125,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 66
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5692.417,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 65
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5694.708,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 64
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5697.042,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 63
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5699.333,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 62
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5701.625,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 61
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5704.167,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 72,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5706.375,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 73,
+    "parentId": 72
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5708.542,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 74,
+    "parentId": 73
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5710.833,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 75,
+    "parentId": 74
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5713.125,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 76,
+    "parentId": 75
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5715.292,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 77,
+    "parentId": 76
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5717.583,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 78,
+    "parentId": 77
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5719.875,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 79,
+    "parentId": 78
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5722.125,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 80,
+    "parentId": 79
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5724.333,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 81,
+    "parentId": 80
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5726.708,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 82,
+    "parentId": 81
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5749.333,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 82
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5752.333,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 81
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5755.542,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 80
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5757.833,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 79
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5760.083,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 78
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5762.375,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 77
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5764.792,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 76
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5767.083,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 75
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5769.417,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 74
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5771.667,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 73
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5773.958,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 72
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5776.542,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 83,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5778.667,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 84,
+    "parentId": 83
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5780.833,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 85,
+    "parentId": 84
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5783.125,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 86,
+    "parentId": 85
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5785.417,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 87,
+    "parentId": 86
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5787.583,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 88,
+    "parentId": 87
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5789.917,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 89,
+    "parentId": 88
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5792.208,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 90,
+    "parentId": 89
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5794.458,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 91,
+    "parentId": 90
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5796.75,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 92,
+    "parentId": 91
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5799.125,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 93,
+    "parentId": 92
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5808.292,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 93
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5810.917,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 92
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5813.25,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 91
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5815.5,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 90
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5817.917,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 89
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5820.208,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 88
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5822.542,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 87
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5824.792,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 86
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5827.083,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 85
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5829.417,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 84
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5831.708,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 83
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5840.708,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 94,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5843.0,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 95,
+    "parentId": 94
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5845.208,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 96,
+    "parentId": 95
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5847.458,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 97,
+    "parentId": 96
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5849.708,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 98,
+    "parentId": 97
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5852.042,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 99,
+    "parentId": 98
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5854.375,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 100,
+    "parentId": 99
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5856.625,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 101,
+    "parentId": 100
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5858.958,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 102,
+    "parentId": 101
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5861.25,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 103,
+    "parentId": 102
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5863.5,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 104,
+    "parentId": 103
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5872.792,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 104
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5875.333,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 103
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5877.667,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 102
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5880.042,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 101
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5882.375,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 100
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5884.708,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 99
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5887.0,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 98
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5889.333,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 97
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5891.667,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 96
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5894.0,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 95
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5896.458,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 94
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5899.0,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 105,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5901.208,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 106,
+    "parentId": 105
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5903.375,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 107,
+    "parentId": 106
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5905.625,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 108,
+    "parentId": 107
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5907.833,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 109,
+    "parentId": 108
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5910.0,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 110,
+    "parentId": 109
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5912.292,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 111,
+    "parentId": 110
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5914.542,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 112,
+    "parentId": 111
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5916.792,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 113,
+    "parentId": 112
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5919.667,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 114,
+    "parentId": 113
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5922.042,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 115,
+    "parentId": 114
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5931.083,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 115
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5933.542,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 114
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5935.833,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 113
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5938.125,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 112
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5940.417,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 111
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5942.708,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 110
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5944.958,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 109
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5947.292,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 108
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5949.583,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 107
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5951.875,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 106
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 5954.167,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 105
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5956.667,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 116,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5958.833,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 117,
+    "parentId": 116
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5961.167,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 118,
+    "parentId": 117
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5963.542,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 119,
+    "parentId": 118
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5965.833,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 120,
+    "parentId": 119
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5968.042,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 121,
+    "parentId": 120
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5970.292,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 122,
+    "parentId": 121
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5972.5,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 123,
+    "parentId": 122
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5974.75,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 124,
+    "parentId": 123
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5977.042,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 125,
+    "parentId": 124
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 5979.375,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 126,
+    "parentId": 125
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6094.625,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 126
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6099.042,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 127,
+    "parentId": 125
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6101.583,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 127
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6117.625,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 125
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6120.375,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 128,
+    "parentId": 124
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6122.792,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 128
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6162.042,
+    "name": "load_browser_field",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1112,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 129,
+    "parentId": 124
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6168.625,
+    "name": "load_browser_field",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1112,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 129
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6171.25,
+    "name": "load_browser_field",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1112,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 130,
+    "parentId": 124
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6173.5,
+    "name": "load_browser_field",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1112,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 130
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6187.5,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 131,
+    "parentId": 124
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6192.375,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 131
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6194.917,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 132,
+    "parentId": 124
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6197.25,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 132
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6204.042,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 124
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6206.417,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 133,
+    "parentId": 123
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6208.792,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.ts"
+    },
+    "id": 133
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6235.458,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 134,
+    "parentId": 123
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6245.583,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 135,
+    "parentId": 134
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6294.417,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 135
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6297.625,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 134
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6300.083,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 123
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6302.583,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 122
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6305.208,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 121
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6307.708,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 120
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6310.083,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 119
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6312.833,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 118
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6315.333,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 117
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6317.75,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 116
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6335.792,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 136,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6340.542,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 137,
+    "parentId": 136
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6343.042,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 138,
+    "parentId": 137
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6345.792,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 139,
+    "parentId": 138
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6348.25,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 140,
+    "parentId": 139
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6350.833,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 141,
+    "parentId": 140
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6353.292,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 142,
+    "parentId": 141
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6355.667,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 143,
+    "parentId": 142
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6358.0,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 144,
+    "parentId": 143
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6361.208,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 145,
+    "parentId": 144
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6381.958,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 146,
+    "parentId": 145
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6385.625,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 146
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6388.0,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 147,
+    "parentId": 145
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6390.292,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 147
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6396.542,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 145
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6399.0,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 148,
+    "parentId": 144
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6401.458,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 148
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6413.958,
+    "name": "load_browser_field",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1112,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 149,
+    "parentId": 144
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6417.833,
+    "name": "load_browser_field",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1112,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 149
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6420.125,
+    "name": "load_browser_field",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1112,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 150,
+    "parentId": 144
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6422.375,
+    "name": "load_browser_field",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1112,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 150
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6434.958,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 151,
+    "parentId": 144
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6438.042,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 151
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6440.292,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 152,
+    "parentId": 144
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6442.542,
+    "name": "load_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1163,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 152
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6448.75,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 144
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6451.125,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 153,
+    "parentId": 143
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6453.292,
+    "name": "load_alias_or_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 783,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 153
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6458.417,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 143
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6461.167,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 154,
+    "parentId": 142
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6463.5,
+    "name": "load_extension_alias",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 1277,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 154
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6468.542,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 142
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6471.042,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 155,
+    "parentId": 141
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6473.25,
+    "name": "load_as_file",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 589,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 155
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6478.375,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 141
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6480.75,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 156,
+    "parentId": 140
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6483.125,
+    "name": "load_as_file_or_directory",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 653,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 156
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6488.375,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 140
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6490.792,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 157,
+    "parentId": 139
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6492.958,
+    "name": "require_relative",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 437,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 157
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6499.833,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 139
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6502.167,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 158,
+    "parentId": 138
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6504.333,
+    "name": "require_without_parse",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 313,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 158
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6520.625,
+    "name": "load_realpath",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 708,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 159,
+    "parentId": 138
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6534.208,
+    "name": "load_realpath",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 708,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 159
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6537.083,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 138
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6539.458,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 137
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6541.833,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 136
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6565.125,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 160,
+    "parentId": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6580.958,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 161,
+    "parentId": 160
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6583.5,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 162,
+    "parentId": 161
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6585.917,
+    "name": "load_realpath",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 708,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 163,
+    "parentId": 162
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6608.125,
+    "name": "load_realpath",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 708,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 163
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6611.208,
+    "name": "load_realpath",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 708,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 164,
+    "parentId": 162
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6613.542,
+    "name": "load_realpath",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 708,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 164
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6648.25,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 165,
+    "parentId": 162
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6658.958,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 166,
+    "parentId": 165
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6662.292,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 166
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6664.5,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 167,
+    "parentId": 165
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6666.75,
+    "name": "package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 304,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib"
+    },
+    "id": 167
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6672.042,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 165
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6674.292,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 168,
+    "parentId": 162
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6676.5,
+    "name": "find_package_json",
+    "cat": "rspack_resolver::cache",
+    "tid": 0,
+    ".file": "src/cache.rs",
+    ".line": 273,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js"
+    },
+    "id": 168
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6684.083,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 162
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6686.542,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 169,
+    "parentId": 161
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6689.042,
+    "name": "resolve_impl",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 258,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 169
+  },
+  {
+    "ph": "i",
+    "pid": 1,
+    "ts": 6696.542,
+    "name": "event src/lib.rs:249",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    "s": "t",
+    ".file": "src/lib.rs",
+    ".line": 249,
+    "args": {
+      "options": "ResolveOptions { tsconfig: None, alias: [(\"asdf\", [Path(\"./test.js\")])], alias_fields: [[\"browser\"]], condition_names: [\"node\", \"import\"], description_files: [\"package.json\"], enable_pnp: true, enforce_extension: Disabled, exports_fields: [[\"exports\"]], imports_fields: [[\"imports\"]], extension_alias: [(\".js\", [\".ts\", \".js\"])], extensions: [\".js\", \".ts\"], fallback: [], fully_specified: false, main_fields: [\"main\"], main_files: [\"index\"], modules: [\"node_modules\"], resolve_to_context: false, prefer_relative: false, prefer_absolute: false, restrictions: [], roots: [], symlinks: true, builtin_modules: false }",
+      "ret": "\"/Users/bytedance/git/problem/yarn_pnp_test/lib/index.js\""
+    }
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6770.417,
+    "name": "resolve",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 244,
+    "args": {
+      "path": "\"/Users/bytedance/git/problem/yarn_pnp_test/app\"",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 161
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6776.25,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 160
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6778.708,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 170,
+    "parentId": 1
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6780.958,
+    "name": "resolve_tracing",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 237,
+    "args": {
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app",
+      "specifier": "\"../lib/index.js\""
+    },
+    "id": 170
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6826.125,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 1
+  },
+  {
+    "ph": "B",
+    "pid": 1,
+    "ts": 6829.0,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 171
+  },
+  {
+    "ph": "E",
+    "pid": 1,
+    "ts": 6831.292,
+    "name": "resolve_with_context",
+    "cat": "rspack_resolver",
+    "tid": 0,
+    ".file": "src/lib.rs",
+    ".line": 215,
+    "args": {
+      "specifier": "\"../lib/index.js\"",
+      "path": "/Users/bytedance/git/problem/yarn_pnp_test/app"
+    },
+    "id": 171
+  }
+]

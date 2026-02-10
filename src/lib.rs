@@ -212,6 +212,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// # Errors
   ///
   /// * See [ResolveError]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level = tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %directory.as_ref().to_string_lossy())))]
   pub async fn resolve_with_context<P: Send + AsRef<Path>>(
     &self,
     directory: P,

@@ -105,12 +105,12 @@ tokio = { version = "1.48.0", default-features = false, features = ["sync", "rt-
 tokio = { version = "1.48.0", default-features = false, features = ["sync", "rt", "macros"] }
 
 [dev-dependencies]
-criterion2     = { version = "3.0.0", default-features = false, features = ["async_tokio"] }
-normalize-path = { version = "0.2.1" }
-regex          = "1.12.2"
-vfs            = "0.12.2"                                                                    # for testing with in memory file system
-tracing-chrome = "0.7"
-tracing-subscriber = "0.3.22"
+criterion2         = { version = "3.0.0", default-features = false, features = ["async_tokio"] }
+normalize-path     = { version = "0.2.1" }
+regex              = "1.12.2"
+tracing-chrome     = "0.7"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+vfs                = "0.12.2"                                                                    # for testing with in memory file system
 
 [features]
 default = ["yarn_pnp"]
