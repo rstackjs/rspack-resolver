@@ -206,6 +206,7 @@ fn bench_resolver(c: &mut Criterion) {
     &data,
     |b, data| {
       let runner = runtime::Builder::new_current_thread()
+        .enable_all()
         .build()
         .expect("failed to create tokio runtime");
 
@@ -229,6 +230,7 @@ fn bench_resolver(c: &mut Criterion) {
     &data,
     |b, data| {
       let runner = runtime::Builder::new_current_thread()
+        .enable_all()
         .build()
         .expect("failed to create tokio runtime");
       let rspack_resolver = resolver_with_many_extensions();
