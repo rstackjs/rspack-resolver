@@ -208,6 +208,7 @@ fn bench_resolver(c: &mut Criterion) {
       let runner = runtime::Builder::new_current_thread()
         .build()
         .expect("failed to create tokio runtime");
+
       let rspack_resolver = rspack_resolver(false);
 
       b.to_async(runner).iter_with_setup(
