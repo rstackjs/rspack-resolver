@@ -43,8 +43,8 @@ jobs:
       - uses: ./.github/actions/pnpm
       - name: Build Benchmark
         env:
-          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
-        run: cargo codspeed build --features codspeed
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g"
+        run: cargo codspeed build
 
       - name: Run CPU benchmark
         uses: CodSpeedHQ/action@4deb3275dd364fb96fb074c953133d29ec96f80f # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
