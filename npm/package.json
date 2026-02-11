@@ -1,15 +1,15 @@
 {
   "name": "@rspack/resolver",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Rspack Resolver Node API",
   "main": "index.js",
   "browser": "browser.js",
   "files": ["index.d.ts", "index.js", "browser.js"],
   "license": "MIT",
-  "homepage": "https://github.com/web-infra-dev/rspack-resolver",
+  "homepage": "https://github.com/rstackjs/rspack-resolver",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/web-infra-dev/rspack-resolver.git"
+    "url": "git+https://github.com/rstackjs/rspack-resolver.git"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

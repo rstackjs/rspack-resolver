@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { dirname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import test from "ava";
@@ -236,27 +236,25 @@ test("resolve pnpm package", t => {
   const resolver = new ResolverFactory({
     aliasFields: ["browser"]
   });
-  t.deepEqual(resolver.sync(pnpmProjectPath, "styled-components"), {
+
+  let resolvedPath = resolver.sync(pnpmProjectPath, "styled-components").path;
+
+  t.true(
+    resolvedPath.endsWith(
+      normalize(
+        "/node_modules/styled-components/dist/styled-components.browser.cjs.js"
+      )
+    )
+  );
+
+  let fromResolvedDir = dirname(resolvedPath);
+
+  t.deepEqual(resolver.sync(fromResolvedDir, "react"), {
     path: join(
       rootDir,
-      "node_modules/.pnpm/styled-components@6.1.1_react-dom@19.1.0_react@18.3.1__react@18.3.1/node_modules/styled-components/dist/styled-components.browser.cjs.js"
+      "node_modules/.pnpm/react@18.3.1/node_modules/react/index.js"
     )
   });
-  t.deepEqual(
-    resolver.sync(
-      join(
-        rootDir,
-        "node_modules/.pnpm/styled-components@6.1.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/styled-components"
-      ),
-      "react"
-    ),
-    {
-      path: join(
-        rootDir,
-        "node_modules/.pnpm/react@18.3.1/node_modules/react/index.js"
-      )
-    }
-  );
 });
 
 test("resolve recursive symbol link", t => {
