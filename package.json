@@ -15,7 +15,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@actions/core": "^1.11.1",
+    "@actions/core": "^3.0.0",
     "@continuous-auth/client": "^2.3.2",
     "@napi-rs/cli": "3.4.1",
     "@napi-rs/wasm-runtime": "^1.0.7",
@@ -36,7 +36,7 @@
     "files": ["napi/__test__/*.spec.mjs"],
     "cache": false
   },
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.28.2",
   "repository": {
     "type": "git",
     "url": "git+https://rstackjs/rspack-resolver.git"
