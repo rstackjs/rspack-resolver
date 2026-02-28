@@ -921,49 +921,50 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<Option<CachedPath>, ResolveError> {
-    let pnp_manifest = self.find_pnp_manifest(cached_path);
+    let resolution = {
+      let pnp_manifest = self.find_pnp_manifest(cached_path);
+      pnp_manifest.as_ref().map(|manifest| {
+        let mut path = cached_path.to_path_buf();
+        path.push("");
+        pnp::resolve_to_unqualified_via_manifest(manifest, specifier, &path)
+      })
+    };
 
-    if let Some(pnp_manifest) = pnp_manifest.as_ref() {
-      // `resolve_to_unqualified` requires a trailing slash
-      let mut path = cached_path.to_path_buf();
-      path.push("");
+    let Some(resolution) = resolution else {
+      return Ok(None);
+    };
 
-      let resolution = pnp::resolve_to_unqualified_via_manifest(pnp_manifest, specifier, &path);
+    tracing::debug!("pnp resolve unqualified as: {:?}", resolution);
 
-      tracing::debug!("pnp resolve unqualified as: {:?}", resolution);
+    match resolution {
+      Ok(pnp::Resolution::Resolved(path, subpath)) => {
+        let cached_path = self.cache.value(&path);
 
-      match resolution {
-        Ok(pnp::Resolution::Resolved(path, subpath)) => {
-          let cached_path = self.cache.value(&path);
-
-          let export_resolution = self.load_package_self(&cached_path, specifier, ctx).await?;
-          // can be found in pnp cached folder
-          if export_resolution.is_some() {
-            return Ok(export_resolution);
-          }
-
-          let inner_request = subpath.map_or_else(
-            || ".".to_string(),
-            |mut p| {
-              p.insert_str(0, "./");
-              p
-            },
-          );
-          let inner_resolver = self.clone_with_options(self.options().clone());
-
-          // try as file or directory `path` in the pnp folder
-          let Ok(inner_resolution) = inner_resolver.resolve(&path, &inner_request).await else {
-            return Err(ResolveError::NotFound(specifier.to_string()));
-          };
-
-          Ok(Some(self.cache.value(inner_resolution.path())))
+        let export_resolution = self.load_package_self(&cached_path, specifier, ctx).await?;
+        // can be found in pnp cached folder
+        if export_resolution.is_some() {
+          return Ok(export_resolution);
         }
 
-        Ok(pnp::Resolution::Skipped) => Ok(None),
-        Err(_) => Err(ResolveError::NotFound(specifier.to_string())),
+        let inner_request = subpath.map_or_else(
+          || ".".to_string(),
+          |mut p| {
+            p.insert_str(0, "./");
+            p
+          },
+        );
+        let inner_resolver = self.clone_with_options(self.options().clone());
+
+        // try as file or directory `path` in the pnp folder
+        let Ok(inner_resolution) = inner_resolver.resolve(&path, &inner_request).await else {
+          return Err(ResolveError::NotFound(specifier.to_string()));
+        };
+
+        Ok(Some(self.cache.value(inner_resolution.path())))
       }
-    } else {
-      Ok(None)
+
+      Ok(pnp::Resolution::Skipped) => Ok(None),
+      Err(_) => Err(ResolveError::NotFound(specifier.to_string())),
     }
   }
 
