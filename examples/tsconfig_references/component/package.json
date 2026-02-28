@@ -9,7 +9,7 @@
   "keywords": [],
   "author": "pshu",
   "license": "MIT",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.30.2",
   "devDependencies": {
     "typescript": "^5.8.3"
   }
