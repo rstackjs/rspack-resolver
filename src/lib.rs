@@ -921,22 +921,13 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<Option<CachedPath>, ResolveError> {
-    // The block scope ensures the DashMap `Ref` returned by `find_pnp_manifest` (which holds
-    // a shard read lock on `pnp_manifest_content_cache`) is dropped before any `.await`.
-    //
-    // Without this, the async state machine stores the `Ref` across the `.await` below.
-    // `inner_resolver.resolve()` then recursively calls `find_pnp_manifest`, which calls
-    // `DashMap::entry()` to acquire a write lock on the same shard — deadlocking because
-    // all tokio threads block on the write lock while the suspended future holds the read lock.
     let resolution = {
       let pnp_manifest = self.find_pnp_manifest(cached_path);
       pnp_manifest.as_ref().map(|manifest| {
-        // `resolve_to_unqualified` requires a trailing slash
         let mut path = cached_path.to_path_buf();
         path.push("");
         pnp::resolve_to_unqualified_via_manifest(manifest, specifier, &path)
       })
-      // `pnp_manifest` Ref is dropped here, releasing the shard read lock
     };
 
     let Some(resolution) = resolution else {
