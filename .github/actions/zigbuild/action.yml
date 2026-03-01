@@ -1,0 +1,39 @@
+name: Zigbuild
+
+description: Build a musl target using cargo-zigbuild (avoids Docker with outdated Node.js)
+
+inputs:
+  target:
+    required: true
+    type: string
+  profile:
+    default: "release"
+    required: false
+    type: string
+  zig-version:
+    default: "0.14.1"
+    required: false
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Rust Target
+      shell: bash
+      run: rustup target add ${{ inputs.target }}
+
+    - name: Setup Zig
+      uses: mlugg/setup-zig@v2
+      with:
+        version: ${{ inputs.zig-version }}
+
+    - name: Install cargo-zigbuild
+      uses: taiki-e/install-action@v2
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        tool: cargo-zigbuild
+
+    - name: Build ${{ inputs.target }}
+      shell: bash
+      run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }} --target ${{ inputs.target }} -x
