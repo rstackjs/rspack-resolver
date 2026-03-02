@@ -47,7 +47,7 @@ jobs:
         run: cargo codspeed build
 
       - name: Run CPU benchmark
-        uses: CodSpeedHQ/action@4deb3275dd364fb96fb074c953133d29ec96f80f # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
+        uses: CodSpeedHQ/action@2ac572851726409c88c02a307f1ea2632a9ea59b # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
         timeout-minutes: 30
         with:
           mode: simulation
@@ -55,7 +55,7 @@ jobs:
           token: ${{ secrets.CODSPEED_TOKEN }}
 
       - name: Run memory benchmark
-        uses: CodSpeedHQ/action@4deb3275dd364fb96fb074c953133d29ec96f80f # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
+        uses: CodSpeedHQ/action@2ac572851726409c88c02a307f1ea2632a9ea59b # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
         timeout-minutes: 30
         with:
           mode: memory
