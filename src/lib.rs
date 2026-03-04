@@ -71,7 +71,7 @@ use std::{
   sync::Arc,
 };
 
-use dashmap::{mapref::one::Ref, DashMap};
+use dashmap::DashMap;
 use futures::future::{try_join_all, BoxFuture};
 use rustc_hash::FxHashSet;
 
@@ -114,10 +114,12 @@ pub type Resolver = ResolverGeneric<FileSystemOs>;
 pub struct ResolverGeneric<Fs> {
   options: ResolveOptions,
   cache: Arc<Cache<Fs>>,
+  /// All loaded PnP manifests keyed by `.pnp.cjs` CachedPath.
   #[cfg(feature = "yarn_pnp")]
-  pnp_manifest_content_cache: Arc<DashMap<CachedPath, Option<pnp::Manifest>>>,
+  pnp_manifests: Arc<DashMap<CachedPath, Arc<pnp::Manifest>>>,
+  /// Maps any resolved path → which manifest owns it (None = no PnP manifest applies).
   #[cfg(feature = "yarn_pnp")]
-  pnp_manifest_path_cache: Arc<DashMap<PathBuf, Option<CachedPath>>>,
+  pnp_manifest_path_for_path: Arc<DashMap<CachedPath, Option<CachedPath>>>,
 }
 
 impl<Fs> fmt::Debug for ResolverGeneric<Fs> {
@@ -138,9 +140,9 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
       options: options.sanitize(),
       cache: Arc::new(Cache::new(Fs::default())),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_content_cache: Arc::new(DashMap::default()),
+      pnp_manifests: Arc::new(DashMap::default()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_path_cache: Arc::new(DashMap::default()),
+      pnp_manifest_path_for_path: Arc::new(DashMap::default()),
     }
   }
 }
@@ -151,9 +153,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       options: options.sanitize(),
       cache: Arc::new(Cache::new(file_system)),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_content_cache: Arc::new(DashMap::default()),
+      pnp_manifests: Arc::new(DashMap::default()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_path_cache: Arc::new(DashMap::default()),
+      pnp_manifest_path_for_path: Arc::new(DashMap::default()),
     }
   }
 
@@ -164,9 +166,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       options: options.sanitize(),
       cache: Arc::clone(&self.cache),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_content_cache: Arc::clone(&self.pnp_manifest_content_cache),
+      pnp_manifests: Arc::clone(&self.pnp_manifests),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_path_cache: Arc::clone(&self.pnp_manifest_path_cache),
+      pnp_manifest_path_for_path: Arc::clone(&self.pnp_manifest_path_for_path),
     }
   }
 
@@ -180,8 +182,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     self.cache.clear();
     #[cfg(feature = "yarn_pnp")]
     {
-      self.pnp_manifest_content_cache.clear();
-      self.pnp_manifest_path_cache.clear();
+      self.pnp_manifests.clear();
+      self.pnp_manifest_path_for_path.clear();
     }
   }
 
@@ -885,32 +887,48 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
   #[cfg(feature = "yarn_pnp")]
   #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
-  fn find_pnp_manifest(
-    &self,
-    cached_path: &CachedPath,
-  ) -> Ref<'_, CachedPath, Option<pnp::Manifest>> {
-    let base_path = cached_path.to_path_buf();
-
-    let cached_manifest_path = self
-      .pnp_manifest_path_cache
-      .entry(base_path.clone())
-      .or_insert_with(|| {
-        self.options.pnp_manifest.as_ref().map_or_else(
-          || pnp::find_closest_pnp_manifest_path(&base_path).map(|p| self.cache.value(&p)),
-          |manifest_path| Some(self.cache.value(manifest_path)),
-        )
+  fn find_pnp_manifest(&self, cached_path: &CachedPath) -> Option<Arc<pnp::Manifest>> {
+    if let Some(entry) = self.pnp_manifest_path_for_path.get(cached_path) {
+      return entry.as_ref().and_then(|manifest_path| {
+        self
+          .pnp_manifests
+          .get(manifest_path)
+          .map(|m| Arc::clone(&*m))
       });
+    }
 
-    let cache_key = cached_manifest_path.as_ref().unwrap_or(cached_path);
+    let path = cached_path.to_path_buf();
 
-    tracing::debug!("use manifest path: {:?}", cache_key.path());
+    // Phase 1: check already-loaded manifests via location_trie (handles global cache paths
+    // that are not under any project directory and won't be found by filesystem walk)
+    for entry in self.pnp_manifests.iter() {
+      if pnp::find_locator(entry.value(), &path).is_some() {
+        let manifest_cached_path = entry.key().clone();
+        let manifest = Arc::clone(entry.value());
+        drop(entry);
+        self
+          .pnp_manifest_path_for_path
+          .insert(cached_path.clone(), Some(manifest_cached_path));
+        return Some(manifest);
+      }
+    }
 
-    let entry = self
-      .pnp_manifest_content_cache
-      .entry(cache_key.clone())
-      .or_insert_with(|| pnp::load_pnp_manifest(cache_key.path()).ok());
+    // Phase 2: walk filesystem to find the nearest .pnp.cjs for this path
+    let manifest_cached_path =
+      pnp::find_closest_pnp_manifest_path(&path).map(|p| self.cache.value(&p));
 
-    entry.downgrade()
+    self
+      .pnp_manifest_path_for_path
+      .insert(cached_path.clone(), manifest_cached_path.clone());
+
+    let manifest_cached_path = manifest_cached_path?;
+    tracing::debug!("use manifest path: {:?}", manifest_cached_path.path());
+
+    let manifest = self
+      .pnp_manifests
+      .entry(manifest_cached_path.clone())
+      .or_try_insert_with(|| pnp::load_pnp_manifest(manifest_cached_path.path()).map(Arc::new));
+    Some(Arc::clone(manifest.ok()?.downgrade().value()))
   }
 
   #[cfg(feature = "yarn_pnp")]
@@ -921,18 +939,13 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<Option<CachedPath>, ResolveError> {
-    let resolution = {
-      let pnp_manifest = self.find_pnp_manifest(cached_path);
-      pnp_manifest.as_ref().map(|manifest| {
-        let mut path = cached_path.to_path_buf();
-        path.push("");
-        pnp::resolve_to_unqualified_via_manifest(manifest, specifier, &path)
-      })
-    };
-
-    let Some(resolution) = resolution else {
+    let Some(manifest) = self.find_pnp_manifest(cached_path) else {
       return Ok(None);
     };
+
+    let mut path = cached_path.to_path_buf();
+    path.push("");
+    let resolution = pnp::resolve_to_unqualified_via_manifest(&manifest, specifier, &path);
 
     tracing::debug!("pnp resolve unqualified as: {:?}", resolution);
 

@@ -153,7 +153,6 @@ async fn resolve_pnp_with_manifest_option() {
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
     condition_names: vec!["import".into()],
-    pnp_manifest: Some(manifest),
     ..ResolveOptions::default()
   });
 
