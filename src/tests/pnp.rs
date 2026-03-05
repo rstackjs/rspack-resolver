@@ -166,6 +166,9 @@ async fn resolve_pnp_with_global_cache_enabled() {
   let module_root = resolved_to_global_cache.parent().unwrap();
   let module_root_str = module_root.to_string_lossy().replace('\\', "/");
 
+  #[cfg(target_os = "windows")]
+  assert_that!(module_root_str.as_str()).contains("/Yarn/Berry/cache/lodash.zip");
+  #[cfg(not(target_os = "windows"))]
   assert_that!(module_root_str.as_str()).contains("/.yarn/berry/cache/lodash.zip");
 
   let resolve_from_global_cached = resolver.resolve(module_root, "./index.js").await.map(|r| {
@@ -175,5 +178,8 @@ async fn resolve_pnp_with_global_cache_enabled() {
       .to_string()
   });
 
+  #[cfg(target_os = "windows")]
+  assert_that!(resolve_from_global_cached.unwrap()).contains("/Yarn/Berry/cache/lodash.zip");
+  #[cfg(not(target_os = "windows"))]
   assert_that!(resolve_from_global_cached.unwrap()).contains("/.yarn/berry/cache/lodash.zip");
 }

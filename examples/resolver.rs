@@ -25,16 +25,13 @@ async fn main() {
     extension_alias: vec![(".js".into(), vec![".ts".into(), ".js".into()])],
     // ESM
     condition_names: vec!["node".into(), "import".into()],
-    enable_pnp: true,
     // CJS
     // condition_names: vec!["node".into(), "require".into()],
     ..ResolveOptions::default()
   };
   let mut ctx = Default::default();
 
-  let resolver = Resolver::new(options.clone());
-
-  match resolver
+  match Resolver::new(options)
     .resolve_with_context(path, &specifier, &mut ctx)
     .await
   {
@@ -42,13 +39,11 @@ async fn main() {
     Ok(resolution) => println!("Resolved: {:?}", resolution.full_path()),
   };
 
-  let global_cache_path = PathBuf::from("/Users/bytedance/.yarn/berry/cache/@rspress-core-npm-2.0.3-c87d0adf5b-10c0.zip/node_modules/@rspress/core/dist/runtime/index.js");
+  let mut sorted_file_deps = ctx.file_dependencies.iter().collect::<Vec<_>>();
+  sorted_file_deps.sort();
+  println!("file_deps: {:#?}", sorted_file_deps);
 
-  match resolver
-    .resolve_with_context(&global_cache_path, "react-router-dom", &mut ctx)
-    .await
-  {
-    Err(error) => println!("Error: {error}"),
-    Ok(resolution) => println!("Resolved: {:?}", resolution.full_path()),
-  };
+  let mut sorted_missing = ctx.missing_dependencies.iter().collect::<Vec<_>>();
+  sorted_missing.sort();
+  println!("missing_deps: {:#?}", sorted_missing);
 }
