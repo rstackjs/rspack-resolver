@@ -64,6 +64,8 @@ jobs:
             runner: "macos-latest"
           - target: aarch64-apple-darwin
             runner: "macos-latest"
+          - target: wasm32-wasip1-threads
+            runner: "ubuntu-22.04"
 
     uses: ./.github/workflows/reusable-build.yml
     with:
