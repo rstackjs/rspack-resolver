@@ -194,6 +194,12 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean;
+  /**
+   * Path to yarn Plug'n'Play manifest file.
+   *
+   * Default `None`
+   */
+  pnpManifest?: string;
 }
 
 export interface ResolveResult {
