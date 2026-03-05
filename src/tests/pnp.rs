@@ -164,13 +164,16 @@ async fn resolve_pnp_with_global_cache_enabled() {
     .unwrap();
 
   let module_root = resolved_to_global_cache.parent().unwrap();
+  let module_root_str = module_root.to_string_lossy().replace('\\', "/");
 
-  assert_that!(module_root.as_os_str().to_string_lossy()).contains("/.yarn/berry/cache/lodash.zip");
+  assert_that!(module_root_str.as_str()).contains("/.yarn/berry/cache/lodash.zip");
 
-  let resolve_from_global_cached = resolver
-    .resolve(module_root, "./index.js")
-    .await
-    .map(|r| r.full_path().to_string_lossy().to_string());
+  let resolve_from_global_cached = resolver.resolve(module_root, "./index.js").await.map(|r| {
+    r.full_path()
+      .to_string_lossy()
+      .replace('\\', "/")
+      .to_string()
+  });
 
   assert_that!(resolve_from_global_cached.unwrap()).contains("/.yarn/berry/cache/lodash.zip");
 }
