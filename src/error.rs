@@ -95,6 +95,20 @@ pub enum ResolveError {
   /// Occurs when alias paths reference each other.
   #[error("Recursion in resolving")]
   Recursion,
+
+  /// Two PnP manifests with identical path depth both claim ownership of the same path.
+  /// Resolution is ambiguous — the issuer path cannot be deterministically assigned to
+  /// either manifest.
+  ///
+  /// Fields: (issuer_path, first_manifest_path, second_manifest_path)
+  #[cfg(feature = "yarn_pnp")]
+  #[error(
+    "Ambiguous PnP manifest for path '{0}': claimed by both '{1}' and '{2}' with equal specificity"
+  )]
+  PnpAmbiguousManifest(PathBuf, PathBuf, PathBuf),
+  #[cfg(feature = "yarn_pnp")]
+  #[error("Bad PnP manifest '{0}'")]
+  PnpBadManifest(PathBuf),
 }
 
 impl ResolveError {

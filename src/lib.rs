@@ -886,31 +886,85 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
-  fn find_pnp_manifest(&self, cached_path: &CachedPath) -> Option<Arc<pnp::Manifest>> {
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  fn find_pnp_manifest(
+    &self,
+    cached_path: &CachedPath,
+  ) -> Result<Option<Arc<pnp::Manifest>>, ResolveError> {
     if let Some(entry) = self.pnp_manifest_path_for_path.get(cached_path) {
-      return entry.as_ref().and_then(|manifest_path| {
+      return Ok(entry.as_ref().and_then(|manifest_path| {
         self
           .pnp_manifests
           .get(manifest_path)
           .map(|m| Arc::clone(&*m))
-      });
+      }));
     }
 
     let path = cached_path.to_path_buf();
 
     // Phase 1: check already-loaded manifests via location_trie (handles global cache paths
-    // that are not under any project directory and won't be found by filesystem walk)
+    // that are not under any project directory and won't be found by filesystem walk).
+    //
+    // Multiple manifests can claim the same global cache path (e.g. two independent projects
+    // sharing the same Yarn global cache zip). Pick the manifest whose .pnp.cjs path is
+    // longest (deepest in the directory tree) — mirroring Yarn runtime's findApiPathFor
+    // "bestCandidate" rule: more specific project wins over a parent project.
+    // Equal-length paths are inherently ambiguous and must be reported as an error.
+    let mut best: Option<(PathBuf, CachedPath, Arc<pnp::Manifest>)> = None;
+    let mut tied: Option<CachedPath> = None;
+    let pnp_manifests_size = self.pnp_manifests.len();
+
     for entry in self.pnp_manifests.iter() {
-      if pnp::find_locator(entry.value(), &path).is_some() {
+      if let Some(locator) = pnp::find_locator(entry.value(), &path) {
         let manifest_cached_path = entry.key().clone();
         let manifest = Arc::clone(entry.value());
-        drop(entry);
-        self
-          .pnp_manifest_path_for_path
-          .insert(cached_path.clone(), Some(manifest_cached_path));
-        return Some(manifest);
+
+        let package_info = pnp::get_package(&manifest, locator)
+          .map_err(|_| ResolveError::PnpBadManifest(manifest_cached_path.to_path_buf()))?;
+
+        match best.as_ref() {
+          None => {
+            best = Some((
+              package_info.package_location.clone(),
+              manifest_cached_path,
+              manifest,
+            ));
+            if pnp_manifests_size == 1 {
+              break;
+            }
+          }
+          Some((cur, _, _)) => {
+            if package_info.package_location.eq(cur) {
+              tied = Some(manifest_cached_path.clone());
+            } else {
+              let cur_len = cur.as_os_str().len();
+              let new_len = package_info.package_location.as_os_str().len();
+              if new_len > cur_len {
+                best = Some((
+                  package_info.package_location.clone(),
+                  manifest_cached_path,
+                  manifest,
+                ));
+                tied = None;
+              }
+            }
+          }
+        }
       }
+    }
+    if let Some(tied_path) = tied {
+      let (_, best_path, _) = best.unwrap();
+      return Err(ResolveError::PnpAmbiguousManifest(
+        path,
+        best_path.to_path_buf(),
+        tied_path.to_path_buf(),
+      ));
+    }
+    if let Some((_, manifest_cached_path, manifest)) = best {
+      self
+        .pnp_manifest_path_for_path
+        .insert(cached_path.clone(), Some(manifest_cached_path));
+      return Ok(Some(manifest));
     }
 
     // Phase 2: walk filesystem to find the nearest .pnp.cjs for this path
@@ -921,16 +975,17 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .pnp_manifest_path_for_path
       .insert(cached_path.clone(), manifest_cached_path.clone());
 
-    let manifest_cached_path = manifest_cached_path?;
+    let Some(manifest_cached_path) = manifest_cached_path else {
+      return Ok(None);
+    };
     tracing::debug!("use manifest path: {:?}", manifest_cached_path.path());
 
     let manifest = self
       .pnp_manifests
       .entry(manifest_cached_path.clone())
       .or_try_insert_with(|| pnp::load_pnp_manifest(manifest_cached_path.path()).map(Arc::new));
-    Some(Arc::clone(manifest.ok()?.downgrade().value()))
+    Ok(manifest.ok().map(|m| Arc::clone(m.downgrade().value())))
   }
-
   #[cfg(feature = "yarn_pnp")]
   #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
   async fn load_pnp(
@@ -939,7 +994,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<Option<CachedPath>, ResolveError> {
-    let Some(manifest) = self.find_pnp_manifest(cached_path) else {
+    let Some(manifest) = self.find_pnp_manifest(cached_path)? else {
       return Ok(None);
     };
 
