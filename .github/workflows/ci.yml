@@ -209,6 +209,9 @@ jobs:
       - uses: Boshen/setup-rust@main
         with:
           cache-key: warm
+      - name: Setup Test Fixture
+        working-directory: ./fixtures/pnp-global-cache-enabled
+        run: yarn
       - run: cargo test --doc
       - run: cargo test --all-features
         env:

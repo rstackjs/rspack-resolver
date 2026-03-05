@@ -3,6 +3,8 @@
 //! enhanced_resolve's test <https://github.com/webpack/enhanced-resolve/blob/main/test/pnp.test.js>
 //! cannot be ported over because it uses mocks on `pnpApi` provided by the runtime.
 
+use fluent_asserter::prelude::*;
+
 use crate::{path::PathUtil, ResolveError::NotFound, ResolveOptions, Resolver};
 
 #[tokio::test]
@@ -146,23 +148,29 @@ async fn resolve_pnp_pkg_should_failed_while_disable_pnp_mode() {
 }
 
 #[tokio::test]
-async fn resolve_pnp_with_manifest_option() {
-  let fixture = super::fixture_root().join("pnp");
-  let manifest = fixture.join(".pnp.cjs");
+async fn resolve_pnp_with_global_cache_enabled() {
+  let fixture = super::fixture_root().join("pnp-global-cache-enabled");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
-    condition_names: vec!["import".into()],
+    enable_pnp: true,
     ..ResolveOptions::default()
   });
 
-  assert_eq!(
-    resolver
-      .resolve(&fixture, "lodash.zip")
-      .await
-      .map(|r| r.full_path()),
-    Ok(fixture.join(
-      ".yarn/cache/lodash.zip-npm-4.2.0-5299417ec8-e596da80a6.zip/node_modules/lodash.zip/index.js"
-    ))
-  );
+  let resolved_to_global_cache = resolver
+    .resolve(&fixture, "lodash.zip")
+    .await
+    .map(|r| r.full_path())
+    .unwrap();
+
+  let module_root = resolved_to_global_cache.parent().unwrap();
+
+  assert_that!(module_root.as_os_str().to_string_lossy()).contains("/.yarn/berry/cache/lodash.zip");
+
+  let resolve_from_global_cached = resolver
+    .resolve(module_root, "./index.js")
+    .await
+    .map(|r| r.full_path().to_string_lossy().to_string());
+
+  assert_that!(resolve_from_global_cached.unwrap()).contains("/.yarn/berry/cache/lodash.zip");
 }
