@@ -891,25 +891,40 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     &self,
     cached_path: &CachedPath,
   ) -> Result<Option<Arc<pnp::Manifest>>, ResolveError> {
+    // Fast path: if this path was previously resolved to a specific manifest, reuse it.
+    // Skips both Phase 1 and Phase 2 for the positive-cache case.
+    //
+    // A cached None (no manifest found) does NOT short-circuit here — new manifests may be
+    // registered into pnp_manifests at any time, so a path that previously had no match
+    // might succeed against a newly added manifest. Phase 1 must re-run in that case.
     if let Some(entry) = self.pnp_manifest_path_for_path.get(cached_path) {
-      return Ok(entry.as_ref().and_then(|manifest_path| {
-        self
+      if let Some(manifest_path) = entry.as_ref() {
+        // Manifest path is known; load from cache or reload from disk if evicted.
+        let entry = self
           .pnp_manifests
-          .get(manifest_path)
-          .map(|m| Arc::clone(&*m))
-      }));
+          .entry(manifest_path.clone())
+          .or_try_insert_with(|| {
+            pnp::load_pnp_manifest(manifest_path.path())
+              .map(Arc::new)
+              .map_err(|_| ResolveError::PnpBadManifest(manifest_path.to_path_buf()))
+          })?;
+
+        return Ok(Some(Arc::clone(entry.downgrade().value())));
+      }
     }
 
     let path = cached_path.to_path_buf();
 
-    // Phase 1: check already-loaded manifests via location_trie (handles global cache paths
-    // that are not under any project directory and won't be found by filesystem walk).
+    // Phase 1: match against all already-loaded manifests.
+    // This handles global cache paths that live outside any project directory tree and
+    // therefore cannot be discovered by filesystem walk (Phase 2).
+    // It also re-evaluates paths whose cache entry is None, in case a new manifest was
+    // registered since the last lookup.
     //
-    // Multiple manifests can claim the same global cache path (e.g. two independent projects
-    // sharing the same Yarn global cache zip). Pick the manifest whose .pnp.cjs path is
-    // longest (deepest in the directory tree) — mirroring Yarn runtime's findApiPathFor
-    // "bestCandidate" rule: more specific project wins over a parent project.
-    // Equal-length paths are inherently ambiguous and must be reported as an error.
+    // Multiple manifests may claim the same global cache path (e.g. two independent projects
+    // sharing the same Yarn global cache zip). Pick the one whose package_location is deepest
+    // (longest), mirroring Yarn's findApiPathFor "bestCandidate" rule.
+    // Equal-length but different paths are ambiguous → error.
     let mut best: Option<(PathBuf, CachedPath, Arc<pnp::Manifest>)> = None;
     let mut tied: Option<CachedPath> = None;
     let pnp_manifests_size = self.pnp_manifests.len();
@@ -967,7 +982,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(Some(manifest));
     }
 
-    // Phase 2: walk filesystem to find the nearest .pnp.cjs for this path
+    // Phase 2: walk the filesystem to find the nearest .pnp.cjs for this path.
     let manifest_cached_path =
       pnp::find_closest_pnp_manifest_path(&path).map(|p| self.cache.value(&p));
 
@@ -983,8 +998,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let manifest = self
       .pnp_manifests
       .entry(manifest_cached_path.clone())
-      .or_try_insert_with(|| pnp::load_pnp_manifest(manifest_cached_path.path()).map(Arc::new));
-    Ok(manifest.ok().map(|m| Arc::clone(m.downgrade().value())))
+      .or_try_insert_with(|| pnp::load_pnp_manifest(manifest_cached_path.path()).map(Arc::new))
+      .map_err(|_| ResolveError::PnpBadManifest(manifest_cached_path.to_path_buf()))?;
+    Ok(Some(Arc::clone(manifest.downgrade().value())))
   }
   #[cfg(feature = "yarn_pnp")]
   #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
