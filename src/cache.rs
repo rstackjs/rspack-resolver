@@ -42,6 +42,14 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     self.tsconfigs.clear();
   }
 
+  /// Clear the path cache without clearing the tsconfig cache.
+  ///
+  /// This is useful for HMR (Hot Module Replacement) scenarios where tsconfig.json
+  /// doesn't change during development, but file system state may change.
+  pub fn clear_without_tsconfig(&self) {
+    self.paths.clear();
+  }
+
   pub fn value(&self, path: &Path) -> CachedPath {
     let hash = {
       let mut hasher = FxHasher::default();

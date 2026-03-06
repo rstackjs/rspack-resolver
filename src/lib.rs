@@ -185,6 +185,21 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
   }
 
+  /// Clear the underlying cache without clearing tsconfig cache.
+  ///
+  /// This is useful for HMR (Hot Module Replacement) scenarios where tsconfig.json
+  /// doesn't change during development, but file system state may change.
+  /// Preserving the tsconfig cache avoids re-parsing tsconfig.json on every HMR update,
+  /// which can cause intermittent module resolution failures with tsconfig path aliases.
+  pub fn clear_cache_without_tsconfig(&self) {
+    self.cache.clear_without_tsconfig();
+    #[cfg(feature = "yarn_pnp")]
+    {
+      self.pnp_manifest_content_cache.clear();
+      self.pnp_manifest_path_cache.clear();
+    }
+  }
+
   /// Resolve `specifier` at an absolute path to a `directory`.
   ///
   /// A specifier is the string passed to require or import, i.e. `require("specifier")` or `import "specifier"`.
