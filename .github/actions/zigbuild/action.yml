@@ -23,12 +23,12 @@ runs:
       run: rustup target add ${{ inputs.target }}
 
     - name: Setup Zig
-      uses: mlugg/setup-zig@v2
+      uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
       with:
         version: ${{ inputs.zig-version }}
 
     - name: Install cargo-zigbuild
-      uses: taiki-e/install-action@v2
+      uses: taiki-e/install-action@b18b9d93a43496aeda12369e7563d9251abc2fe1 # v2.68.24
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
