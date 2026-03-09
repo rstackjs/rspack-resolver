@@ -43,6 +43,20 @@ const UniArchsByPlatform = {
  *   - `abi` = The ABI, for example `gnu`, `android`, `eabi`, etc.
  */
 function parseTriple(rawTriple) {
+  if (
+    rawTriple === "wasm32-wasi" ||
+    rawTriple === "wasm32-wasi-preview1-threads" ||
+    rawTriple.startsWith("wasm32-wasip")
+  ) {
+    return {
+      raw: rawTriple,
+      platformArchABI: "wasm32-wasi",
+      platform: "wasi",
+      arch: "wasm32",
+      abi: "wasi"
+    };
+  }
+
   const triple = rawTriple.endsWith("eabi")
     ? `${rawTriple.slice(0, -4)}-eabi`
     : rawTriple;
