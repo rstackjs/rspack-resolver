@@ -147,8 +147,9 @@ async fn resolve_pnp_pkg_should_failed_while_disable_pnp_mode() {
   );
 }
 
+#[cfg(target_os = "windows")]
 #[tokio::test]
-async fn resolve_pnp_with_global_cache_enabled() {
+async fn resolve_pnp_with_global_cache_enabled_windows() {
   let fixture = super::fixture_root().join("pnp-global-cache-enabled");
 
   let resolver = Resolver::new(ResolveOptions {
@@ -158,7 +159,7 @@ async fn resolve_pnp_with_global_cache_enabled() {
   });
 
   let resolved_to_global_cache = resolver
-    .resolve(&fixture, "lodash.zip")
+    .resolve(&fixture, "path-to-regexp")
     .await
     .map(|r| r.full_path())
     .unwrap();
@@ -166,10 +167,7 @@ async fn resolve_pnp_with_global_cache_enabled() {
   let module_root = resolved_to_global_cache.parent().unwrap();
   let module_root_str = module_root.to_string_lossy().replace('\\', "/");
 
-  #[cfg(target_os = "windows")]
-  assert_that!(module_root_str.as_str()).contains("/Yarn/Berry/cache/lodash.zip");
-  #[cfg(not(target_os = "windows"))]
-  assert_that!(module_root_str.as_str()).contains("/.yarn/berry/cache/lodash.zip");
+  assert_that!(module_root_str.as_str()).contains("/Yarn/Berry/cache/path-to-regexp");
 
   let resolve_from_global_cached = resolver.resolve(module_root, "./index.js").await.map(|r| {
     r.full_path()
@@ -178,8 +176,37 @@ async fn resolve_pnp_with_global_cache_enabled() {
       .to_string()
   });
 
-  #[cfg(target_os = "windows")]
-  assert_that!(resolve_from_global_cached.unwrap()).contains("/Yarn/Berry/cache/lodash.zip");
-  #[cfg(not(target_os = "windows"))]
-  assert_that!(resolve_from_global_cached.unwrap()).contains("/.yarn/berry/cache/lodash.zip");
+  assert_that!(resolve_from_global_cached.unwrap()).contains("/Yarn/Berry/cache/path-to-regexp");
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tokio::test]
+async fn resolve_pnp_with_global_cache_enabled_unix() {
+  let fixture = super::fixture_root().join("pnp-global-cache-enabled");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    enable_pnp: true,
+    ..ResolveOptions::default()
+  });
+
+  let resolved_to_global_cache = resolver
+    .resolve(&fixture, "path-to-regexp")
+    .await
+    .map(|r| r.full_path())
+    .unwrap();
+
+  let module_root = resolved_to_global_cache.parent().unwrap();
+  let module_root_str = module_root.to_string_lossy().replace('\\', "/");
+
+  assert_that!(module_root_str.as_str()).contains("/.yarn/berry/cache/path-to-regexp");
+
+  let resolve_from_global_cached = resolver.resolve(module_root, "./index.js").await.map(|r| {
+    r.full_path()
+      .to_string_lossy()
+      .replace('\\', "/")
+      .to_string()
+  });
+
+  assert_that!(resolve_from_global_cached.unwrap()).contains("/.yarn/berry/cache/path-to-regexp");
 }
