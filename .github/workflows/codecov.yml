@@ -26,10 +26,6 @@ jobs:
 
       - uses: ./.github/actions/pnpm
 
-      - name: Setup Test Fixture
-        working-directory: ./fixtures/pnp-global-cache-enabled
-        run: yarn
-
       - uses: Boshen/setup-rust@main
         with:
           cache-key: codecov
