@@ -5,7 +5,7 @@
 
 use fluent_asserter::prelude::*;
 
-use crate::{path::PathUtil, ResolveError::NotFound, ResolveOptions, Resolver};
+use crate::{path::PathUtil, ResolveError, ResolveError::NotFound, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn pnp1() {
@@ -205,7 +205,6 @@ async fn resolve_pnp_with_global_cache_enabled_unix() {
     r.full_path()
       .to_string_lossy()
       .replace('\\', "/")
-      .to_lowercase() // Windows use Yarn/Berry
       .to_string()
   });
 
@@ -237,6 +236,7 @@ async fn resolve_pnp_transitive_dep_from_global_cache_unix() {
       r.full_path()
         .to_string_lossy()
         .replace('\\', "/")
+        .to_lowercase()
         .to_string()
     })
     .unwrap();
@@ -244,6 +244,54 @@ async fn resolve_pnp_transitive_dep_from_global_cache_unix() {
   dbg!(&resolved_from_root_global_cache);
 
   assert_that!(resolved_from_root_global_cache).contains(
-    "/.yarn/berry/cache/isarray-npm-0.0.1-92e37e0a70-10c0.zip/node_modules/isarray/index.js",
+    "yarn/berry/cache/isarray-npm-0.0.1-92e37e0a70-10c0.zip/node_modules/isarray/index.js",
+  );
+}
+
+// Two PnP projects sharing the same global cache both claim `path-to-regexp`
+// at the same global cache path. When the resolver has both manifests loaded,
+// resolving from the shared global cache path is ambiguous.
+#[tokio::test]
+async fn resolve_pnp_ambiguous_manifest_from_global_cache() {
+  let fixture_enabled = super::fixture_root().join("pnp-global-cache-enabled");
+  let fixture_shared = super::fixture_root().join("pnp-global-cache-shared");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    enable_pnp: true,
+    ..ResolveOptions::default()
+  });
+
+  // Load the first PnP manifest by resolving from pnp-global-cache-enabled
+  let resolved = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    enable_pnp: true,
+    ..ResolveOptions::default()
+  })
+  .resolve(&fixture_enabled, "path-to-regexp")
+  .await
+  .map(|r| r.full_path())
+  .unwrap();
+
+  // Load the second PnP manifest by resolving from pnp-global-cache-shared
+  resolver
+    .resolve(&fixture_enabled, "is-odd")
+    .await
+    .map(|r| r.full_path())
+    .unwrap();
+
+  resolver
+    .resolve(&fixture_shared, "is-even")
+    .await
+    .map(|r| r.full_path())
+    .unwrap();
+
+  // Both manifests claim `path-to-regexp` at the same global cache path.
+  // Resolving a transitive dep from that shared path triggers PnpAmbiguousManifest.
+  let result = resolver.resolve(&resolved, "isarray").await;
+
+  assert!(
+    matches!(result, Err(ResolveError::PnpAmbiguousManifest(..))),
+    "expected PnpAmbiguousManifest, got {result:?}"
   );
 }
