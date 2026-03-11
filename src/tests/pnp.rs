@@ -230,14 +230,20 @@ async fn resolve_pnp_transitive_dep_from_global_cache_unix() {
 
   let module_root = module_root.parent().unwrap();
 
-  assert_that!(resolver
+  let resolved_from_root_global_cache = resolver
     .resolve(module_root, "isarray")
     .await
-    .map(|r| r
-      .full_path()
-      .to_string_lossy()
-      .replace('\\', "/")
-      .to_string())
-    .unwrap())
-  .contains("berry/cache/isarray-npm-0.0.1-92e37e0a70-10c0.zip/node_modules/isarray/index.js");
+    .map(|r| {
+      r.full_path()
+        .to_string_lossy()
+        .replace('\\', "/")
+        .to_string()
+    })
+    .unwrap();
+
+  dbg!(&resolved_from_root_global_cache);
+
+  assert_that!(resolved_from_root_global_cache).contains(
+    "/.yarn/berry/cache/isarray-npm-0.0.1-92e37e0a70-10c0.zip/node_modules/isarray/index.js",
+  );
 }
