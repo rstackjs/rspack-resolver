@@ -212,8 +212,8 @@ jobs:
       - name: Setup Test Fixture
         working-directory: ./fixtures/
         run: |
-          cd pnp-global-cache-enabled && yarn
-          cd pnp-global-cache-enabled && yarn
+          (cd pnp-global-cache-enabled && yarn)
+          (cd pnp-global-cache-shared  && yarn)
       - run: cargo test --doc
       - run: cargo test --all-features
         env:
