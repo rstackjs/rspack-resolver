@@ -1,3 +1,4 @@
 fixtures/tsconfig/tsconfig_broken.json
 fixtures/enhanced_resolve/test/fixtures/incorrect-package/pack1/package.json
 pnpm-lock.yaml
+**/.pnp.cjs
