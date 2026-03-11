@@ -205,8 +205,39 @@ async fn resolve_pnp_with_global_cache_enabled_unix() {
     r.full_path()
       .to_string_lossy()
       .replace('\\', "/")
+      .to_lowercase() // Windows use Yarn/Berry
       .to_string()
   });
 
   assert_that!(resolve_from_global_cached.unwrap()).contains("/.yarn/berry/cache/path-to-regexp");
+}
+
+#[tokio::test]
+async fn resolve_pnp_transitive_dep_from_global_cache_unix() {
+  let fixture = super::fixture_root().join("pnp-global-cache-enabled");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    enable_pnp: true,
+    ..ResolveOptions::default()
+  });
+
+  let module_root = resolver
+    .resolve(&fixture, "path-to-regexp")
+    .await
+    .map(|r| r.full_path())
+    .unwrap();
+
+  let module_root = module_root.parent().unwrap();
+
+  assert_that!(resolver
+    .resolve(module_root, "isarray")
+    .await
+    .map(|r| r
+      .full_path()
+      .to_string_lossy()
+      .replace('\\', "/")
+      .to_string())
+    .unwrap())
+  .contains("berry/cache/isarray-npm-0.0.1-92e37e0a70-10c0.zip/node_modules/isarray/index.js");
 }
