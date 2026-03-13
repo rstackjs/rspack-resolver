@@ -119,7 +119,7 @@ pub struct ResolverGeneric<Fs> {
   pnp_manifests: Arc<DashMap<CachedPath, Arc<pnp::Manifest>>>,
   /// Maps any resolved path → which manifest owns it (None = no PnP manifest applies).
   #[cfg(feature = "yarn_pnp")]
-  pnp_manifest_path_for_path: Arc<DashMap<CachedPath, Option<CachedPath>>>,
+  pnp_manifest_path_cache: Arc<DashMap<CachedPath, Option<CachedPath>>>,
 }
 
 impl<Fs> fmt::Debug for ResolverGeneric<Fs> {
@@ -142,7 +142,7 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
       #[cfg(feature = "yarn_pnp")]
       pnp_manifests: Arc::new(DashMap::default()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_path_for_path: Arc::new(DashMap::default()),
+      pnp_manifest_path_cache: Arc::new(DashMap::default()),
     }
   }
 }
@@ -155,7 +155,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       #[cfg(feature = "yarn_pnp")]
       pnp_manifests: Arc::new(DashMap::default()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_path_for_path: Arc::new(DashMap::default()),
+      pnp_manifest_path_cache: Arc::new(DashMap::default()),
     }
   }
 
@@ -168,7 +168,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       #[cfg(feature = "yarn_pnp")]
       pnp_manifests: Arc::clone(&self.pnp_manifests),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_path_for_path: Arc::clone(&self.pnp_manifest_path_for_path),
+      pnp_manifest_path_cache: Arc::clone(&self.pnp_manifest_path_cache),
     }
   }
 
@@ -183,7 +183,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     #[cfg(feature = "yarn_pnp")]
     {
       self.pnp_manifests.clear();
-      self.pnp_manifest_path_for_path.clear();
+      self.pnp_manifest_path_cache.clear();
     }
   }
 
@@ -897,7 +897,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // A cached None (no manifest found) does NOT short-circuit here — new manifests may be
     // registered into pnp_manifests at any time, so a path that previously had no match
     // might succeed against a newly added manifest. Phase 1 must re-run in that case.
-    if let Some(entry) = self.pnp_manifest_path_for_path.get(cached_path) {
+    if let Some(entry) = self.pnp_manifest_path_cache.get(cached_path) {
       if let Some(manifest_path) = entry.as_ref() {
         // Manifest path is known; load from cache or reload from disk if evicted.
         let entry = self
@@ -977,7 +977,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
     if let Some((_, manifest_cached_path, manifest)) = best {
       self
-        .pnp_manifest_path_for_path
+        .pnp_manifest_path_cache
         .insert(cached_path.clone(), Some(manifest_cached_path));
       return Ok(Some(manifest));
     }
@@ -987,7 +987,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       pnp::find_closest_pnp_manifest_path(&path).map(|p| self.cache.value(&p));
 
     self
-      .pnp_manifest_path_for_path
+      .pnp_manifest_path_cache
       .insert(cached_path.clone(), manifest_cached_path.clone());
 
     let Some(manifest_cached_path) = manifest_cached_path else {
