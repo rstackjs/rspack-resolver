@@ -912,11 +912,15 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     };
 
     let manifest = Arc::new(manifest);
-    self
+    let previous = self
       .pnp_manifest
       .compare_and_swap(&None::<Arc<_>>, Some(Arc::clone(&manifest)));
-    // Return whatever is stored (ours or another thread's)
-    self.pnp_manifest.load_full()
+
+    if let Some(existing) = previous.as_ref() {
+      return Some(Arc::clone(existing));
+    }
+
+    Some(manifest)
   }
 
   #[cfg(feature = "yarn_pnp")]
