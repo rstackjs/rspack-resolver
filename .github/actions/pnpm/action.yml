@@ -1,6 +1,6 @@
 name: Pnpm
 
-description: Install npm deps
+description: Set up pnpm and install dependencies (including yarn fixture installs)
 
 inputs:
   node-version:
