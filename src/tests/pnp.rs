@@ -242,7 +242,13 @@ async fn resolve_pnp_transitive_dep_from_global_cache() {
   let isarray = resolver
     .resolve(module_root, "isarray")
     .await
-    .map(|r| r.full_path().to_string_lossy().to_lowercase().to_string())
+    .map(|r| {
+      r.full_path()
+        .to_string_lossy()
+        .replace('\\', "/")
+        .to_lowercase()
+        .to_string()
+    })
     .unwrap();
 
   assert!(
