@@ -1,6 +1,6 @@
 name: Pnpm
 
-description: Install pnpm
+description: Set up pnpm and install dependencies (including yarn fixture installs)
 
 inputs:
   node-version:
@@ -34,6 +34,8 @@ runs:
       shell: bash
       run: |
         cd fixtures/pnp
+        yarn install
+        cd ../pnp-global-cache-enabled
         yarn install
 
     - name: pnpm
