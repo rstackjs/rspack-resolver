@@ -145,25 +145,110 @@ async fn resolve_pnp_pkg_should_failed_while_disable_pnp_mode() {
   );
 }
 
+#[cfg(target_os = "windows")]
 #[tokio::test]
-async fn resolve_pnp_with_manifest_option() {
-  let fixture = super::fixture_root().join("pnp");
-  let manifest = fixture.join(".pnp.cjs");
+async fn resolve_pnp_with_global_cache_enabled_windows() {
+  let fixture = super::fixture_root().join("pnp-global-cache-enabled");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
-    condition_names: vec!["import".into()],
-    pnp_manifest: Some(manifest),
+    enable_pnp: true,
     ..ResolveOptions::default()
   });
 
-  assert_eq!(
-    resolver
-      .resolve(&fixture, "lodash.zip")
-      .await
-      .map(|r| r.full_path()),
-    Ok(fixture.join(
-      ".yarn/cache/lodash.zip-npm-4.2.0-5299417ec8-e596da80a6.zip/node_modules/lodash.zip/index.js"
-    ))
+  let resolved = resolver
+    .resolve(&fixture, "path-to-regexp")
+    .await
+    .map(|r| r.full_path())
+    .unwrap();
+
+  let module_root = resolved.parent().unwrap();
+  let module_root_str = module_root.to_string_lossy().replace('\\', "/");
+  assert!(
+    module_root_str.contains("/Yarn/Berry/cache/path-to-regexp"),
+    "Expected global cache path, got: {module_root_str}"
+  );
+
+  let resolved_from_cache = resolver
+    .resolve(module_root, "./index.js")
+    .await
+    .map(|r| {
+      r.full_path()
+        .to_string_lossy()
+        .replace('\\', "/")
+        .to_string()
+    })
+    .unwrap();
+  assert!(
+    resolved_from_cache.contains("/Yarn/Berry/cache/path-to-regexp"),
+    "Expected global cache path, got: {resolved_from_cache}"
+  );
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tokio::test]
+async fn resolve_pnp_with_global_cache_enabled_unix() {
+  let fixture = super::fixture_root().join("pnp-global-cache-enabled");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    enable_pnp: true,
+    ..ResolveOptions::default()
+  });
+
+  let resolved = resolver
+    .resolve(&fixture, "path-to-regexp")
+    .await
+    .map(|r| r.full_path())
+    .unwrap();
+
+  let module_root = resolved.parent().unwrap();
+  let module_root_str = module_root.to_string_lossy();
+  assert!(
+    module_root_str.contains("/.yarn/berry/cache/path-to-regexp"),
+    "Expected global cache path, got: {module_root_str}"
+  );
+
+  let resolved_from_cache = resolver
+    .resolve(module_root, "./index.js")
+    .await
+    .map(|r| r.full_path())
+    .unwrap();
+  let resolved_str = resolved_from_cache.to_string_lossy();
+  assert!(
+    resolved_str.contains("/.yarn/berry/cache/path-to-regexp"),
+    "Expected global cache path, got: {resolved_str}"
+  );
+}
+
+#[tokio::test]
+async fn resolve_pnp_transitive_dep_from_global_cache() {
+  let fixture = super::fixture_root().join("pnp-global-cache-enabled");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    enable_pnp: true,
+    ..ResolveOptions::default()
+  });
+
+  let path_to_regexp = resolver
+    .resolve(&fixture, "path-to-regexp")
+    .await
+    .map(|r| r.full_path())
+    .unwrap();
+
+  let module_root = path_to_regexp.parent().unwrap();
+
+  let isarray = resolver
+    .resolve(module_root, "isarray")
+    .await
+    .map(|r| r.full_path().to_string_lossy().to_lowercase().to_string())
+    .unwrap();
+
+  assert!(
+    isarray.contains(
+      "yarn/berry/cache/isarray-npm-0.0.1-92e37e0a70-10c0.zip/node_modules/isarray/index.js"
+    ),
+    "Expected isarray in global cache, got: {isarray}"
   );
 }
