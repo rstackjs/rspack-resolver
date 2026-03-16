@@ -901,17 +901,22 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let base_path = cached_path.to_path_buf();
     let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(&base_path) else {
       self.pnp_no_manifest_cache.insert(cached_path.clone());
+
+      for p in base_path.ancestors() {
+        let p_cached = self.cache.value(p);
+        if self.pnp_no_manifest_cache.contains(&p_cached) {
+          break;
+        }
+        self.pnp_no_manifest_cache.insert(p_cached);
+      }
       return None;
     };
 
     tracing::debug!("use manifest path: {:?}", manifest_path);
 
-    let Some(manifest) = pnp::load_pnp_manifest(&manifest_path).ok() else {
-      self.pnp_no_manifest_cache.insert(cached_path.clone());
-      return None;
-    };
-
+    let manifest = pnp::load_pnp_manifest(&manifest_path).ok()?;
     let manifest = Arc::new(manifest);
+
     let previous = self
       .pnp_manifest
       .compare_and_swap(&None::<Arc<_>>, Some(Arc::clone(&manifest)));
