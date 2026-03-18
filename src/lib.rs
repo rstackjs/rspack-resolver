@@ -1948,7 +1948,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             ));
           }
           // 2. For each item targetValue in target, do
-          for (i, target_value) in targets.iter().enumerate() {
+          let mut last_error = None;
+          for target_value in targets.iter() {
             // 1. Let resolved be the result of PACKAGE_TARGET_RESOLVE( packageURL, targetValue, patternMatch, isImports, conditions), continuing the loop on any Invalid Package Target error.
             let resolved = self
               .package_target_resolve(
@@ -1962,18 +1963,24 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
               )
               .await;
 
-            if resolved.is_err() && i == targets.len() {
-              return resolved;
-            }
-
-            // 2. If resolved is undefined, continue the loop.
-            if let Ok(Some(path)) = resolved {
+            match resolved {
+              // Only track InvalidPackageTarget for re-throwing after the loop.
+              Err(e @ ResolveError::InvalidPackageTarget(..)) => {
+                last_error = Some(e);
+              }
+              Err(_) => {}
+              // 2. If resolved is undefined, continue the loop.
+              Ok(None) => {
+                last_error = None;
+              }
               // 3. Return resolved.
-              return Ok(Some(path));
+              Ok(Some(path)) => return Ok(Some(path)),
             }
           }
           // 3. Return or throw the last fallback resolution null return or error.
-          // Note: see `resolved.is_err() && i == targets.len()`
+          if let Some(e) = last_error {
+            return Err(e);
+          }
         }
         JSONValue::Static(_) => {}
       }
