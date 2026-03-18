@@ -1,5 +1,5 @@
 ---
-name: rspack-sftrace
+name: sftrace
 description: Use sftrace, which is based on LLVM Xray instrumentation, to trace all Rust function calls. This can be used for performance analysis and troubleshooting.
 ---
 
