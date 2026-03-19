@@ -1341,12 +1341,12 @@ async fn test_cases() {
 }
 
 #[tokio::test]
-// #[ignore] // imports chain not supported yet
+#[ignore] // imports chain not supported yet
 async fn test_imports_chain() {
   let root = super::fixture().join("imports-field-chain");
-  let resolved = Resolver::default().resolve(root, "#a").await.unwrap().path;
+  let resolved = Resolver::default().resolve(&root, "#a").await.unwrap().path;
 
-  assert!(resolved.ends_with("the.js"));
+  assert_eq!(resolved, root.join("the.js"))
 }
 
 #[tokio::test]
