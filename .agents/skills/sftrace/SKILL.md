@@ -23,9 +23,11 @@ mkdir "$(./target/release/sftrace record --print-solib-install-dir)"
 cp ./target/release/libsftrace.so "$(./target/release/sftrace record --print-solib-install-dir)/"
 ```
 
-### 2) Build sftrace-enabled profiling binding
+### 2) Build with XRay instrumentation
 
-XRay instrumentation must be enabled via RUSTFLAGS when building the profiling binding.
+XRay instrumentation must be enabled via RUSTFLAGS. There are two targets: the Node.js binding and the Rust benchmark binary.
+
+#### 2a) Node.js binding
 
 ```sh
 RUSTFLAGS="-Zinstrument-xray=always" pnpm build:binding:profiling
@@ -33,35 +35,62 @@ RUSTFLAGS="-Zinstrument-xray=always" pnpm build:binding:profiling
 
 The `.node` binding file will be output to the project root (e.g. `resolver.darwin-arm64.node`).
 
-### 3) Optional: Generate a filter file from symbols
-
-`sftrace filter` works on function symbols from an object file (the binding `.node` file).
+#### 2b) Benchmark binary
 
 ```sh
-BINDING_NODE="$(ls resolver.*.node | head -1)"
+RUSTFLAGS="-Zinstrument-xray=always" cargo +nightly bench --profile profiling --no-run
+```
+
+The benchmark binary will be output under `target/profiling/deps/`. Find it with:
+
+```sh
+BENCH_BIN="$(ls -t target/profiling/deps/resolver-* | grep -v '\.d$' | head -1)"
+```
+
+### 3) Optional: Generate a filter file from symbols
+
+`sftrace filter` works on function symbols from an object file (`.node` binding or benchmark binary).
+
+```sh
+# For Node.js binding
+TARGET="$(ls resolver.*.node | head -1)"
+
+# For benchmark binary
+TARGET="$(ls -t target/profiling/deps/resolver-* | grep -v '\.d$' | head -1)"
 
 # Regex mode
-sftrace filter -p "$BINDING_NODE" -r 'resolve|normalize|cache' -o sftrace.filter
+sftrace filter -p "$TARGET" -r 'resolve|normalize|cache' -o sftrace.filter
 
 # List mode (one regex per line)
-# sftrace filter -p "$BINDING_NODE" --list symbols.list -o sftrace.filter
+# sftrace filter -p "$TARGET" --list symbols.list -o sftrace.filter
 ```
 
 ### 4) Record sftrace
 
 ```sh
-BINDING_NODE="$(ls resolver.*.node | head -1)"
 TRACE_DIR="sftrace-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$TRACE_DIR"
-
-# Full trace (example: run tests)
-sftrace record -o "$TRACE_DIR/sf.log" -- pnpm test
-
-# Filtered trace (requires sftrace.filter from step 3)
-sftrace record -f sftrace.filter -o "$TRACE_DIR/sf.filtered.log" -- pnpm test
 ```
 
-You can replace `pnpm test` with any command that exercises the resolver (benchmarks, custom scripts, etc.).
+#### 4a) Trace Node.js binding (e.g. run tests)
+
+```sh
+sftrace record -o "$TRACE_DIR/sf.log" -- pnpm test
+```
+
+#### 4b) Trace benchmark binary
+
+```sh
+BENCH_BIN="$(ls -t target/profiling/deps/resolver-* | grep -v '\.d$' | head -1)"
+
+# Full trace
+sftrace record -o "$TRACE_DIR/sf.log" -- "$BENCH_BIN" --bench
+
+# Filtered trace (requires sftrace.filter from step 3)
+sftrace record -f sftrace.filter -o "$TRACE_DIR/sf.filtered.log" -- "$BENCH_BIN" --bench
+```
+
+`--bench` tells criterion to run in benchmark mode. You can append `-- <filter>` to run only specific benchmarks (e.g. `-- "resolve_node_modules"`).
 
 ### 5) Optional: Analyze sf.log by [polars](https://docs.pola.rs/)
 
