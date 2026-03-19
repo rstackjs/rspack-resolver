@@ -1339,3 +1339,20 @@ async fn test_cases() {
     }
   }
 }
+
+#[tokio::test]
+// #[ignore] // imports chain not supported yet
+async fn test_imports_chain() {
+  let root = super::fixture().join("imports-field-chain");
+  let resolved = Resolver::default().resolve(root, "#a").await.unwrap().path;
+
+  assert!(resolved.ends_with("the.js"));
+}
+
+#[tokio::test]
+async fn test_imports_chain_to_other_package() {
+  let root = super::fixture().join("imports-field");
+  let resolved = Resolver::default().resolve(&root, "#c").await.unwrap().path;
+
+  assert_eq!(resolved, root.join("node_modules/c/index.js"))
+}
