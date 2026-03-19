@@ -1354,5 +1354,5 @@ async fn test_imports_chain_to_other_package() {
   let root = super::fixture().join("imports-field");
   let resolved = Resolver::default().resolve(&root, "#c").await.unwrap().path;
 
-  assert_eq!(resolved, root.join("node_modules/c/index.js"))
+  assert_eq!(resolved, root.join("node_modules/c/index.js"));
 }
