@@ -41,10 +41,10 @@ jobs:
           tools: cargo-codspeed
 
       - uses: ./.github/actions/pnpm
-      - name: Build Benchmark
+      - name: Build Simulation Benchmark
         env:
           RUSTFLAGS: "-C debuginfo=1 -C strip=none -g"
-        run: cargo codspeed build
+        run: cargo codspeed build -m simulation
 
       - name: Run CPU benchmark
         uses: CodSpeedHQ/action@4deb3275dd364fb96fb074c953133d29ec96f80f # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
@@ -53,6 +53,11 @@ jobs:
           mode: simulation
           run: cargo codspeed run
           token: ${{ secrets.CODSPEED_TOKEN }}
+
+      - name: Build Memory Benchmark
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g"
+        run: cargo codspeed build -m memory
 
       - name: Run memory benchmark
         uses: CodSpeedHQ/action@4deb3275dd364fb96fb074c953133d29ec96f80f # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
