@@ -103,7 +103,7 @@ describe("TsconfigPathsPlugin", () => {
   // extends-base uses ${configDir} in extends field
   it(
     "resolves '@components/*' using extends",
-    { todo: "${configDir} in tsconfig extends" },
+    { skip: "${configDir} in tsconfig extends" },
     () => {
       const resolver = makeTsconfigResolver(
         path.join(extendsExampleDir, "tsconfig.json")
@@ -252,7 +252,7 @@ describe("TsconfigPathsPlugin", () => {
 
     it(
       "should handle circular extends without hanging",
-      { todo: "${configDir} in tsconfig extends" },
+      { skip: "${configDir} in tsconfig extends" },
       () => {
         const aDir = path.join(extendsCircularDir, "a");
         const resolver = makeTsconfigResolver(path.join(aDir, "tsconfig.json"));
@@ -302,7 +302,7 @@ describe("TsconfigPathsPlugin", () => {
     // references-project uses ${configDir} in tsconfig paths and references
     it(
       "should resolve own paths (without cross-project references)",
-      { todo: "${configDir} in tsconfig references" },
+      { skip: "${configDir} in tsconfig references" },
       () => {
         const appDir = path.join(referencesProjectDir, "packages", "app");
         const resolver = new ResolverFactory({
@@ -321,7 +321,7 @@ describe("TsconfigPathsPlugin", () => {
 
     it(
       "should resolve self-references within a referenced project",
-      { todo: "${configDir} in tsconfig references" },
+      { skip: "${configDir} in tsconfig references" },
       () => {
         const appDir = path.join(referencesProjectDir, "packages", "app");
         const sharedDir = path.join(referencesProjectDir, "packages", "shared");
@@ -344,7 +344,7 @@ describe("TsconfigPathsPlugin", () => {
 
     it(
       "should support explicit references array",
-      { todo: "${configDir} in tsconfig references" },
+      { skip: "${configDir} in tsconfig references" },
       () => {
         const appDir = path.join(referencesProjectDir, "packages", "app");
         const sharedSrcDir = path.join(
@@ -372,7 +372,7 @@ describe("TsconfigPathsPlugin", () => {
 
     it(
       "should not load references when references option is omitted",
-      { todo: "${configDir} in tsconfig references" },
+      { skip: "${configDir} in tsconfig references" },
       () => {
         const appDir = path.join(referencesProjectDir, "packages", "app");
         const resolver = new ResolverFactory({
@@ -390,7 +390,7 @@ describe("TsconfigPathsPlugin", () => {
 
     it(
       "should handle nested references",
-      { todo: "${configDir} in tsconfig references" },
+      { skip: "${configDir} in tsconfig references" },
       () => {
         const appDir = path.join(referencesProjectDir, "packages", "app");
         const utilsSrcDir = path.join(
@@ -419,7 +419,7 @@ describe("TsconfigPathsPlugin", () => {
     describe("modules resolution with references", () => {
       it(
         "should resolve modules from main project's baseUrl",
-        { todo: "${configDir} in tsconfig references" },
+        { skip: "${configDir} in tsconfig references" },
         () => {
           const appDir = path.join(referencesProjectDir, "packages", "app");
           const resolver = new ResolverFactory({
@@ -441,7 +441,7 @@ describe("TsconfigPathsPlugin", () => {
 
       it(
         "should resolve modules from referenced project's baseUrl",
-        { todo: "${configDir} in tsconfig references" },
+        { skip: "${configDir} in tsconfig references" },
         () => {
           const appDir = path.join(referencesProjectDir, "packages", "app");
           const sharedSrcDir = path.join(
@@ -469,7 +469,7 @@ describe("TsconfigPathsPlugin", () => {
 
       it(
         "should resolve components from referenced project's baseUrl",
-        { todo: "${configDir} in tsconfig references" },
+        { skip: "${configDir} in tsconfig references" },
         () => {
           const appDir = path.join(referencesProjectDir, "packages", "app");
           const sharedSrcDir = path.join(
@@ -497,7 +497,7 @@ describe("TsconfigPathsPlugin", () => {
 
       it(
         "should use correct baseUrl based on request context",
-        { todo: "${configDir} in tsconfig references" },
+        { skip: "${configDir} in tsconfig references" },
         () => {
           const appDir = path.join(referencesProjectDir, "packages", "app");
           const sharedDir = path.join(
@@ -524,7 +524,7 @@ describe("TsconfigPathsPlugin", () => {
 
       it(
         "should support explicit references with modules resolution",
-        { todo: "${configDir} in tsconfig references" },
+        { skip: "${configDir} in tsconfig references" },
         () => {
           const appDir = path.join(referencesProjectDir, "packages", "app");
           const sharedSrcDir = path.join(

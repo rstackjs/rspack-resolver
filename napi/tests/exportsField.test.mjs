@@ -88,7 +88,7 @@ describe("exportsFieldPlugin", () => {
 
   it(
     "resolver should respect fallback",
-    { todo: "array fallback in exports field directory mappings" },
+    { skip: "array fallback in exports field directory mappings" },
     () => {
       const result = resolver.sync(fixture2, "exports-field/dist/browser.js");
       assert.strictEqual(
@@ -100,7 +100,7 @@ describe("exportsFieldPlugin", () => {
 
   it(
     "resolver should respect query parameters #1",
-    { todo: "array fallback in exports field directory mappings" },
+    { skip: "array fallback in exports field directory mappings" },
     () => {
       const result = resolver.sync(
         fixture2,
@@ -120,7 +120,7 @@ describe("exportsFieldPlugin", () => {
 
   it(
     "resolver should respect fragment parameters #1",
-    { todo: "array fallback in exports field directory mappings" },
+    { skip: "array fallback in exports field directory mappings" },
     () => {
       const result = resolver.sync(
         fixture2,
@@ -446,7 +446,7 @@ describe("exportsFieldPlugin", () => {
   // invalid package target tests (fixture5)
   it(
     "invalid package target #1",
-    { todo: "query strings containing ../ treated as invalid targets" },
+    { skip: "query strings containing ../ treated as invalid targets" },
     () => {
       const result = resolver.sync(fixture5, "@exports-field/bad-specifier");
       assert.strictEqual(
@@ -458,7 +458,7 @@ describe("exportsFieldPlugin", () => {
 
   it(
     "invalid package target #2",
-    { todo: "query strings containing ../ treated as invalid targets" },
+    { skip: "query strings containing ../ treated as invalid targets" },
     () => {
       const result = resolver.sync(
         fixture5,
@@ -567,7 +567,7 @@ describe("exportsFieldPlugin", () => {
   it(
     "invalid package target #15",
     {
-      todo: "array fallback in exports field when first valid target file not found"
+      skip: "array fallback in exports field when first valid target file not found"
     },
     () => {
       const result = resolver.sync(

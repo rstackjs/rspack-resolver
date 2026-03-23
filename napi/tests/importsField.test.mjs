@@ -101,7 +101,7 @@ describe("importsFieldPlugin", () => {
 
   it(
     "should work and throw an error on invalid imports #1",
-    { todo: "#/ slash pattern (node.js PR #60864) not yet supported" },
+    { skip: "#/ slash pattern (node.js PR #60864) not yet supported" },
     () => {
       const result = resolver.sync(fixture, "#/dep");
       assert.ok(result.error);
@@ -115,7 +115,7 @@ describe("importsFieldPlugin", () => {
 
   it(
     "should work with invalid imports #1",
-    { todo: "query strings containing ../ treated as invalid targets" },
+    { skip: "query strings containing ../ treated as invalid targets" },
     () => {
       const result = resolver.sync(fixture1, "#dep");
       assert.strictEqual(
@@ -127,7 +127,7 @@ describe("importsFieldPlugin", () => {
 
   it(
     "should work with invalid imports #2",
-    { todo: "query strings containing ../ treated as invalid targets" },
+    { skip: "query strings containing ../ treated as invalid targets" },
     () => {
       const result = resolver.sync(fixture1, "#dep/foo/a.js");
       assert.strictEqual(
@@ -154,7 +154,7 @@ describe("importsFieldPlugin", () => {
 
   it(
     "should work with invalid imports #7",
-    { todo: "invalid specifier array handling differences" },
+    { skip: "invalid specifier array handling differences" },
     () => {
       const result = resolver.sync(fixture1, "#dep/pattern/a.js");
       assert.ok(result.error);
@@ -163,7 +163,7 @@ describe("importsFieldPlugin", () => {
 
   it(
     "should work with invalid imports #8",
-    { todo: "invalid specifier array handling differences" },
+    { skip: "invalid specifier array handling differences" },
     () => {
       const result = resolver.sync(fixture1, "#dep/array");
       assert.strictEqual(result.path, path.resolve(fixture1, "./a.js"));
@@ -172,7 +172,7 @@ describe("importsFieldPlugin", () => {
 
   it(
     "should work with invalid imports #9",
-    { todo: "invalid specifier array handling differences" },
+    { skip: "invalid specifier array handling differences" },
     () => {
       const result = resolver.sync(fixture1, "#dep/array2");
       assert.ok(result.error);

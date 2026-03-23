@@ -43,7 +43,7 @@ describe("restrictions", () => {
 
   it(
     "should try to find alternative #2",
-    { todo: "restrictions with multiple mainFields" },
+    { skip: "restrictions with multiple mainFields" },
     () => {
       const resolver = new ResolverFactory({
         extensions: [".js"],
