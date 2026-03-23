@@ -1,12 +1,8 @@
-import { describe, it } from "node:test";
+import { describe, it, expect } from "@rstest/core";
 import { ResolverFactory } from "../index.js";
-import * as assert from "node:assert";
 import * as path from "node:path";
-import { fileURLToPath } from "url";
 
-const fixtureDir = fileURLToPath(
-  new URL("../../fixtures/enhanced_resolve/test/fixtures", import.meta.url)
-);
+const fixtureDir = path.resolve("fixtures/enhanced_resolve/test/fixtures");
 const browserModule = path.join(fixtureDir, "browser-module");
 
 function p(...args) {
@@ -25,71 +21,56 @@ describe("browserField", () => {
 
   it("should ignore", () => {
     const result = resolver.sync(p(), "./lib/ignore");
-    assert.strictEqual(result.path, undefined);
+    expect(result.path).toBeUndefined();
   });
 
   it("should ignore #2", () => {
-    assert.strictEqual(resolver.sync(p(), "./lib/ignore.js").path, undefined);
-    assert.strictEqual(resolver.sync(p("lib"), "./ignore").path, undefined);
-    assert.strictEqual(resolver.sync(p("lib"), "./ignore.js").path, undefined);
+    expect(resolver.sync(p(), "./lib/ignore.js").path).toBeUndefined();
+    expect(resolver.sync(p("lib"), "./ignore").path).toBeUndefined();
+    expect(resolver.sync(p("lib"), "./ignore.js").path).toBeUndefined();
   });
 
   it("should replace a file", () => {
-    assert.strictEqual(
-      resolver.sync(p(), "./lib/replaced").path,
+    expect(resolver.sync(p(), "./lib/replaced").path).toBe(
       p("lib", "browser.js")
     );
-    assert.strictEqual(
-      resolver.sync(p(), "./lib/replaced.js").path,
+    expect(resolver.sync(p(), "./lib/replaced.js").path).toBe(
       p("lib", "browser.js")
     );
-    assert.strictEqual(
-      resolver.sync(p("lib"), "./replaced").path,
+    expect(resolver.sync(p("lib"), "./replaced").path).toBe(
       p("lib", "browser.js")
     );
-    assert.strictEqual(
-      resolver.sync(p("lib"), "./replaced.js").path,
+    expect(resolver.sync(p("lib"), "./replaced.js").path).toBe(
       p("lib", "browser.js")
     );
   });
 
   it("should replace a module with a file", () => {
-    assert.strictEqual(
-      resolver.sync(p(), "module-a").path,
+    expect(resolver.sync(p(), "module-a").path).toBe(
       p("browser", "module-a.js")
     );
-    assert.strictEqual(
-      resolver.sync(p("lib"), "module-a").path,
+    expect(resolver.sync(p("lib"), "module-a").path).toBe(
       p("browser", "module-a.js")
     );
   });
 
   it("should replace a module with a module", () => {
-    assert.strictEqual(
-      resolver.sync(p(), "module-b").path,
+    expect(resolver.sync(p(), "module-b").path).toBe(
       p("node_modules", "module-c.js")
     );
-    assert.strictEqual(
-      resolver.sync(p("lib"), "module-b").path,
+    expect(resolver.sync(p("lib"), "module-b").path).toBe(
       p("node_modules", "module-c.js")
     );
   });
 
   it("should resolve in nested property", () => {
-    assert.strictEqual(
-      resolver.sync(p(), "./lib/main1.js").path,
-      p("lib", "main.js")
-    );
-    assert.strictEqual(
-      resolver.sync(p(), "./lib/main2.js").path,
+    expect(resolver.sync(p(), "./lib/main1.js").path).toBe(p("lib", "main.js"));
+    expect(resolver.sync(p(), "./lib/main2.js").path).toBe(
       p("lib", "browser.js")
     );
   });
 
   it("should check only alias field properties", () => {
-    assert.strictEqual(
-      resolver.sync(p(), "./toString").path,
-      p("lib", "toString.js")
-    );
+    expect(resolver.sync(p(), "./toString").path).toBe(p("lib", "toString.js"));
   });
 });

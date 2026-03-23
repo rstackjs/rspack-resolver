@@ -1,12 +1,8 @@
-import { describe, it } from "node:test";
+import { describe, it, expect } from "@rstest/core";
 import { ResolverFactory } from "../index.js";
-import * as assert from "node:assert";
 import * as path from "node:path";
-import { fileURLToPath } from "url";
 
-const fixtureDir = fileURLToPath(
-  new URL("../../fixtures/enhanced_resolve/test/fixtures", import.meta.url)
-);
+const fixtureDir = path.resolve("fixtures/enhanced_resolve/test/fixtures");
 const fixture = path.resolve(fixtureDir, "restrictions");
 
 describe("restrictions", () => {
@@ -16,7 +12,7 @@ describe("restrictions", () => {
       restrictions: [{ regex: "\\.(sass|scss|css)$" }]
     });
     const result = resolver.sync(fixture, "pck1");
-    assert.ok(result.error);
+    expect(result.error).toBeTruthy();
   });
 
   it("should try to find alternative #1", () => {
@@ -26,8 +22,7 @@ describe("restrictions", () => {
       restrictions: [{ regex: "\\.(sass|scss|css)$" }]
     });
     const result = resolver.sync(fixture, "pck1");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.resolve(fixture, "node_modules/pck1/index.css")
     );
   });
@@ -38,23 +33,19 @@ describe("restrictions", () => {
       restrictions: [{ path: fixture }]
     });
     const result = resolver.sync(fixture, "pck2");
-    assert.ok(result.error);
+    expect(result.error).toBeTruthy();
   });
 
-  it(
-    "should try to find alternative #2",
-    { skip: "restrictions with multiple mainFields" },
-    () => {
-      const resolver = new ResolverFactory({
-        extensions: [".js"],
-        mainFields: ["main", "style"],
-        restrictions: [{ path: fixture }, { regex: "\\.(sass|scss|css)$" }]
-      });
-      const result = resolver.sync(fixture, "pck2");
-      assert.strictEqual(
-        result.path,
-        path.resolve(fixture, "node_modules/pck2/index.css")
-      );
-    }
-  );
+  // skip: restrictions with multiple mainFields
+  it.skip("should try to find alternative #2", () => {
+    const resolver = new ResolverFactory({
+      extensions: [".js"],
+      mainFields: ["main", "style"],
+      restrictions: [{ path: fixture }, { regex: "\\.(sass|scss|css)$" }]
+    });
+    const result = resolver.sync(fixture, "pck2");
+    expect(result.path).toBe(
+      path.resolve(fixture, "node_modules/pck2/index.css")
+    );
+  });
 });

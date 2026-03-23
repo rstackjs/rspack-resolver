@@ -1,17 +1,13 @@
-import { describe, it } from "node:test";
+import { describe, it, expect } from "@rstest/core";
 import { ResolverFactory } from "../index.js";
-import * as assert from "node:assert";
 import * as path from "node:path";
-import { fileURLToPath } from "url";
 
-const fixtures = fileURLToPath(
-  new URL("../../fixtures/enhanced_resolve/test/fixtures", import.meta.url)
-);
+const fixtures = path.resolve("fixtures/enhanced_resolve/test/fixtures");
 
 function testResolve(resolver, name, context, moduleName, expected) {
   it(name, () => {
     const result = resolver.sync(context, moduleName);
-    assert.strictEqual(result.path, expected);
+    expect(result.path).toBe(expected);
   });
 }
 
@@ -189,12 +185,12 @@ describe("resolve", () => {
   // resolveToContext tests
   it("context for fixtures", () => {
     const result = contextResolver.sync(fixtures, "./");
-    assert.strictEqual(result.path, fixtures);
+    expect(result.path).toBe(fixtures);
   });
 
   it("context for fixtures/lib", () => {
     const result = contextResolver.sync(fixtures, "./lib");
-    assert.strictEqual(result.path, path.join(fixtures, "lib"));
+    expect(result.path).toBe(path.join(fixtures, "lib"));
   });
 
   it("context for fixtures with ..", () => {
@@ -202,12 +198,12 @@ describe("resolve", () => {
       fixtures,
       "./lib/../../fixtures/./lib/.."
     );
-    assert.strictEqual(result.path, fixtures);
+    expect(result.path).toBe(fixtures);
   });
 
   it("context for fixtures with query", () => {
     const result = contextResolver.sync(fixtures, "./?query");
-    assert.strictEqual(result.path, `${fixtures}?query`);
+    expect(result.path).toBe(`${fixtures}?query`);
   });
 
   // differ between directory and file
@@ -262,8 +258,7 @@ describe("resolve", () => {
       path.resolve(issue238, "./src/common"),
       "config/myObjectFile"
     );
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.resolve(issue238, "./src/common/config/myObjectFile.js")
     );
   });
@@ -274,7 +269,7 @@ describe("resolve", () => {
       preferRelative: true
     });
     const result = preferRelativeResolver.sync(fixtures, "main1.js");
-    assert.strictEqual(result.path, path.join(fixtures, "main1.js"));
+    expect(result.path).toBe(path.join(fixtures, "main1.js"));
   });
 
   it("should correctly resolve with preferRelative #2", () => {
@@ -282,9 +277,6 @@ describe("resolve", () => {
       preferRelative: true
     });
     const result = preferRelativeResolver.sync(fixtures, "m1/a.js");
-    assert.strictEqual(
-      result.path,
-      path.join(fixtures, "node_modules", "m1", "a.js")
-    );
+    expect(result.path).toBe(path.join(fixtures, "node_modules", "m1", "a.js"));
   });
 });

@@ -1,12 +1,8 @@
-import { describe, it } from "node:test";
+import { describe, it, expect } from "@rstest/core";
 import { ResolverFactory } from "../index.js";
-import * as assert from "node:assert";
 import * as path from "node:path";
-import { fileURLToPath } from "url";
 
-const fixtureDir = fileURLToPath(
-  new URL("../../fixtures/enhanced_resolve/test/fixtures", import.meta.url)
-);
+const fixtureDir = path.resolve("fixtures/enhanced_resolve/test/fixtures");
 const fixture = path.join(fixtureDir, "scoped");
 
 describe("scoped-packages", () => {
@@ -16,24 +12,21 @@ describe("scoped-packages", () => {
 
   it("main field should work", () => {
     const result = resolver.sync(fixture, "@scope/pack1");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.resolve(fixture, "./node_modules/@scope/pack1/main.js")
     );
   });
 
   it("browser field should work", () => {
     const result = resolver.sync(fixture, "@scope/pack2");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.resolve(fixture, "./node_modules/@scope/pack2/main.js")
     );
   });
 
   it("folder request should work", () => {
     const result = resolver.sync(fixture, "@scope/pack2/lib");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.resolve(fixture, "./node_modules/@scope/pack2/lib/index.js")
     );
   });

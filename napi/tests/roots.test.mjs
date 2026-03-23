@@ -1,12 +1,8 @@
-import { describe, it } from "node:test";
+import { describe, it, expect } from "@rstest/core";
 import { ResolverFactory } from "../index.js";
-import * as assert from "node:assert";
 import * as path from "node:path";
-import { fileURLToPath } from "url";
 
-const fixtureDir = fileURLToPath(
-  new URL("../../fixtures/enhanced_resolve/test/fixtures", import.meta.url)
-);
+const fixtureDir = path.resolve("fixtures/enhanced_resolve/test/fixtures");
 const testDir = path.resolve(fixtureDir, "..");
 
 describe("roots", () => {
@@ -20,30 +16,29 @@ describe("roots", () => {
 
   it("should respect roots option", () => {
     const result = resolver.sync(fixtureDir, "/fixtures/b.js");
-    assert.strictEqual(result.path, path.resolve(fixtureDir, "b.js"));
+    expect(result.path).toBe(path.resolve(fixtureDir, "b.js"));
   });
 
   it("should try another root option, if it exists", () => {
     const result = resolver.sync(fixtureDir, "/b.js");
-    assert.strictEqual(result.path, path.resolve(fixtureDir, "b.js"));
+    expect(result.path).toBe(path.resolve(fixtureDir, "b.js"));
   });
 
   it("should respect extension", () => {
     const result = resolver.sync(fixtureDir, "/fixtures/b");
-    assert.strictEqual(result.path, path.resolve(fixtureDir, "b.js"));
+    expect(result.path).toBe(path.resolve(fixtureDir, "b.js"));
   });
 
   it("should resolve in directory", () => {
     const result = resolver.sync(fixtureDir, "/fixtures/extensions/dir");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.resolve(fixtureDir, "extensions/dir/index.js")
     );
   });
 
   it("should respect aliases", () => {
     const result = resolver.sync(fixtureDir, "foo/b");
-    assert.strictEqual(result.path, path.resolve(fixtureDir, "b.js"));
+    expect(result.path).toBe(path.resolve(fixtureDir, "b.js"));
   });
 
   it("should support roots options with resolveToContext", () => {
@@ -52,12 +47,12 @@ describe("roots", () => {
       resolveToContext: true
     });
     const result = contextResolver.sync(fixtureDir, "/fixtures/lib");
-    assert.strictEqual(result.path, path.resolve(fixtureDir, "lib"));
+    expect(result.path).toBe(path.resolve(fixtureDir, "lib"));
   });
 
   it("should not work with relative path", () => {
     const result = resolver.sync(fixtureDir, "fixtures/b.js");
-    assert.ok(result.error);
+    expect(result.error).toBeTruthy();
   });
 
   it("should resolve an absolute path (prefer absolute)", () => {
@@ -73,6 +68,6 @@ describe("roots", () => {
       fixtureDir,
       path.join(fixtureDir, "b.js")
     );
-    assert.strictEqual(result.path, path.resolve(fixtureDir, "b.js"));
+    expect(result.path).toBe(path.resolve(fixtureDir, "b.js"));
   });
 });

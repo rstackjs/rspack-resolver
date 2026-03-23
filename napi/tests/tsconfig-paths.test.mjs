@@ -1,12 +1,8 @@
-import { describe, it } from "node:test";
+import { describe, it, expect } from "@rstest/core";
 import { ResolverFactory } from "../index.js";
-import * as assert from "node:assert";
 import * as path from "node:path";
-import { fileURLToPath } from "url";
 
-const fixtureDir = fileURLToPath(
-  new URL("../../fixtures/enhanced_resolve/test/fixtures", import.meta.url)
-);
+const fixtureDir = path.resolve("fixtures/enhanced_resolve/test/fixtures");
 
 const baseExampleDir = path.resolve(fixtureDir, "tsconfig-paths", "base");
 const extendsExampleDir = path.resolve(
@@ -42,8 +38,7 @@ describe("TsconfigPathsPlugin", () => {
       path.join(baseExampleDir, "tsconfig.json")
     );
     const result = resolver.sync(baseExampleDir, "@components/button");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.join(baseExampleDir, "src", "components", "button.ts")
     );
   });
@@ -53,8 +48,7 @@ describe("TsconfigPathsPlugin", () => {
       path.join(baseExampleDir, "tsconfig.json")
     );
     const result = resolver.sync(baseExampleDir, "longest/bar");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.join(baseExampleDir, "src", "mapped", "longest", "three.ts")
     );
   });
@@ -64,8 +58,7 @@ describe("TsconfigPathsPlugin", () => {
       path.join(baseExampleDir, "tsconfig.json")
     );
     const result = resolver.sync(baseExampleDir, "foo");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.join(baseExampleDir, "src", "mapped", "foo", "index.ts")
     );
   });
@@ -75,8 +68,7 @@ describe("TsconfigPathsPlugin", () => {
       path.join(baseExampleDir, "tsconfig.json")
     );
     const result = resolver.sync(baseExampleDir, "bar/file1");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.join(baseExampleDir, "src", "mapped", "bar", "file1.ts")
     );
   });
@@ -86,8 +78,7 @@ describe("TsconfigPathsPlugin", () => {
       path.join(baseExampleDir, "tsconfig.json")
     );
     const result = resolver.sync(baseExampleDir, "utils/old-file");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.join(baseExampleDir, "src", "components", "new-file.ts")
     );
   });
@@ -97,24 +88,19 @@ describe("TsconfigPathsPlugin", () => {
       path.join(baseExampleDir, "tsconfig.json")
     );
     const result = resolver.sync(baseExampleDir, "does-not-exist");
-    assert.ok(result.error);
+    expect(result.error).toBeTruthy();
   });
 
-  // extends-base uses ${configDir} in extends field
-  it(
-    "resolves '@components/*' using extends",
-    { skip: "${configDir} in tsconfig extends" },
-    () => {
-      const resolver = makeTsconfigResolver(
-        path.join(extendsExampleDir, "tsconfig.json")
-      );
-      const result = resolver.sync(extendsExampleDir, "@components/button");
-      assert.strictEqual(
-        result.path,
-        path.join(extendsExampleDir, "src", "components", "button.ts")
-      );
-    }
-  );
+  // skip: ${configDir} in tsconfig extends
+  it.skip("resolves '@components/*' using extends", () => {
+    const resolver = makeTsconfigResolver(
+      path.join(extendsExampleDir, "tsconfig.json")
+    );
+    const result = resolver.sync(extendsExampleDir, "@components/button");
+    expect(result.path).toBe(
+      path.join(extendsExampleDir, "src", "components", "button.ts")
+    );
+  });
 
   describe("Path wildcard patterns", () => {
     it("resolves 'foo/*' wildcard pattern", () => {
@@ -122,8 +108,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(baseExampleDir, "tsconfig.json")
       );
       const result = resolver.sync(baseExampleDir, "foo/file1");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(baseExampleDir, "src", "mapped", "bar", "file1.ts")
       );
     });
@@ -133,8 +118,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(baseExampleDir, "tsconfig.json")
       );
       const result = resolver.sync(baseExampleDir, "star-bar/index");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(
           baseExampleDir,
           "src",
@@ -151,8 +135,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(baseExampleDir, "tsconfig.json")
       );
       const result = resolver.sync(baseExampleDir, "main-field-package");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(
           baseExampleDir,
           "src",
@@ -169,8 +152,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(baseExampleDir, "tsconfig.json")
       );
       const result = resolver.sync(baseExampleDir, "browser-field-package");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(
           baseExampleDir,
           "src",
@@ -187,8 +169,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(baseExampleDir, "tsconfig.json")
       );
       const result = resolver.sync(baseExampleDir, "no-main-field-package");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(
           baseExampleDir,
           "src",
@@ -206,7 +187,7 @@ describe("TsconfigPathsPlugin", () => {
       path.join(extendsNpmDir, "tsconfig.json")
     );
     const result = resolver.sync(extendsNpmDir, "@components/button");
-    assert.match(result.path, /src[\\/](utils|components)[\\/]button\.ts$/);
+    expect(result.path).toMatch(/src[\\/](utils|components)[\\/]button\.ts$/);
   });
 
   it("should handle malformed tsconfig.json gracefully", () => {
@@ -219,7 +200,7 @@ describe("TsconfigPathsPlugin", () => {
       path.join(malformedExampleDir, "tsconfig.json")
     );
     const result = resolver.sync(malformedExampleDir, "@components/button");
-    assert.ok(result.error);
+    expect(result.error).toBeTruthy();
   });
 
   describe("${configDir} template variable support", () => {
@@ -228,8 +209,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(baseExampleDir, "tsconfig.json")
       );
       const result = resolver.sync(baseExampleDir, "@components/button");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(baseExampleDir, "src", "components", "button.ts")
       );
     });
@@ -239,30 +219,22 @@ describe("TsconfigPathsPlugin", () => {
         path.join(baseExampleDir, "tsconfig.json")
       );
       const result1 = resolver.sync(baseExampleDir, "@utils/date");
-      assert.strictEqual(
-        result1.path,
+      expect(result1.path).toBe(
         path.join(baseExampleDir, "src", "utils", "date.ts")
       );
       const result2 = resolver.sync(baseExampleDir, "foo");
-      assert.strictEqual(
-        result2.path,
+      expect(result2.path).toBe(
         path.join(baseExampleDir, "src", "mapped", "foo", "index.ts")
       );
     });
 
-    it(
-      "should handle circular extends without hanging",
-      { skip: "${configDir} in tsconfig extends" },
-      () => {
-        const aDir = path.join(extendsCircularDir, "a");
-        const resolver = makeTsconfigResolver(path.join(aDir, "tsconfig.json"));
-        const result = resolver.sync(aDir, "@lib/foo");
-        assert.strictEqual(
-          result.path,
-          path.join(aDir, "src", "lib", "foo.ts")
-        );
-      }
-    );
+    // skip: ${configDir} in tsconfig extends
+    it.skip("should handle circular extends without hanging", () => {
+      const aDir = path.join(extendsCircularDir, "a");
+      const resolver = makeTsconfigResolver(path.join(aDir, "tsconfig.json"));
+      const result = resolver.sync(aDir, "@lib/foo");
+      expect(result.path).toBe(path.join(aDir, "src", "lib", "foo.ts"));
+    });
   });
 
   it("should use baseUrl from tsconfig", () => {
@@ -275,8 +247,7 @@ describe("TsconfigPathsPlugin", () => {
       }
     });
     const result = resolver.sync(baseExampleDir, "src/utils/date");
-    assert.strictEqual(
-      result.path,
+    expect(result.path).toBe(
       path.join(baseExampleDir, "src", "utils", "date.ts")
     );
   });
@@ -293,38 +264,109 @@ describe("TsconfigPathsPlugin", () => {
         }
       });
       const result = resolver.sync(baseExampleDir, "@components/button");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(baseExampleDir, "src", "components", "button.ts")
       );
     });
 
-    // references-project uses ${configDir} in tsconfig paths and references
-    it(
-      "should resolve own paths (without cross-project references)",
-      { skip: "${configDir} in tsconfig references" },
-      () => {
-        const appDir = path.join(referencesProjectDir, "packages", "app");
-        const resolver = new ResolverFactory({
-          extensions: [".ts", ".tsx"],
-          mainFields: ["browser", "main"],
-          mainFiles: ["index"],
-          tsconfig: {
-            configFile: path.join(appDir, "tsconfig.json"),
-            references: "auto"
-          }
-        });
-        const result = resolver.sync(appDir, "@app/index");
-        assert.strictEqual(result.path, path.join(appDir, "src", "index.ts"));
-      }
-    );
+    // skip: ${configDir} in tsconfig references
+    it.skip("should resolve own paths (without cross-project references)", () => {
+      const appDir = path.join(referencesProjectDir, "packages", "app");
+      const resolver = new ResolverFactory({
+        extensions: [".ts", ".tsx"],
+        mainFields: ["browser", "main"],
+        mainFiles: ["index"],
+        tsconfig: {
+          configFile: path.join(appDir, "tsconfig.json"),
+          references: "auto"
+        }
+      });
+      const result = resolver.sync(appDir, "@app/index");
+      expect(result.path).toBe(path.join(appDir, "src", "index.ts"));
+    });
 
-    it(
-      "should resolve self-references within a referenced project",
-      { skip: "${configDir} in tsconfig references" },
-      () => {
+    // skip: ${configDir} in tsconfig references
+    it.skip("should resolve self-references within a referenced project", () => {
+      const appDir = path.join(referencesProjectDir, "packages", "app");
+      const sharedDir = path.join(referencesProjectDir, "packages", "shared");
+      const resolver = new ResolverFactory({
+        extensions: [".ts", ".tsx"],
+        mainFields: ["browser", "main"],
+        mainFiles: ["index"],
+        tsconfig: {
+          configFile: path.join(appDir, "tsconfig.json"),
+          references: "auto"
+        }
+      });
+      const result = resolver.sync(sharedDir, "@shared/helper");
+      expect(result.path).toBe(
+        path.join(sharedDir, "src", "utils", "helper.ts")
+      );
+    });
+
+    // skip: ${configDir} in tsconfig references
+    it.skip("should support explicit references array", () => {
+      const appDir = path.join(referencesProjectDir, "packages", "app");
+      const sharedSrcDir = path.join(
+        referencesProjectDir,
+        "packages",
+        "shared",
+        "src"
+      );
+      const resolver = new ResolverFactory({
+        extensions: [".ts", ".tsx"],
+        mainFields: ["browser", "main"],
+        mainFiles: ["index"],
+        tsconfig: {
+          configFile: path.join(appDir, "tsconfig.json"),
+          references: ["../shared"]
+        }
+      });
+      const result = resolver.sync(sharedSrcDir, "@shared/helper");
+      expect(result.path).toBe(path.join(sharedSrcDir, "utils", "helper.ts"));
+    });
+
+    // skip: ${configDir} in tsconfig references
+    it.skip("should not load references when references option is omitted", () => {
+      const appDir = path.join(referencesProjectDir, "packages", "app");
+      const resolver = new ResolverFactory({
+        extensions: [".ts", ".tsx"],
+        mainFields: ["browser", "main"],
+        mainFiles: ["index"],
+        tsconfig: {
+          configFile: path.join(appDir, "tsconfig.json")
+        }
+      });
+      const result = resolver.sync(appDir, "@shared/utils/helper");
+      expect(result.error).toBeTruthy();
+    });
+
+    // skip: ${configDir} in tsconfig references
+    it.skip("should handle nested references", () => {
+      const appDir = path.join(referencesProjectDir, "packages", "app");
+      const utilsSrcDir = path.join(
+        referencesProjectDir,
+        "packages",
+        "utils",
+        "src"
+      );
+      const resolver = new ResolverFactory({
+        extensions: [".ts", ".tsx"],
+        mainFields: ["browser", "main"],
+        mainFiles: ["index"],
+        tsconfig: {
+          configFile: path.join(appDir, "tsconfig.json"),
+          references: "auto"
+        }
+      });
+      const result = resolver.sync(utilsSrcDir, "@utils/date");
+      expect(result.path).toBe(path.join(utilsSrcDir, "core", "date.ts"));
+    });
+
+    describe("modules resolution with references", () => {
+      // skip: ${configDir} in tsconfig references
+      it.skip("should resolve modules from main project's baseUrl", () => {
         const appDir = path.join(referencesProjectDir, "packages", "app");
-        const sharedDir = path.join(referencesProjectDir, "packages", "shared");
         const resolver = new ResolverFactory({
           extensions: [".ts", ".tsx"],
           mainFields: ["browser", "main"],
@@ -334,18 +376,76 @@ describe("TsconfigPathsPlugin", () => {
             references: "auto"
           }
         });
-        const result = resolver.sync(sharedDir, "@shared/helper");
-        assert.strictEqual(
-          result.path,
-          path.join(sharedDir, "src", "utils", "helper.ts")
+        const result = resolver.sync(appDir, "src/components/Button");
+        expect(result.path).toBe(
+          path.join(appDir, "src", "components", "Button.ts")
         );
-      }
-    );
+      });
 
-    it(
-      "should support explicit references array",
-      { skip: "${configDir} in tsconfig references" },
-      () => {
+      // skip: ${configDir} in tsconfig references
+      it.skip("should resolve modules from referenced project's baseUrl", () => {
+        const appDir = path.join(referencesProjectDir, "packages", "app");
+        const sharedSrcDir = path.join(
+          referencesProjectDir,
+          "packages",
+          "shared",
+          "src"
+        );
+        const resolver = new ResolverFactory({
+          extensions: [".ts", ".tsx"],
+          mainFields: ["browser", "main"],
+          mainFiles: ["index"],
+          tsconfig: {
+            configFile: path.join(appDir, "tsconfig.json"),
+            references: "auto"
+          }
+        });
+        const result = resolver.sync(sharedSrcDir, "utils/helper");
+        expect(result.path).toBe(path.join(sharedSrcDir, "utils", "helper.ts"));
+      });
+
+      // skip: ${configDir} in tsconfig references
+      it.skip("should resolve components from referenced project's baseUrl", () => {
+        const appDir = path.join(referencesProjectDir, "packages", "app");
+        const sharedSrcDir = path.join(
+          referencesProjectDir,
+          "packages",
+          "shared",
+          "src"
+        );
+        const resolver = new ResolverFactory({
+          extensions: [".ts", ".tsx"],
+          mainFields: ["browser", "main"],
+          mainFiles: ["index"],
+          tsconfig: {
+            configFile: path.join(appDir, "tsconfig.json"),
+            references: "auto"
+          }
+        });
+        const result = resolver.sync(sharedSrcDir, "components/Input");
+        expect(result.path).toBe(
+          path.join(sharedSrcDir, "components", "Input.ts")
+        );
+      });
+
+      // skip: ${configDir} in tsconfig references
+      it.skip("should use correct baseUrl based on request context", () => {
+        const appDir = path.join(referencesProjectDir, "packages", "app");
+        const resolver = new ResolverFactory({
+          extensions: [".ts", ".tsx"],
+          mainFields: ["browser", "main"],
+          mainFiles: ["index"],
+          tsconfig: {
+            configFile: path.join(appDir, "tsconfig.json"),
+            references: "auto"
+          }
+        });
+        const result1 = resolver.sync(appDir, "src/index");
+        expect(result1.path).toBe(path.join(appDir, "src", "index.ts"));
+      });
+
+      // skip: ${configDir} in tsconfig references
+      it.skip("should support explicit references with modules resolution", () => {
         const appDir = path.join(referencesProjectDir, "packages", "app");
         const sharedSrcDir = path.join(
           referencesProjectDir,
@@ -362,193 +462,9 @@ describe("TsconfigPathsPlugin", () => {
             references: ["../shared"]
           }
         });
-        const result = resolver.sync(sharedSrcDir, "@shared/helper");
-        assert.strictEqual(
-          result.path,
-          path.join(sharedSrcDir, "utils", "helper.ts")
-        );
-      }
-    );
-
-    it(
-      "should not load references when references option is omitted",
-      { skip: "${configDir} in tsconfig references" },
-      () => {
-        const appDir = path.join(referencesProjectDir, "packages", "app");
-        const resolver = new ResolverFactory({
-          extensions: [".ts", ".tsx"],
-          mainFields: ["browser", "main"],
-          mainFiles: ["index"],
-          tsconfig: {
-            configFile: path.join(appDir, "tsconfig.json")
-          }
-        });
-        const result = resolver.sync(appDir, "@shared/utils/helper");
-        assert.ok(result.error);
-      }
-    );
-
-    it(
-      "should handle nested references",
-      { skip: "${configDir} in tsconfig references" },
-      () => {
-        const appDir = path.join(referencesProjectDir, "packages", "app");
-        const utilsSrcDir = path.join(
-          referencesProjectDir,
-          "packages",
-          "utils",
-          "src"
-        );
-        const resolver = new ResolverFactory({
-          extensions: [".ts", ".tsx"],
-          mainFields: ["browser", "main"],
-          mainFiles: ["index"],
-          tsconfig: {
-            configFile: path.join(appDir, "tsconfig.json"),
-            references: "auto"
-          }
-        });
-        const result = resolver.sync(utilsSrcDir, "@utils/date");
-        assert.strictEqual(
-          result.path,
-          path.join(utilsSrcDir, "core", "date.ts")
-        );
-      }
-    );
-
-    describe("modules resolution with references", () => {
-      it(
-        "should resolve modules from main project's baseUrl",
-        { skip: "${configDir} in tsconfig references" },
-        () => {
-          const appDir = path.join(referencesProjectDir, "packages", "app");
-          const resolver = new ResolverFactory({
-            extensions: [".ts", ".tsx"],
-            mainFields: ["browser", "main"],
-            mainFiles: ["index"],
-            tsconfig: {
-              configFile: path.join(appDir, "tsconfig.json"),
-              references: "auto"
-            }
-          });
-          const result = resolver.sync(appDir, "src/components/Button");
-          assert.strictEqual(
-            result.path,
-            path.join(appDir, "src", "components", "Button.ts")
-          );
-        }
-      );
-
-      it(
-        "should resolve modules from referenced project's baseUrl",
-        { skip: "${configDir} in tsconfig references" },
-        () => {
-          const appDir = path.join(referencesProjectDir, "packages", "app");
-          const sharedSrcDir = path.join(
-            referencesProjectDir,
-            "packages",
-            "shared",
-            "src"
-          );
-          const resolver = new ResolverFactory({
-            extensions: [".ts", ".tsx"],
-            mainFields: ["browser", "main"],
-            mainFiles: ["index"],
-            tsconfig: {
-              configFile: path.join(appDir, "tsconfig.json"),
-              references: "auto"
-            }
-          });
-          const result = resolver.sync(sharedSrcDir, "utils/helper");
-          assert.strictEqual(
-            result.path,
-            path.join(sharedSrcDir, "utils", "helper.ts")
-          );
-        }
-      );
-
-      it(
-        "should resolve components from referenced project's baseUrl",
-        { skip: "${configDir} in tsconfig references" },
-        () => {
-          const appDir = path.join(referencesProjectDir, "packages", "app");
-          const sharedSrcDir = path.join(
-            referencesProjectDir,
-            "packages",
-            "shared",
-            "src"
-          );
-          const resolver = new ResolverFactory({
-            extensions: [".ts", ".tsx"],
-            mainFields: ["browser", "main"],
-            mainFiles: ["index"],
-            tsconfig: {
-              configFile: path.join(appDir, "tsconfig.json"),
-              references: "auto"
-            }
-          });
-          const result = resolver.sync(sharedSrcDir, "components/Input");
-          assert.strictEqual(
-            result.path,
-            path.join(sharedSrcDir, "components", "Input.ts")
-          );
-        }
-      );
-
-      it(
-        "should use correct baseUrl based on request context",
-        { skip: "${configDir} in tsconfig references" },
-        () => {
-          const appDir = path.join(referencesProjectDir, "packages", "app");
-          const sharedDir = path.join(
-            referencesProjectDir,
-            "packages",
-            "shared"
-          );
-          const resolver = new ResolverFactory({
-            extensions: [".ts", ".tsx"],
-            mainFields: ["browser", "main"],
-            mainFiles: ["index"],
-            tsconfig: {
-              configFile: path.join(appDir, "tsconfig.json"),
-              references: "auto"
-            }
-          });
-          const result1 = resolver.sync(appDir, "src/index");
-          assert.strictEqual(
-            result1.path,
-            path.join(appDir, "src", "index.ts")
-          );
-        }
-      );
-
-      it(
-        "should support explicit references with modules resolution",
-        { skip: "${configDir} in tsconfig references" },
-        () => {
-          const appDir = path.join(referencesProjectDir, "packages", "app");
-          const sharedSrcDir = path.join(
-            referencesProjectDir,
-            "packages",
-            "shared",
-            "src"
-          );
-          const resolver = new ResolverFactory({
-            extensions: [".ts", ".tsx"],
-            mainFields: ["browser", "main"],
-            mainFiles: ["index"],
-            tsconfig: {
-              configFile: path.join(appDir, "tsconfig.json"),
-              references: ["../shared"]
-            }
-          });
-          const result = resolver.sync(sharedSrcDir, "utils/helper");
-          assert.strictEqual(
-            result.path,
-            path.join(sharedSrcDir, "utils", "helper.ts")
-          );
-        }
-      );
+        const result = resolver.sync(sharedSrcDir, "utils/helper");
+        expect(result.path).toBe(path.join(sharedSrcDir, "utils", "helper.ts"));
+      });
     });
   });
 
@@ -563,8 +479,7 @@ describe("TsconfigPathsPlugin", () => {
       const appDir = path.join(deepBaseUrlDir, "packages", "app");
       const resolver = makeTsconfigResolver(path.join(appDir, "tsconfig.json"));
       const result = resolver.sync(appDir, "@base/utils/format");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(deepBaseUrlDir, "tsconfig-base", "src", "utils", "format.ts")
       );
     });
@@ -582,8 +497,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(pkgEntryDir, "tsconfig.json")
       );
       const result = resolver.sync(pkgEntryDir, "@pkg/util");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(
           pkgEntryDir,
           "node_modules",
@@ -608,8 +522,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(jsoncExampleDir, "tsconfig.json")
       );
       const result = resolver.sync(jsoncExampleDir, "@components/button");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(jsoncExampleDir, "src", "components", "button.ts")
       );
     });
@@ -619,8 +532,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(jsoncExampleDir, "tsconfig.json")
       );
       const result = resolver.sync(jsoncExampleDir, "bar/index");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(jsoncExampleDir, "src", "mapped", "bar", "index.ts")
       );
     });
@@ -630,8 +542,7 @@ describe("TsconfigPathsPlugin", () => {
         path.join(jsoncExampleDir, "tsconfig.json")
       );
       const result = resolver.sync(jsoncExampleDir, "foo");
-      assert.strictEqual(
-        result.path,
+      expect(result.path).toBe(
         path.join(jsoncExampleDir, "src", "mapped", "foo", "index.ts")
       );
     });
