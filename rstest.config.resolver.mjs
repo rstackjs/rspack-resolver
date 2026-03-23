@@ -10,7 +10,7 @@ export default defineConfig({
         if (request === "../index.js" || request === "../resolver.wasi.cjs") {
           callback(
             null,
-            `node-commonjs ${path.resolve("napi", request.slice(3))}`
+            `node-commonjs ${path.resolve("napi", path.basename(request))}`
           );
           return;
         }
