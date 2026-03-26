@@ -163,13 +163,10 @@ pub struct ResolveOptions {
   /// Default `false`
   pub builtin_modules: bool,
 
-  /// Whether to respect the `NODE_PATH` environment variable when resolving bare specifiers.
-  ///
-  /// When enabled, directories from the `NODE_PATH` environment variable are searched
-  /// after normal `node_modules` resolution, matching
-  /// [Node.js's behavior](https://nodejs.org/api/modules.html#loading-from-the-global-folders).
-  ///
-  /// `NODE_PATH` is delimited by `:` on POSIX and `;` on Windows.
+  /// When enabled, the resolver also searches
+  /// [`NODE_PATH`](https://nodejs.org/api/modules.html#loading-from-the-global-folders)
+  /// entries after `node_modules`. Callers can decide when to enable it
+  /// (e.g. only for CJS dependency types).
   ///
   /// Default `false`
   pub node_path: bool,
