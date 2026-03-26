@@ -162,6 +162,17 @@ pub struct ResolveOptions {
   ///
   /// Default `false`
   pub builtin_modules: bool,
+
+  /// Whether to respect the `NODE_PATH` environment variable when resolving bare specifiers.
+  ///
+  /// When enabled, directories from the `NODE_PATH` environment variable are searched
+  /// after normal `node_modules` resolution, matching
+  /// [Node.js's behavior](https://nodejs.org/api/modules.html#loading-from-the-global-folders).
+  ///
+  /// `NODE_PATH` is delimited by `:` on POSIX and `;` on Windows.
+  ///
+  /// Default `false`
+  pub node_path: bool,
 }
 
 impl ResolveOptions {
@@ -502,6 +513,7 @@ impl Default for ResolveOptions {
       roots: vec![],
       symlinks: true,
       builtin_modules: false,
+      node_path: false,
     }
   }
 }
@@ -571,6 +583,9 @@ impl fmt::Display for ResolveOptions {
     }
     if self.builtin_modules {
       write!(f, "builtin_modules:{:?},", self.builtin_modules)?;
+    }
+    if self.node_path {
+      write!(f, "node_path:{:?},", self.node_path)?;
     }
     Ok(())
   }
@@ -652,6 +667,7 @@ mod test {
       roots: vec![],
       symlinks: false,
       tsconfig: None,
+      node_path: false,
     };
 
     assert_eq!(format!("{options}"), "");
