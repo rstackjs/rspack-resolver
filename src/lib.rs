@@ -955,6 +955,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         if export_resolution.is_some() {
           return Ok(export_resolution);
         }
+        let is_bare = subpath.is_none();
 
         let inner_request = subpath.map_or_else(
           || ".".to_string(),
@@ -963,7 +964,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             p
           },
         );
-        let inner_resolver = self.clone_with_options(self.options().clone());
+
+        let mut inner_options = self.options().clone();
+        if is_bare {
+          inner_options.fully_specified = false;
+        }
+        let inner_resolver = self.clone_with_options(inner_options);
 
         // try as file or directory `path` in the pnp folder
         let Ok(inner_resolution) = inner_resolver.resolve(&path, &inner_request).await else {
