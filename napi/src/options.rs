@@ -157,6 +157,11 @@ pub struct NapiResolveOptions {
   ///
   /// Default `false`
   pub enable_pnp: Option<bool>,
+
+  /// Whether to enable `NODE_PATH` support
+  ///
+  /// Default `false`
+  pub node_path: bool,
 }
 
 #[napi]
