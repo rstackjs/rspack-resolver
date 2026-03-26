@@ -78,6 +78,29 @@ async fn pnp1() {
     );
 }
 
+// https://github.com/webpack/enhanced-resolve/blob/main/lib/PnpPlugin.js#L118
+// `fullySpecified` should be disabled for bare specifiers without subpath,
+// so that the `main` field value (e.g. "index" without extension) can be resolved.
+#[tokio::test]
+async fn pnp_bare_specifier_fully_specified() {
+  let fixture = super::fixture_root().join("pnp");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    condition_names: vec!["node".into(), "import".into()],
+    fully_specified: true,
+    ..ResolveOptions::default()
+  });
+
+  // `extend` has "main": "index" (no extension) and no "exports" field.
+  assert!(
+    resolver
+      .resolve(&fixture, "extend")
+      .await.is_ok(),
+    "should resolve successfully without fully specified check for bare specifier with main field without extension"
+  );
+}
+
 #[tokio::test]
 async fn pnp_resolve_description_file() {
   let fixture = super::fixture_root().join("pnp");
