@@ -5,6 +5,13 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
+"extend@npm:3.0.2":
+  version: 3.0.2
+  resolution: "extend@npm:3.0.2"
+  checksum: 10c0/73bf6e27406e80aa3e85b0d1c4fd987261e628064e170ca781125c0b635a3dabad5e05adbf07595ea0cf1e6c5396cacb214af933da7cbaf24fe75ff14818e8f9
+  languageName: node
+  linkType: hard
+
 "is-buffer@npm:^1.1.5":
   version: 1.1.6
   resolution: "is-buffer@npm:1.1.6"
@@ -81,6 +88,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "pnp@workspace:."
   dependencies:
+    extend: "npm:3.0.2"
     is-even: "npm:^1.0.0"
     is-odd: "npm:^3.0.1"
     lib: "link:./shared"
