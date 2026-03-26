@@ -12,7 +12,8 @@
     "prettier": "prettier --check .",
     "prettier:ci": "prettier --list-different .",
     "format": "prettier --write .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "setup:fixtures": "cd fixtures/pnp && yarn && cd ../pnp-global-cache-enabled && yarn"
   },
   "devDependencies": {
     "@actions/core": "^3.0.0",
