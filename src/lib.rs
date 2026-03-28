@@ -1697,7 +1697,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> Result<Option<CachedPath>, ResolveError> {
     // 1. Assert: specifier begins with "#".
     debug_assert!(specifier.starts_with('#'), "{specifier}");
-    //   2. If specifier is exactly equal to "#" or starts with "#/", then
+    //   2. If specifier is exactly equal to "#", then
     //   1. Throw an Invalid Module Specifier error.
     // 3. Let packageURL be the result of LOOKUP_PACKAGE_SCOPE(parentURL).
     // 4. If packageURL is not null, then
@@ -1711,7 +1711,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       if !has_imports {
         has_imports = true;
         // TODO: fill in test case for this case
-        if specifier == "#" || specifier.starts_with("#/") {
+        if specifier == "#" {
           return Err(ResolveError::InvalidModuleSpecifier(
             specifier.to_string(),
             package_json.path.clone(),
