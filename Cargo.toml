@@ -111,7 +111,7 @@ criterion = { version = "4.3.0", package = "codspeed-criterion-compat", default-
 normalize-path = { version = "0.2.1" }
 rayon          = { version = "1.11.0" }
 regex          = "1.12.2"
-vfs            = "0.12.2"               # for testing with in memory file system
+vfs            = "0.13.0"               # for testing with in memory file system
 
 [features]
 default = ["yarn_pnp"]
