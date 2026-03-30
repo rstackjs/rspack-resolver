@@ -8,7 +8,9 @@
     "build:binding:profiling": "napi build --platform --profile profiling --package-json-path npm/package.json --manifest-path napi/Cargo.toml",
     "build:binding:debug": "napi build --platform                     --package-json-path npm/package.json --manifest-path napi/Cargo.toml",
     "prepublishOnly": "napi pre-publish -t npm --package-json-path npm/package.json --npm-dir bindings",
-    "test": "ava && node --test napi/tests/options.test.mjs",
+    "test": "npm run test:resolver && npm run test:enhanced-resolve-compatible",
+    "test:resolver": "rstest run -c rstest.config.resolver.mjs",
+    "test:enhanced-resolve-compatible": "rstest run -c rstest.config.mjs",
     "prettier": "prettier --check .",
     "prettier:ci": "prettier --list-different .",
     "format": "prettier --write .",
@@ -16,12 +18,12 @@
   },
   "devDependencies": {
     "@actions/core": "^3.0.0",
+    "@rstest/core": "^0.8.1",
     "@continuous-auth/client": "^2.3.2",
     "@napi-rs/cli": "3.5.1",
     "@napi-rs/wasm-runtime": "^1.0.7",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^24.0.0",
-    "ava": "^6.1.3",
     "commander": "^14.0.0",
     "emnapi": "^1.2.0",
     "enhanced-resolve": "^5.17.1",
@@ -31,10 +33,6 @@
     "semver": "^7.7.1",
     "typescript": "^5.5.3",
     "zx": "^8.8.5"
-  },
-  "ava": {
-    "files": ["napi/__test__/*.spec.mjs"],
-    "cache": false
   },
   "packageManager": "pnpm@10.28.2",
   "repository": {
