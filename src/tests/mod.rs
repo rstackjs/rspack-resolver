@@ -12,6 +12,7 @@ mod incorrect_description_file;
 mod main_field;
 mod memory_fs;
 mod missing;
+mod node_path;
 mod package_json;
 #[cfg(feature = "yarn_pnp")]
 mod pnp;
