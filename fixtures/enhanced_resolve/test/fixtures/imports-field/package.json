@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "exports": "./a.js",
   "imports": {
+    "#/*": "./src/*.js",
     "#imports-field": "./b.js",
     "#b": "../b.js",
     "#ccc/": "c/",
