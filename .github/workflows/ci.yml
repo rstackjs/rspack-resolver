@@ -209,7 +209,11 @@ jobs:
       - run: cargo test --all-features
         env:
           RUST_MIN_STACK: 8388608
-      - name: Test Node Bindings
-        run: |
+      - name: Build Node Bindings
+        run: | 
           npm run build:binding:debug
-          npm test
+          npm run format
+      - name: Test
+        run: npm test
+      - name: Git status check
+        run: git diff --name-only --exit-code
