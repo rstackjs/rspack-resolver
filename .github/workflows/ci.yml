@@ -216,4 +216,9 @@ jobs:
       - name: Test
         run: npm test
       - name: Git status check
-        run: git diff --name-only --exit-code
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Working tree is dirty after tests/build. Please commit or revert the following changes:"
+            git status --short
+            exit 1
+          fi
