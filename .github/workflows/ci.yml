@@ -210,7 +210,7 @@ jobs:
         env:
           RUST_MIN_STACK: 8388608
       - name: Build Node Bindings
-        run: | 
+        run: |
           npm run build:binding:debug
           npm run format
       - name: Test
