@@ -215,6 +215,7 @@ jobs:
         run: npm test
       - name: Git status check
         run: |
+          npm run format
           if [[ -n "$(git status --porcelain)" ]]; then
             echo "Working tree is dirty after tests/build. Please commit or revert the following changes:"
             git status --short
