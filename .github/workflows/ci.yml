@@ -209,7 +209,15 @@ jobs:
       - run: cargo test --all-features
         env:
           RUST_MIN_STACK: 8388608
-      - name: Test Node Bindings
+      - name: Build Node Bindings
+        run: npm run build:binding:debug
+      - name: Test
+        run: npm test
+      - name: Git status check
         run: |
-          npm run build:binding:debug
-          npm test
+          npm run format
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Working tree is dirty after tests/build. Please commit or revert the following changes:"
+            git status --short
+            exit 1
+          fi
