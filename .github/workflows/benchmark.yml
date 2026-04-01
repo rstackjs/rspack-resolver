@@ -34,7 +34,7 @@ jobs:
       - name: Setup benchmark data
         run: cd benches && pnpm install --ignore-workspace
 
-      - uses: Boshen/setup-rust@main
+      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
         with:
           cache-key: benchmark
           save-cache: ${{ github.ref_name == 'main' }}

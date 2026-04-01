@@ -30,12 +30,12 @@ jobs:
           fetch-depth: 0
           ref: ${{ inputs.commit }}
 
-      - uses: Boshen/setup-rust@main
+      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
         with:
           save-cache: ${{ github.ref_name == 'main' }}
           cache-key: warm
 
-      - uses: rust-lang/crates-io-auth-action@b7e9a28eded4986ec6b1fa40eeee8f8f165559ec # v1.0.3
+      - uses: rust-lang/crates-io-auth-action@bbd81622f20ce9e2dd9622e3218b975523e45bbe # v1.0.4
         id: auth
 
       - name: Publish
