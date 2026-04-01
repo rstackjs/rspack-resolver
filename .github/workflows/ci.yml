@@ -108,7 +108,7 @@ jobs:
     steps:
       - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
 
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |
@@ -128,7 +128,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |
@@ -209,7 +209,15 @@ jobs:
       - run: cargo test --all-features
         env:
           RUST_MIN_STACK: 8388608
-      - name: Test Node Bindings
+      - name: Build Node Bindings
+        run: npm run build:binding:debug
+      - name: Test
+        run: npm test
+      - name: Git status check
         run: |
-          npm run build:binding:debug
-          npm test
+          npm run format
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Working tree is dirty after tests/build. Please commit or revert the following changes:"
+            git status --short
+            exit 1
+          fi
