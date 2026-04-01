@@ -52,12 +52,6 @@ pub struct ResolveOptions {
   #[cfg(feature = "yarn_pnp")]
   pub enable_pnp: bool,
 
-  /// The path to the yarn Plug'n'Play manifest file.
-  ///
-  /// Default `None`
-  #[cfg(feature = "yarn_pnp")]
-  pub pnp_manifest: Option<PathBuf>,
-
   /// Set to [EnforceExtension::Enabled] for [ESM Mandatory file extensions](https://nodejs.org/api/esm.html#mandatory-file-extensions).
   ///
   /// If `enforce_extension` is set to [EnforceExtension::Enabled], resolution will not allow extension-less files.
@@ -168,6 +162,14 @@ pub struct ResolveOptions {
   ///
   /// Default `false`
   pub builtin_modules: bool,
+
+  /// When enabled, the resolver also searches
+  /// [`NODE_PATH`](https://nodejs.org/api/modules.html#loading-from-the-global-folders)
+  /// entries after `node_modules`. Callers can decide when to enable it
+  /// (e.g. only for CJS dependency types).
+  ///
+  /// Default `false`
+  pub node_path: bool,
 }
 
 impl ResolveOptions {
@@ -501,8 +503,6 @@ impl Default for ResolveOptions {
       modules: vec!["node_modules".into()],
       #[cfg(feature = "yarn_pnp")]
       enable_pnp: true,
-      #[cfg(feature = "yarn_pnp")]
-      pnp_manifest: None,
       resolve_to_context: false,
       prefer_relative: false,
       prefer_absolute: false,
@@ -510,6 +510,7 @@ impl Default for ResolveOptions {
       roots: vec![],
       symlinks: true,
       builtin_modules: false,
+      node_path: false,
     }
   }
 }
@@ -580,6 +581,9 @@ impl fmt::Display for ResolveOptions {
     if self.builtin_modules {
       write!(f, "builtin_modules:{:?},", self.builtin_modules)?;
     }
+    if self.node_path {
+      write!(f, "node_path:{:?},", self.node_path)?;
+    }
     Ok(())
   }
 }
@@ -643,8 +647,6 @@ mod test {
       description_files: vec![],
       #[cfg(feature = "yarn_pnp")]
       enable_pnp: true,
-      #[cfg(feature = "yarn_pnp")]
-      pnp_manifest: None,
       enforce_extension: EnforceExtension::Disabled,
       exports_fields: vec![],
       extension_alias: vec![],
@@ -662,6 +664,7 @@ mod test {
       roots: vec![],
       symlinks: false,
       tsconfig: None,
+      node_path: false,
     };
 
     assert_eq!(format!("{options}"), "");

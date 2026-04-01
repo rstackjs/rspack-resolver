@@ -158,10 +158,10 @@ pub struct NapiResolveOptions {
   /// Default `false`
   pub enable_pnp: Option<bool>,
 
-  /// Path to yarn Plug'n'Play manifest file.
+  /// Whether to enable `NODE_PATH` support
   ///
-  /// Default `None`
-  pub pnp_manifest: Option<String>,
+  /// Default `false`
+  pub node_path: Option<bool>,
 }
 
 #[napi]

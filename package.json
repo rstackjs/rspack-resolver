@@ -9,10 +9,12 @@
     "build:binding:debug": "napi build --platform                     --package-json-path npm/package.json --manifest-path napi/Cargo.toml",
     "prepublishOnly": "napi pre-publish -t npm --package-json-path npm/package.json --npm-dir bindings",
     "test": "ava && node --test napi/tests/options.test.mjs",
+    "postbuild": "npm run format",
     "prettier": "prettier --check .",
     "prettier:ci": "prettier --list-different .",
     "format": "prettier --write .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "setup:fixtures": "cd fixtures/pnp && yarn && cd ../pnp-global-cache-enabled && yarn"
   },
   "devDependencies": {
     "@actions/core": "^3.0.0",

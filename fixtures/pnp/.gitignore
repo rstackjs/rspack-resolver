@@ -1,1 +1,3 @@
-install_state.gz
+.yarn/install-state.gz
+.pnp.cjs
+.yarn

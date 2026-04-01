@@ -10,7 +10,6 @@ on:
   push:
     branches:
       - main
-      - "renovate/**"
     paths-ignore:
       - "**/*.md"
       - "!.github/workflows/ci.yml"
@@ -35,7 +34,7 @@ jobs:
           - os: macos-14
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
       - uses: ./.github/actions/pnpm
       - uses: Boshen/setup-rust@main
         with:
@@ -53,16 +52,12 @@ jobs:
         run: cargo test --all-features --no-run
         env:
           RUST_MIN_STACK: 8388608
-      - name: Prettier Check
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: |
-          npm run prettier:ci
 
   wasm:
     name: Check Wasm
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
 
       - uses: Boshen/setup-rust@main
         with:
@@ -78,7 +73,7 @@ jobs:
     name: Test wasi target
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
 
       - uses: Boshen/setup-rust@main
         with:
@@ -101,9 +96,9 @@ jobs:
     name: Spell Check
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
 
-      - uses: crate-ci/typos@78bc6fb2c0d734235d57a2d6b9de923cc325ebdd # v1.43.4
+      - uses: crate-ci/typos@631208b7aac2daa8b707f55e7331f9112b0e062d # v1.44.0
         with:
           files: .
 
@@ -111,9 +106,9 @@ jobs:
     name: Cargo Deny
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
 
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |
@@ -132,8 +127,8 @@ jobs:
     name: Check Unused Dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |
@@ -156,7 +151,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm
       - uses: Boshen/setup-rust@main
@@ -171,7 +166,7 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
       - uses: Boshen/setup-rust@main
         with:
           components: clippy
@@ -181,7 +176,7 @@ jobs:
     name: Doc
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
       - uses: Boshen/setup-rust@main
         with:
           components: rust-docs
@@ -203,7 +198,7 @@ jobs:
     env:
       RUST_BACKTRACE: 1
     steps:
-      - uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
       - uses: ./.github/actions/pnpm
         with:
           node-version: ${{ matrix.node }}
@@ -214,7 +209,15 @@ jobs:
       - run: cargo test --all-features
         env:
           RUST_MIN_STACK: 8388608
-      - name: Test Node Bindings
+      - name: Build Node Bindings
+        run: npm run build:binding:debug
+      - name: Test
+        run: npm test
+      - name: Git status check
         run: |
-          npm run build:binding:debug
-          npm test
+          npm run format
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Working tree is dirty after tests/build. Please commit or revert the following changes:"
+            git status --short
+            exit 1
+          fi

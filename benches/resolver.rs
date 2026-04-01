@@ -1,4 +1,5 @@
 use std::{
+  alloc::{GlobalAlloc, Layout, System},
   env, fs,
   fs::read_to_string,
   future::Future,
@@ -6,6 +7,24 @@ use std::{
   path::{Path, PathBuf},
   sync::Arc,
 };
+
+#[global_allocator]
+static GLOBAL: NeverGrowInPlaceAllocator = NeverGrowInPlaceAllocator;
+
+/// Delegates `alloc`/`dealloc` to [`System`] but omits [`GlobalAlloc::realloc`],
+/// forcing the default "alloc-new + copy + dealloc-old" path so that benchmarks
+/// never benefit from non-deterministic in-place growth provided by `libc::realloc`.
+struct NeverGrowInPlaceAllocator;
+
+unsafe impl GlobalAlloc for NeverGrowInPlaceAllocator {
+  unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+    unsafe { System.alloc(layout) }
+  }
+
+  unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+    unsafe { System.dealloc(ptr, layout) }
+  }
+}
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use rspack_resolver::{FileSystemOptions, FileSystemOs, ResolveOptions, Resolver};

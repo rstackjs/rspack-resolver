@@ -89,30 +89,21 @@ jobs:
           pre: |
             export CC_aarch64_unknown_linux_gnu=clang
 
-      - name: Build x86_64-unknown-linux-musl in Docker
+      - name: Build x86_64-unknown-linux-musl with zigbuild
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
-        uses: ./.github/actions/docker-build
+        uses: ./.github/actions/zigbuild
         with:
           target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           profile: ${{ inputs.profile }}
-          pre: |
-            # musl will enable clang-sys static linking
-            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
 
-      - name: Build aarch64-unknown-linux-musl in Docker
+      - name: Build aarch64-unknown-linux-musl with zigbuild
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
-        uses: ./.github/actions/docker-build
+        uses: ./.github/actions/zigbuild
         with:
           target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           profile: ${{ inputs.profile }}
-          pre: |
-            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
-            # musl will enable clang-sys static linking
-            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
 
-      # setup rust target for native runner
+      # setup rust target for native runner (non-linux)
       - name: Setup Rust Target
         if: ${{ !contains(inputs.target, 'linux') }}
         run: rustup target add ${{ inputs.target }}

@@ -68,10 +68,10 @@ use std::{
   ffi::OsStr,
   fmt,
   path::{Component, Path, PathBuf},
-  sync::Arc,
+  sync::{Arc, OnceLock},
 };
 
-use dashmap::{mapref::one::Ref, DashMap};
+use dashmap::DashSet;
 use futures::future::{try_join_all, BoxFuture};
 use rustc_hash::FxHashSet;
 
@@ -115,9 +115,12 @@ pub struct ResolverGeneric<Fs> {
   options: ResolveOptions,
   cache: Arc<Cache<Fs>>,
   #[cfg(feature = "yarn_pnp")]
-  pnp_manifest_content_cache: Arc<DashMap<CachedPath, Option<pnp::Manifest>>>,
+  pnp_manifest: Arc<arc_swap::ArcSwapOption<pnp::Manifest>>,
+  /// Paths that have been searched and confirmed to have no `.pnp.cjs` reachable by filesystem walk.
   #[cfg(feature = "yarn_pnp")]
-  pnp_manifest_path_cache: Arc<DashMap<PathBuf, Option<CachedPath>>>,
+  pnp_no_manifest_cache: Arc<DashSet<CachedPath>>,
+  /// Lazily parsed directories from `NODE_PATH` env var.
+  node_path_dirs: OnceLock<Vec<PathBuf>>,
 }
 
 impl<Fs> fmt::Debug for ResolverGeneric<Fs> {
@@ -138,9 +141,10 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
       options: options.sanitize(),
       cache: Arc::new(Cache::new(Fs::default())),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_content_cache: Arc::new(DashMap::default()),
+      pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_path_cache: Arc::new(DashMap::default()),
+      pnp_no_manifest_cache: Arc::new(DashSet::new()),
+      node_path_dirs: OnceLock::new(),
     }
   }
 }
@@ -151,9 +155,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       options: options.sanitize(),
       cache: Arc::new(Cache::new(file_system)),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_content_cache: Arc::new(DashMap::default()),
+      pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_path_cache: Arc::new(DashMap::default()),
+      pnp_no_manifest_cache: Arc::new(DashSet::new()),
+      node_path_dirs: OnceLock::new(),
     }
   }
 
@@ -164,9 +169,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       options: options.sanitize(),
       cache: Arc::clone(&self.cache),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_content_cache: Arc::clone(&self.pnp_manifest_content_cache),
+      pnp_manifest: Arc::clone(&self.pnp_manifest),
       #[cfg(feature = "yarn_pnp")]
-      pnp_manifest_path_cache: Arc::clone(&self.pnp_manifest_path_cache),
+      pnp_no_manifest_cache: Arc::clone(&self.pnp_no_manifest_cache),
+      node_path_dirs: self.node_path_dirs.clone(),
     }
   }
 
@@ -180,8 +186,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     self.cache.clear();
     #[cfg(feature = "yarn_pnp")]
     {
-      self.pnp_manifest_content_cache.clear();
-      self.pnp_manifest_path_cache.clear();
+      self.pnp_manifest.store(None);
+      self.pnp_no_manifest_cache.clear();
     }
   }
 
@@ -549,7 +555,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if let Some(path) = self.load_node_modules(cached_path, specifier, ctx).await? {
       return Ok(path);
     }
-    // 7. THROW "not found"
+    // 7. Search NODE_PATH directories as fallback
+    if let Some(path) = self.load_node_path(specifier, ctx).await? {
+      return Ok(path);
+    }
+    // 8. THROW "not found"
     Err(ResolveError::NotFound(specifier.to_string()))
   }
 
@@ -834,46 +844,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         else {
           continue;
         };
-        // Optimize node_modules lookup by inspecting whether the package exists
-        // From LOAD_PACKAGE_EXPORTS(X, DIR)
-        // 1. Try to interpret X as a combination of NAME and SUBPATH where the name
-        //    may have a @scope/ prefix and the subpath begins with a slash (`/`).
-        if !package_name.is_empty() {
-          let package_path = cached_path.path().normalize_with(package_name);
-          let cached_path = self.cache.value(&package_path);
-          // Try foo/node_modules/package_name
-          if cached_path.is_dir(&self.cache.fs, ctx).await {
-            // a. LOAD_PACKAGE_EXPORTS(X, DIR)
-            if let Some(path) = self
-              .load_package_exports(specifier, subpath, &cached_path, ctx)
-              .await?
-            {
-              return Ok(Some(path));
-            }
-          } else {
-            // foo/node_modules/package_name is not a directory, so useless to check inside it
-            if !subpath.is_empty() {
-              continue;
-            }
-            // Skip if the directory lead to the scope package does not exist
-            // i.e. `foo/node_modules/@scope` is not a directory for `foo/node_modules/@scope/package`
-            if package_name.starts_with('@') {
-              if let Some(path) = cached_path.parent() {
-                if !path.is_dir(&self.cache.fs, ctx).await {
-                  continue;
-                }
-              }
-            }
-          }
-        }
-
-        // Try as file or directory for all other cases
-        // b. LOAD_AS_FILE(DIR/X)
-        // c. LOAD_AS_DIRECTORY(DIR/X)
-        let node_module_file = cached_path.path().normalize_with(specifier);
-        let cached_path = self.cache.value(&node_module_file);
         if let Some(path) = self
-          .load_as_file_or_directory(&cached_path, specifier, ctx)
+          .resolve_in_module_dir(&cached_path, specifier, package_name, subpath, ctx)
           .await?
         {
           return Ok(Some(path));
@@ -883,34 +855,148 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
-  fn find_pnp_manifest(
+  /// Try resolving a specifier within a single module directory (e.g. a node_modules dir or a NODE_PATH dir).
+  async fn resolve_in_module_dir(
     &self,
     cached_path: &CachedPath,
-  ) -> Ref<'_, CachedPath, Option<pnp::Manifest>> {
+    specifier: &str,
+    package_name: &str,
+    subpath: &str,
+    ctx: &mut Ctx,
+  ) -> ResolveResult {
+    // Optimize lookup by inspecting whether the package exists
+    // From LOAD_PACKAGE_EXPORTS(X, DIR)
+    // 1. Try to interpret X as a combination of NAME and SUBPATH where the name
+    //    may have a @scope/ prefix and the subpath begins with a slash (`/`).
+    if !package_name.is_empty() {
+      let package_path = cached_path.path().normalize_with(package_name);
+      let pkg_cached = self.cache.value(&package_path);
+      if pkg_cached.is_dir(&self.cache.fs, ctx).await {
+        // a. LOAD_PACKAGE_EXPORTS(X, DIR)
+        if let Some(path) = self
+          .load_package_exports(specifier, subpath, &pkg_cached, ctx)
+          .await?
+        {
+          return Ok(Some(path));
+        }
+      } else {
+        // package_name is not a directory, so useless to check inside it
+        if !subpath.is_empty() {
+          return Ok(None);
+        }
+        // Skip if the directory leading to the scope package does not exist
+        // i.e. `@scope` is not a directory for `@scope/package`
+        if package_name.starts_with('@') {
+          if let Some(path) = pkg_cached.parent() {
+            if !path.is_dir(&self.cache.fs, ctx).await {
+              return Ok(None);
+            }
+          }
+        }
+      }
+    }
+
+    // Try as file or directory for all other cases
+    // b. LOAD_AS_FILE(DIR/X)
+    // c. LOAD_AS_DIRECTORY(DIR/X)
+    let node_module_file = cached_path.path().normalize_with(specifier);
+    let file_cached = self.cache.value(&node_module_file);
+    self
+      .load_as_file_or_directory(&file_cached, specifier, ctx)
+      .await
+  }
+
+  /// Parse `NODE_PATH` env var into directory list. Uses `;` on Windows, `:` on POSIX.
+  fn parse_node_path_env() -> Vec<PathBuf> {
+    std::env::var_os("NODE_PATH")
+      .map(|path| {
+        std::env::split_paths(&path)
+          .filter(|paths| paths.is_absolute())
+          .collect::<Vec<PathBuf>>()
+      })
+      .unwrap_or_default()
+  }
+
+  /// Lazily get NODE_PATH directories. Parsed once on first access.
+  fn node_path_dirs(&self) -> &[PathBuf] {
+    if !self.options.node_path {
+      return &[];
+    }
+    self.node_path_dirs.get_or_init(Self::parse_node_path_env)
+  }
+
+  #[cfg(test)]
+  fn with_node_path_dirs(self, dirs: Vec<PathBuf>) -> Self {
+    let _ = self.node_path_dirs.set(dirs);
+    self
+  }
+
+  /// Search NODE_PATH directories for a bare specifier.
+  /// NODE_PATH dirs are absolute paths searched directly (no parent directory walking).
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier)))]
+  async fn load_node_path(&self, specifier: &str, ctx: &mut Ctx) -> ResolveResult {
+    let dirs = self.node_path_dirs();
+    if dirs.is_empty() {
+      return Ok(None);
+    }
+    let (package_name, subpath) = Self::parse_package_specifier(specifier);
+    for dir in dirs {
+      let cached_path = self.cache.value(dir);
+      if !cached_path.is_dir(&self.cache.fs, ctx).await {
+        continue;
+      }
+      if let Some(path) = self
+        .resolve_in_module_dir(&cached_path, specifier, package_name, subpath, ctx)
+        .await?
+      {
+        return Ok(Some(path));
+      }
+    }
+    Ok(None)
+  }
+
+  #[cfg(feature = "yarn_pnp")]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  fn find_pnp_manifest(&self, cached_path: &CachedPath) -> Option<Arc<pnp::Manifest>> {
+    // 1. Already have a manifest → return it (covers global cache paths too)
+    if let Some(manifest) = self.pnp_manifest.load_full() {
+      return Some(manifest);
+    }
+
+    // 2. This path was searched before and found nothing → skip filesystem walk
+    if self.pnp_no_manifest_cache.contains(cached_path) {
+      return None;
+    }
+
+    // 3. Search for `.pnp.cjs` by walking up from this path
     let base_path = cached_path.to_path_buf();
+    let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(&base_path) else {
+      self.pnp_no_manifest_cache.insert(cached_path.clone());
 
-    let cached_manifest_path = self
-      .pnp_manifest_path_cache
-      .entry(base_path.clone())
-      .or_insert_with(|| {
-        self.options.pnp_manifest.as_ref().map_or_else(
-          || pnp::find_closest_pnp_manifest_path(&base_path).map(|p| self.cache.value(&p)),
-          |manifest_path| Some(self.cache.value(manifest_path)),
-        )
-      });
+      for p in base_path.ancestors() {
+        let p_cached = self.cache.value(p);
+        if self.pnp_no_manifest_cache.contains(&p_cached) {
+          break;
+        }
+        self.pnp_no_manifest_cache.insert(p_cached);
+      }
+      return None;
+    };
 
-    let cache_key = cached_manifest_path.as_ref().unwrap_or(cached_path);
+    tracing::debug!("use manifest path: {:?}", manifest_path);
 
-    tracing::debug!("use manifest path: {:?}", cache_key.path());
+    let manifest = pnp::load_pnp_manifest(&manifest_path).ok()?;
+    let manifest = Arc::new(manifest);
 
-    let entry = self
-      .pnp_manifest_content_cache
-      .entry(cache_key.clone())
-      .or_insert_with(|| pnp::load_pnp_manifest(cache_key.path()).ok());
+    let previous = self
+      .pnp_manifest
+      .compare_and_swap(&None::<Arc<_>>, Some(Arc::clone(&manifest)));
 
-    entry.downgrade()
+    if let Some(existing) = previous.as_ref() {
+      return Some(Arc::clone(existing));
+    }
+
+    Some(manifest)
   }
 
   #[cfg(feature = "yarn_pnp")]
@@ -921,49 +1007,51 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<Option<CachedPath>, ResolveError> {
-    let pnp_manifest = self.find_pnp_manifest(cached_path);
+    let Some(manifest) = self.find_pnp_manifest(cached_path) else {
+      return Ok(None);
+    };
 
-    if let Some(pnp_manifest) = pnp_manifest.as_ref() {
-      // `resolve_to_unqualified` requires a trailing slash
-      let mut path = cached_path.to_path_buf();
-      path.push("");
+    let mut path = cached_path.to_path_buf();
+    path.push("");
+    let resolution = pnp::resolve_to_unqualified_via_manifest(&manifest, specifier, &path);
 
-      let resolution = pnp::resolve_to_unqualified_via_manifest(pnp_manifest, specifier, &path);
+    tracing::debug!("pnp resolve unqualified as: {:?}", resolution);
 
-      tracing::debug!("pnp resolve unqualified as: {:?}", resolution);
+    match resolution {
+      Ok(pnp::Resolution::Resolved(path, subpath)) => {
+        let cached_path = self.cache.value(&path);
 
-      match resolution {
-        Ok(pnp::Resolution::Resolved(path, subpath)) => {
-          let cached_path = self.cache.value(&path);
-
-          let export_resolution = self.load_package_self(&cached_path, specifier, ctx).await?;
-          // can be found in pnp cached folder
-          if export_resolution.is_some() {
-            return Ok(export_resolution);
-          }
-
-          let inner_request = subpath.map_or_else(
-            || ".".to_string(),
-            |mut p| {
-              p.insert_str(0, "./");
-              p
-            },
-          );
-          let inner_resolver = self.clone_with_options(self.options().clone());
-
-          // try as file or directory `path` in the pnp folder
-          let Ok(inner_resolution) = inner_resolver.resolve(&path, &inner_request).await else {
-            return Err(ResolveError::NotFound(specifier.to_string()));
-          };
-
-          Ok(Some(self.cache.value(inner_resolution.path())))
+        let export_resolution = self.load_package_self(&cached_path, specifier, ctx).await?;
+        // can be found in pnp cached folder
+        if export_resolution.is_some() {
+          return Ok(export_resolution);
         }
+        let is_bare = subpath.is_none();
 
-        Ok(pnp::Resolution::Skipped) => Ok(None),
-        Err(_) => Err(ResolveError::NotFound(specifier.to_string())),
+        let inner_request = subpath.map_or_else(
+          || ".".to_string(),
+          |mut p| {
+            p.insert_str(0, "./");
+            p
+          },
+        );
+
+        let mut inner_options = self.options().clone();
+        if is_bare {
+          inner_options.fully_specified = false;
+        }
+        let inner_resolver = self.clone_with_options(inner_options);
+
+        // try as file or directory `path` in the pnp folder
+        let Ok(inner_resolution) = inner_resolver.resolve(&path, &inner_request).await else {
+          return Err(ResolveError::NotFound(specifier.to_string()));
+        };
+
+        Ok(Some(self.cache.value(inner_resolution.path())))
       }
-    } else {
-      Ok(None)
+
+      Ok(pnp::Resolution::Skipped) => Ok(None),
+      Err(_) => Err(ResolveError::NotFound(specifier.to_string())),
     }
   }
 
@@ -1510,50 +1598,72 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         else {
           continue;
         };
-        // 2. Set parentURL to the parent folder URL of parentURL.
-        let package_path = cached_path.path().normalize_with(package_name);
-        let cached_path = self.cache.value(&package_path);
-        // 3. If the folder at packageURL does not exist, then
-        //   1. Continue the next loop iteration.
-        if cached_path.is_dir(&self.cache.fs, ctx).await {
-          // 4. Let pjson be the result of READ_PACKAGE_JSON(packageURL).
-          if let Some(package_json) = cached_path
-            .package_json(&self.cache.fs, &self.options, ctx)
-            .await?
-          {
-            // 5. If pjson is not null and pjson.exports is not null or undefined, then
-            // 1. Return the result of PACKAGE_EXPORTS_RESOLVE(packageURL, packageSubpath, pjson.exports, defaultConditions).
-            for exports in package_json.exports_fields(&self.options.exports_fields) {
-              if let Some(path) = self
-                .package_exports_resolve(cached_path.path(), &format!(".{subpath}"), exports, ctx)
-                .await?
-              {
-                return Ok(Some(path));
-              }
-            }
-            // 6. Otherwise, if packageSubpath is equal to ".", then
-            if subpath == "." {
-              // 1. If pjson.main is a string, then
-              for main_field in package_json.main_fields(&self.options.main_fields) {
-                // 1. Return the URL resolution of main in packageURL.
-                let path = cached_path.path().normalize_with(main_field);
-                let cached_path = self.cache.value(&path);
-                if cached_path.is_file(&self.cache.fs, ctx).await
-                  && self.check_restrictions(cached_path.path())
-                {
-                  return Ok(Some(cached_path.clone()));
-                }
-              }
-            }
-          }
-          let subpath = format!(".{subpath}");
-          ctx.with_fully_specified(false);
-          return self.require(&cached_path, &subpath, ctx).await.map(Some);
+        if let Some(path) = self
+          .package_resolve_in_dir(&cached_path, package_name, subpath, ctx)
+          .await?
+        {
+          return Ok(Some(path));
         }
       }
     }
 
+    // Fallback: search NODE_PATH directories
+    for dir in self.node_path_dirs() {
+      let cached_path = self.cache.value(dir);
+      if !cached_path.is_dir(&self.cache.fs, ctx).await {
+        continue;
+      }
+      if let Some(path) = self
+        .package_resolve_in_dir(&cached_path, package_name, subpath, ctx)
+        .await?
+      {
+        return Ok(Some(path));
+      }
+    }
+
     Err(ResolveError::NotFound(specifier.to_string()))
+  }
+
+  /// Try ESM package resolution within a single module directory.
+  async fn package_resolve_in_dir(
+    &self,
+    cached_path: &CachedPath,
+    package_name: &str,
+    subpath: &str,
+    ctx: &mut Ctx,
+  ) -> ResolveResult {
+    let package_path = cached_path.path().normalize_with(package_name);
+    let cached_path = self.cache.value(&package_path);
+    if !cached_path.is_dir(&self.cache.fs, ctx).await {
+      return Ok(None);
+    }
+    if let Some(package_json) = cached_path
+      .package_json(&self.cache.fs, &self.options, ctx)
+      .await?
+    {
+      for exports in package_json.exports_fields(&self.options.exports_fields) {
+        if let Some(path) = self
+          .package_exports_resolve(cached_path.path(), &format!(".{subpath}"), exports, ctx)
+          .await?
+        {
+          return Ok(Some(path));
+        }
+      }
+      if subpath == "." {
+        for main_field in package_json.main_fields(&self.options.main_fields) {
+          let path = cached_path.path().normalize_with(main_field);
+          let main_cached = self.cache.value(&path);
+          if main_cached.is_file(&self.cache.fs, ctx).await
+            && self.check_restrictions(main_cached.path())
+          {
+            return Ok(Some(main_cached.clone()));
+          }
+        }
+      }
+    }
+    let subpath = format!(".{subpath}");
+    ctx.with_fully_specified(false);
+    self.require(&cached_path, &subpath, ctx).await.map(Some)
   }
 
   /// PACKAGE_EXPORTS_RESOLVE(packageURL, subpath, exports, conditions)
@@ -1680,7 +1790,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> Result<Option<CachedPath>, ResolveError> {
     // 1. Assert: specifier begins with "#".
     debug_assert!(specifier.starts_with('#'), "{specifier}");
-    //   2. If specifier is exactly equal to "#" or starts with "#/", then
+    //   2. If specifier is exactly equal to "#", then
     //   1. Throw an Invalid Module Specifier error.
     // 3. Let packageURL be the result of LOOKUP_PACKAGE_SCOPE(parentURL).
     // 4. If packageURL is not null, then
@@ -1694,7 +1804,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       if !has_imports {
         has_imports = true;
         // TODO: fill in test case for this case
-        if specifier == "#" || specifier.starts_with("#/") {
+        if specifier == "#" {
           return Err(ResolveError::InvalidModuleSpecifier(
             specifier.to_string(),
             package_json.path.clone(),

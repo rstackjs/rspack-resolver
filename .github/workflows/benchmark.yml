@@ -22,11 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Branch
-        uses: taiki-e/checkout-action@3ab630d442e198ebb0ca30872832406ca01c46eb # v1.4.0
+        uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
 
-      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
 
-      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -47,7 +47,7 @@ jobs:
         run: cargo codspeed build
 
       - name: Run CPU benchmark
-        uses: CodSpeedHQ/action@4deb3275dd364fb96fb074c953133d29ec96f80f # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
+        uses: CodSpeedHQ/action@281164b0f014a4e7badd2c02cecad9b595b70537 # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
         timeout-minutes: 30
         with:
           mode: simulation
@@ -55,7 +55,7 @@ jobs:
           token: ${{ secrets.CODSPEED_TOKEN }}
 
       - name: Run memory benchmark
-        uses: CodSpeedHQ/action@4deb3275dd364fb96fb074c953133d29ec96f80f # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
+        uses: CodSpeedHQ/action@281164b0f014a4e7badd2c02cecad9b595b70537 # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
         timeout-minutes: 30
         with:
           mode: memory
