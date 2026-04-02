@@ -115,7 +115,7 @@ pub struct ResolverGeneric<Fs> {
   options: ResolveOptions,
   cache: Arc<Cache<Fs>>,
   #[cfg(feature = "yarn_pnp")]
-  pnp_manifest: Arc<arc_swap::ArcSwapOption<pnp::Manifest>>,
+  pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
   /// Paths that have been searched and confirmed to have no `.pnp.cjs` reachable by filesystem walk.
   #[cfg(feature = "yarn_pnp")]
   pnp_no_manifest_cache: Arc<DashSet<CachedPath>>,
@@ -957,7 +957,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
   #[cfg(feature = "yarn_pnp")]
   #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
-  fn find_pnp_manifest(&self, cached_path: &CachedPath) -> Option<Arc<pnp::Manifest>> {
+  fn find_pnp_manifest(&self, cached_path: &CachedPath) -> Option<Arc<(PathBuf, pnp::Manifest)>> {
     // 1. Already have a manifest → return it (covers global cache paths too)
     if let Some(manifest) = self.pnp_manifest.load_full() {
       return Some(manifest);
@@ -986,7 +986,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     tracing::debug!("use manifest path: {:?}", manifest_path);
 
     let manifest = pnp::load_pnp_manifest(&manifest_path).ok()?;
-    let manifest = Arc::new(manifest);
+    let manifest = Arc::new((manifest_path, manifest));
 
     let previous = self
       .pnp_manifest
@@ -1007,13 +1007,15 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<Option<CachedPath>, ResolveError> {
-    let Some(manifest) = self.find_pnp_manifest(cached_path) else {
+    let Some(pnp_data) = self.find_pnp_manifest(cached_path) else {
       return Ok(None);
     };
+    let (ref manifest_path, ref manifest) = *pnp_data;
+    ctx.add_file_dependency(manifest_path);
 
     let mut path = cached_path.to_path_buf();
     path.push("");
-    let resolution = pnp::resolve_to_unqualified_via_manifest(&manifest, specifier, &path);
+    let resolution = pnp::resolve_to_unqualified_via_manifest(manifest, specifier, &path);
 
     tracing::debug!("pnp resolve unqualified as: {:?}", resolution);
 
