@@ -299,17 +299,23 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &'a mut Ctx,
   ) -> BoxFuture<'a, Result<CachedPath, ResolveError>> {
     let fut = async move {
-      ctx.test_for_infinite_recursion()?;
+      ctx.test_for_infinite_recursion(cached_path, specifier)?;
 
       // enhanced-resolve: parse
-      let (parsed, try_fragment_as_path) = self.load_parse(cached_path, specifier, ctx).await?;
-      if let Some(path) = try_fragment_as_path {
-        return Ok(path);
-      }
+      let result = async {
+        let (parsed, try_fragment_as_path) = self.load_parse(cached_path, specifier, ctx).await?;
+        if let Some(path) = try_fragment_as_path {
+          return Ok(path);
+        }
 
-      self
-        .require_without_parse(cached_path, parsed.path(), ctx)
-        .await
+        self
+          .require_without_parse(cached_path, parsed.path(), ctx)
+          .await
+      }
+      .await;
+
+      ctx.finish_resolve();
+      result
     };
     Box::pin(fut)
   }
