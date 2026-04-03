@@ -1214,17 +1214,19 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if module_specifier.is_some_and(|s| s == new_specifier) {
       return Ok(None);
     }
-    if ctx
-      .resolving_alias
-      .as_ref()
-      .is_some_and(|s| s == new_specifier)
+    // Detect self-reference (e.g. `{"./lib/main.js": "./lib/main.js"}`)
+    let is_self_reference = new_specifier.strip_prefix("./").is_some_and(|s| {
+      path
+        .strip_prefix(package_json.directory())
+        .is_ok_and(|rel| rel == Path::new(s))
+    });
+    if is_self_reference
+      || ctx
+        .resolving_alias
+        .as_ref()
+        .is_some_and(|s| s == new_specifier)
     {
-      // Complete when resolving to self `{"./a.js": "./a.js"}`
-      if new_specifier
-        .strip_prefix("./")
-        .filter(|s| path.ends_with(Path::new(s)))
-        .is_some()
-      {
+      if is_self_reference {
         return if cached_path.is_file(&self.cache.fs, ctx).await {
           if self.check_restrictions(cached_path.path()) {
             Ok(Some(cached_path.clone()))
