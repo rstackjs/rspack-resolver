@@ -1010,7 +1010,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let Some(pnp_data) = self.find_pnp_manifest(cached_path) else {
       return Ok(None);
     };
-    let (ref manifest_path, ref manifest) = *pnp_data;
+    let (manifest_path, manifest) = pnp_data.as_ref();
     ctx.add_file_dependency(manifest_path);
 
     let mut path = cached_path.to_path_buf();
