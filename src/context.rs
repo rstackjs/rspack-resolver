@@ -116,7 +116,7 @@ impl ResolveContext {
   }
 
   pub fn finish_resolve(&mut self) {
+    // just pop stack, DO NOT decrease depth to keep depth detection unchanged.
     self.resolve_stack.pop();
-    self.depth -= 1;
   }
 }
