@@ -34,7 +34,7 @@ jobs:
           - os: macos-14
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - uses: ./.github/actions/pnpm
       - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
         with:
@@ -57,7 +57,7 @@ jobs:
     name: Check Wasm
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
       - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
         with:
@@ -73,7 +73,7 @@ jobs:
     name: Test wasi target
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
       - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
         with:
@@ -96,7 +96,7 @@ jobs:
     name: Spell Check
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
       - uses: crate-ci/typos@02ea592e44b3a53c302f697cddca7641cd051c3d # v1.45.0
         with:
@@ -106,7 +106,7 @@ jobs:
     name: Cargo Deny
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
@@ -127,7 +127,7 @@ jobs:
     name: Check Unused Dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
@@ -140,7 +140,7 @@ jobs:
         with:
           restore-cache: false
         if: steps.filter.outputs.src == 'true'
-      - uses: cargo-bins/cargo-binstall@0b24824336e2b3800b0f89d9e08b2c08bfa3dcdd # main
+      - uses: cargo-bins/cargo-binstall@d125de8b4538541574fd9357b6feb61c8486464b # main
         if: steps.filter.outputs.src == 'true'
       - run: cargo binstall --no-confirm cargo-shear@1
         if: steps.filter.outputs.src == 'true'
@@ -151,7 +151,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm
       - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
@@ -166,7 +166,7 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
         with:
           components: clippy
@@ -176,7 +176,7 @@ jobs:
     name: Doc
     runs-on: ubuntu-latest
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
         with:
           components: rust-docs
@@ -198,7 +198,7 @@ jobs:
     env:
       RUST_BACKTRACE: 1
     steps:
-      - uses: taiki-e/checkout-action@83ed61bfbe2b8abbb3c66e8b65b1335484c70009 # v1.4.1
+      - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - uses: ./.github/actions/pnpm
         with:
           node-version: ${{ matrix.node }}
