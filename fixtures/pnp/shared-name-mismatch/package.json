@@ -1,0 +1,8 @@
+{
+  "name": "shared-package",
+  "version": "1.0.0",
+  "exports": {
+    ".": "./dist/a.js",
+    "./x": "./dist/a.js"
+  }
+}
