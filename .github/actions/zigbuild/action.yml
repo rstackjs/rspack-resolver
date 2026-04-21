@@ -28,7 +28,7 @@ runs:
         version: ${{ inputs.zig-version }}
 
     - name: Install cargo-zigbuild
-      uses: taiki-e/install-action@bfadeaba214680fb4ab63e710bcb2a6a17019fdc # v2.70.4
+      uses: taiki-e/install-action@055f5df8c3f65ea01cd41e9dc855becd88953486 # v2.75.18
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
