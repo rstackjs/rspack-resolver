@@ -1,6 +1,8 @@
 //! Tests for tsconfig project references
 
-use crate::{ResolveError, ResolveOptions, Resolver, TsconfigOptions, TsconfigReferences};
+use crate::{
+  ResolveContext, ResolveError, ResolveOptions, Resolver, TsconfigOptions, TsconfigReferences,
+};
 
 #[tokio::test]
 async fn auto() {
@@ -38,6 +40,44 @@ async fn auto() {
       .await
       .map(|f| f.full_path());
     assert_eq!(resolved_path, Ok(expected), "{request} {path:?}");
+  }
+}
+
+#[tokio::test]
+async fn tscconfig_file_as_file_dependencies() {
+  let f = super::fixture_root().join("tsconfig/cases/project_references");
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+  let mut ctx = ResolveContext::default();
+
+  let resolved_path = resolver
+    .resolve_with_context(&f.join("project_b/src"), "@/index.ts", &mut ctx)
+    .await
+    .map(|f| f.full_path());
+  assert_eq!(resolved_path, Ok(f.join("project_b/src/aliased/index.ts")));
+
+  let expected_dependencies = [
+    f.join("app/tsconfig.json"),
+    f.join("tsconfig.base.json"),
+    f.join("project_a/conf.json"),
+    f.join("project_b/tsconfig.json"),
+    f.join("project_c/tsconfig.json"),
+    f.parent()
+      .unwrap()
+      .join("paths_template_variable/tsconfig2.json"),
+  ];
+  for dependency in expected_dependencies {
+    assert!(
+      ctx.file_dependencies.contains(&dependency),
+      "missing tsconfig file dependency {dependency:?}: {:?}",
+      ctx.file_dependencies
+    );
   }
 }
 
