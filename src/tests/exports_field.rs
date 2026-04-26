@@ -2634,3 +2634,26 @@ async fn test_cases() {
     }
   }
 }
+
+/// When all targets in a fallback array are invalid, `package_target_resolve` should
+/// propagate `InvalidPackageTarget` instead of swallowing it and returning `Ok(None)`.
+/// Bug: `resolved.is_err() && i == targets.len()` is always false (off-by-one),
+/// causing errors to be silently dropped.
+#[tokio::test]
+async fn array_fallback_all_invalid_targets_should_return_invalid_package_target() {
+  let resolved = Resolver::new(ResolveOptions::default())
+    .package_exports_resolve(
+      Path::new(""),
+      ".",
+      &exports_field(json!({
+        ".": ["invalid_target_1", "invalid_target_2"]
+      })),
+      &mut Ctx::default(),
+    )
+    .await;
+
+  assert!(
+    matches!(resolved, Err(ResolveError::InvalidPackageTarget(..))),
+    "expected InvalidPackageTarget, got {resolved:?}"
+  );
+}
