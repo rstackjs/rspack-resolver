@@ -15,8 +15,8 @@ importers:
         specifier: ^2.3.2
         version: 2.3.2
       '@napi-rs/cli':
-        specifier: 3.5.1
-        version: 3.5.1(@emnapi/runtime@1.8.1)(@types/node@24.10.1)
+        specifier: 3.6.0
+        version: 3.6.0(@emnapi/runtime@1.8.1)(@types/node@24.10.1)
       '@napi-rs/wasm-runtime':
         specifier: ^1.0.7
         version: 1.1.1
@@ -34,7 +34,7 @@ importers:
         version: 14.0.3
       emnapi:
         specifier: ^1.2.0
-        version: 1.8.1
+        version: 1.9.1
       enhanced-resolve:
         specifier: ^5.17.1
         version: 5.19.0
@@ -308,8 +308,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@napi-rs/cli@3.5.1':
-    resolution: {integrity: sha512-XBfLQRDcB3qhu6bazdMJsecWW55kR85l5/k0af9BIBELXQSsCFU0fzug7PX8eQp6vVdm7W/U3z6uP5WmITB2Gw==}
+  '@napi-rs/cli@3.6.0':
+    resolution: {integrity: sha512-aA8m4+9XxnK1+0sr4GplZP0Ze90gkzO8sMKaplOK0zXbLnzsLl6O2BQQt6rTCcTRzIN24wrrByakr/imM+CxhA==}
     engines: {node: '>= 16'}
     hasBin: true
     peerDependencies:
@@ -1012,8 +1012,8 @@ packages:
     resolution: {integrity: sha512-KxdRyyFcS85pH3dnU8Y5yFUm2YJdaHwcBZWrfG8o89ZY9a13/f9itbN+YG3ELbBo9Pg5zvIozstmuV8bX13q6g==}
     engines: {node: '>=14.16'}
 
-  emnapi@1.8.1:
-    resolution: {integrity: sha512-34i2BbgHx1LnEO4JCGQYo6h6s4e4KrdWtdTHfllBNLbXSHPmdIHplxKejfabsRK+ukNciqVdalB+fxMibqHdaQ==}
+  emnapi@1.9.1:
+    resolution: {integrity: sha512-s4RbfzgbYg9cWBZXJT6LazImJQ5p+F+LyTsCWQJXbGVdPmtCtdlwqd0Oiv3O51KyYV/Hq58xszaQ/l153tK6Uw==}
     peerDependencies:
       node-addon-api: '>= 6.1.0'
     peerDependenciesMeta:
@@ -1926,7 +1926,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@napi-rs/cli@3.5.1(@emnapi/runtime@1.8.1)(@types/node@24.10.1)':
+  '@napi-rs/cli@3.6.0(@emnapi/runtime@1.8.1)(@types/node@24.10.1)':
     dependencies:
       '@inquirer/prompts': 8.1.0(@types/node@24.10.1)
       '@napi-rs/cross-toolchain': 1.0.3
@@ -1934,7 +1934,7 @@ snapshots:
       '@octokit/rest': 22.0.1
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
       colorette: 2.0.20
-      emnapi: 1.8.1
+      emnapi: 1.9.1
       es-toolkit: 1.42.0
       js-yaml: 4.1.0
       obug: 2.1.1
@@ -2537,7 +2537,7 @@ snapshots:
 
   emittery@1.2.0: {}
 
-  emnapi@1.8.1: {}
+  emnapi@1.9.1: {}
 
   emoji-regex@10.3.0: {}
 
