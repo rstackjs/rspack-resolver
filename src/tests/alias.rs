@@ -151,6 +151,72 @@ async fn infinite_recursion() {
   assert_eq!(resolution, Err(ResolveError::Recursion));
 }
 
+// Non-repeating rewrite cycle: specifier changes on every hop.
+// `a → b/c`, `b → a/c` produces a/c/c → b/c/c/c → a/c/c/c/c → …
+// The depth guard catches this even though no exact `(path, specifier)` pair repeats.
+#[tokio::test]
+#[cfg(not(target_os = "windows"))]
+async fn non_repeating_rewrite_cycle() {
+  use std::path::Path;
+
+  use super::memory_fs::MemoryFS;
+  use crate::ResolverGeneric;
+
+  let f = Path::new("/");
+
+  let file_system = MemoryFS::new(&[("/placeholder", "")]);
+
+  let resolver = ResolverGeneric::<MemoryFS>::new_with_file_system(
+    file_system,
+    ResolveOptions {
+      alias: vec![
+        ("a".into(), vec![AliasValue::from("b/c")]),
+        ("b".into(), vec![AliasValue::from("a/c")]),
+      ],
+      modules: vec!["/".into()],
+      ..ResolveOptions::default()
+    },
+  );
+  let resolution = resolver.resolve(f, "a").await;
+  assert_eq!(resolution, Err(ResolveError::Recursion));
+}
+
+// Sibling fallback branches that share a `(path, specifier)` should not
+// falsely report recursion — the stack must be unwound between attempts.
+#[tokio::test]
+#[cfg(not(target_os = "windows"))]
+async fn sibling_fallback_no_false_recursion() {
+  use std::path::{Path, PathBuf};
+
+  use super::memory_fs::MemoryFS;
+  use crate::ResolverGeneric;
+
+  let f = Path::new("/");
+
+  let file_system = MemoryFS::new(&[("/c/index", "")]);
+
+  // Both branches eventually resolve `c`, only the second succeeds.
+  // Without stack unwinding this would falsely detect recursion on the
+  // second branch because `(/, c)` was already visited by the first.
+  let resolver = ResolverGeneric::<MemoryFS>::new_with_file_system(
+    file_system,
+    ResolveOptions {
+      alias: vec![
+        (
+          "a".into(),
+          vec![AliasValue::from("b"), AliasValue::from("c")],
+        ),
+        ("b".into(), vec![AliasValue::from("c")]),
+      ],
+      modules: vec!["/".into()],
+      ..ResolveOptions::default()
+    },
+  );
+
+  let resolved = resolver.resolve(f, "a").await.map(|r| r.full_path());
+  assert_eq!(resolved, Ok(PathBuf::from("/c/index")));
+}
+
 fn check_slash(path: &Path) {
   let s = path.to_string_lossy().to_string();
   #[cfg(target_os = "windows")]
