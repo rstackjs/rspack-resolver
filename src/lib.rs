@@ -322,7 +322,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> Result<CachedPath, ResolveError> {
     // tsconfig-paths
     if let Some(path) = self
-      .load_tsconfig_paths(cached_path, specifier, &mut Ctx::default())
+      .load_tsconfig_paths(cached_path, specifier, ctx)
       .await?
     {
       return Ok(path);
@@ -1447,6 +1447,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         &tsconfig_options.references,
       )
       .await?;
+    for dependency in &tsconfig.file_dependencies {
+      ctx.add_file_dependency(dependency);
+    }
     let paths = tsconfig.resolve(cached_path.path(), specifier);
     for path in paths {
       let cached_path = self.cache.value(&path);
@@ -1522,7 +1525,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             let directory = tsconfig.directory().to_path_buf();
             for reference in &mut tsconfig.references {
               let reference_tsconfig_path = directory.normalize_with(&reference.path);
-              let tsconfig = self
+              let reference_tsconfig = self
                 .cache
                 .tsconfig(
                   /* root */ true,
@@ -1537,7 +1540,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
                   },
                 )
                 .await?;
-              reference.tsconfig.replace(tsconfig);
+              tsconfig
+                .file_dependencies
+                .extend(reference_tsconfig.file_dependencies.iter().cloned());
+              reference.tsconfig.replace(reference_tsconfig);
             }
           }
 

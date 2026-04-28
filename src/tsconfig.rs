@@ -33,6 +33,9 @@ pub struct TsConfig {
   #[serde(skip)]
   pub(crate) path: PathBuf,
 
+  #[serde(skip)]
+  pub(crate) file_dependencies: Vec<PathBuf>,
+
   #[serde(default)]
   pub extends: Option<ExtendsField>,
 
@@ -82,11 +85,13 @@ impl TsConfig {
       let mut tsconfig: Self = serde_json::from_str("{}")?;
       tsconfig.root = root;
       tsconfig.path = path.to_path_buf();
+      tsconfig.file_dependencies.push(path.to_path_buf());
       return Ok(tsconfig);
     }
     let mut tsconfig: Self = serde_json::from_str(json)?;
     tsconfig.root = root;
     tsconfig.path = path.to_path_buf();
+    tsconfig.file_dependencies.push(path.to_path_buf());
     let directory = tsconfig.directory().to_path_buf();
     if let Some(base_url) = &tsconfig.compiler_options.base_url {
       // keep the `${configDir}` template variable in the baseUrl
@@ -159,6 +164,9 @@ impl TsConfig {
         .base_url
         .clone_from(&other_config.compiler_options.base_url);
     }
+    self
+      .file_dependencies
+      .extend(other_config.file_dependencies.iter().cloned());
   }
 
   pub fn resolve(&self, path: &Path, specifier: &str) -> Vec<PathBuf> {
