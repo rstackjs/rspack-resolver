@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ inputs.commit }}
 
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           save-cache: ${{ github.ref_name == 'main' }}
           cache-key: warm
