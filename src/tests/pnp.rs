@@ -303,3 +303,43 @@ async fn resolve_pnp_transitive_dep_from_global_cache() {
     "Expected isarray in global cache, got: {isarray}"
   );
 }
+
+#[tokio::test]
+async fn resolve_pnp_should_handle_exports_field_when_using_pnp() {
+  // Mimics enhanced-resolve: "should handle the exports field when using PnP"
+  let fixture = super::fixture_root().join("pnp");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    condition_names: vec!["import".into()],
+    ..ResolveOptions::default()
+  });
+
+  assert_eq!(
+    resolver
+      .resolve(&fixture, "@user/m1")
+      .await
+      .map(|r| r.full_path()),
+    Ok(fixture.join("shared-name-mismatch/dist/a.js"))
+  );
+}
+
+#[tokio::test]
+async fn resolve_pnp_should_handle_exports_field_when_using_pnp_with_sub_path() {
+  // Mimics enhanced-resolve: "should handle the exports field when using PnP (with sub path)"
+  let fixture = super::fixture_root().join("pnp");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".js".into()],
+    condition_names: vec!["import".into()],
+    ..ResolveOptions::default()
+  });
+
+  assert_eq!(
+    resolver
+      .resolve(&fixture, "@user/m1/x")
+      .await
+      .map(|r| r.full_path()),
+    Ok(fixture.join("shared-name-mismatch/dist/a.js"))
+  );
+}
