@@ -3,7 +3,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use crate::error::ResolveError;
+use crate::{cache::CachedPath, error::ResolveError};
 
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext(ResolveContextImpl);
@@ -25,7 +25,14 @@ pub struct ResolveContextImpl {
   /// The current resolving alias for bailing recursion alias.
   pub resolving_alias: Option<String>,
 
-  /// For avoiding infinite recursion, which will cause stack overflow.
+  /// Stack-based recursion detection (ported from enhanced-resolve).
+  /// A duplicate `(path, specifier)` entry means we have entered a cycle.
+  /// Entries are unwound via `finish_resolve` so sibling fallback branches
+  /// don't see stale entries from earlier attempts.
+  resolve_stack: Vec<(CachedPath, String)>,
+
+  /// Depth guard for non-repeating rewrite cycles where the specifier
+  /// changes on every hop (e.g. alias expansion `a → b/c → a/c/c → …`).
   depth: u8,
 }
 
@@ -78,12 +85,38 @@ impl ResolveContext {
     self.resolving_alias = Some(alias);
   }
 
-  pub fn test_for_infinite_recursion(&mut self) -> Result<(), ResolveError> {
+  /// enhanced-resolve: Resolver.doResolve stack-based recursion detection.
+  ///
+  /// 1. Checks whether the same `(path, specifier)` pair already exists in
+  ///    the resolve stack — a duplicate means a repeating cycle.
+  /// 2. Enforces a depth limit to catch non-repeating rewrite cycles where
+  ///    the specifier changes on every hop.
+  pub fn test_for_infinite_recursion(
+    &mut self,
+    cached_path: &CachedPath,
+    specifier: &str,
+  ) -> Result<(), ResolveError> {
+    if self
+      .resolve_stack
+      .iter()
+      .any(|(p, s)| p == cached_path && s == specifier)
+    {
+      return Err(ResolveError::Recursion);
+    }
+
     self.depth += 1;
-    // 64 should be more than enough for detecting infinite recursion.
     if self.depth > 32 {
       return Err(ResolveError::Recursion);
     }
+
+    self
+      .resolve_stack
+      .push((cached_path.clone(), specifier.to_string()));
     Ok(())
+  }
+
+  pub fn finish_resolve(&mut self) {
+    // just pop stack, DO NOT decrease depth to keep depth detection unchanged.
+    self.resolve_stack.pop();
   }
 }

@@ -109,6 +109,12 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
 #[derive(Clone)]
 pub struct CachedPath(Arc<CachedPathImpl>);
 
+impl std::fmt::Debug for CachedPath {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.0.path.fmt(f)
+  }
+}
+
 impl Hash for CachedPath {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.0.hash.hash(state);
