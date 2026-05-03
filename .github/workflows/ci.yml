@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - uses: ./.github/actions/pnpm
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           save-cache: ${{ github.ref_name == 'main' }}
           cache-key: warm
@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           cache-key: wasm
           save-cache: ${{ github.ref_name == 'main' }}
@@ -75,7 +75,7 @@ jobs:
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           cache-key: wasi
           save-cache: ${{ github.ref_name == 'main' }}
@@ -115,7 +115,7 @@ jobs:
             src:
               - 'Cargo.lock'
 
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           restore-cache: false
           tools: cargo-deny
@@ -136,11 +136,11 @@ jobs:
               - '**/*.rs'
               - '**/Cargo.toml'
               - 'Cargo.lock'
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           restore-cache: false
         if: steps.filter.outputs.src == 'true'
-      - uses: cargo-bins/cargo-binstall@d125de8b4538541574fd9357b6feb61c8486464b # main
+      - uses: cargo-bins/cargo-binstall@9d36bebae244fb1a7fd7831d3c5a4bc8f1cab230 # main
         if: steps.filter.outputs.src == 'true'
       - run: cargo binstall --no-confirm cargo-shear@1
         if: steps.filter.outputs.src == 'true'
@@ -154,7 +154,7 @@ jobs:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           components: rustfmt
           restore-cache: false
@@ -167,7 +167,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           components: clippy
       - run: cargo clippy --all-features -- -D warnings
@@ -177,7 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           components: rust-docs
       - run: RUSTDOCFLAGS='-D warnings --cfg docsrs' cargo doc --no-deps --all-features
@@ -202,7 +202,7 @@ jobs:
       - uses: ./.github/actions/pnpm
         with:
           node-version: ${{ matrix.node }}
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: Boshen/setup-rust@92d71e4da65d4ae1f12e234c5bfa27b964ce994f # main
         with:
           cache-key: warm
       - run: cargo test --doc
