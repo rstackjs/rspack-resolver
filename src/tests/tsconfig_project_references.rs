@@ -44,7 +44,7 @@ async fn auto() {
 }
 
 #[tokio::test]
-async fn tscconfig_file_as_file_dependencies() {
+async fn tsconfig_file_as_file_dependencies() {
   let f = super::fixture_root().join("tsconfig/cases/project_references");
 
   let resolver = Resolver::new(ResolveOptions {
