@@ -36,14 +36,13 @@ impl<A> NeverGrowInPlaceAllocator<A> {
 }
 
 // SAFETY: Methods simply delegate to the wrapped allocator.
-#[expect(unsafe_code, clippy::undocumented_unsafe_blocks)]
 unsafe impl<A: GlobalAlloc> GlobalAlloc for NeverGrowInPlaceAllocator<A> {
   unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-    unsafe { self.allocator.alloc(layout) }
+    self.allocator.alloc(layout)
   }
 
   unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-    unsafe { self.allocator.dealloc(ptr, layout) }
+    self.allocator.dealloc(ptr, layout)
   }
 }
 
