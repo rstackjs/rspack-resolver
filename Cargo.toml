@@ -113,6 +113,16 @@ rayon          = { version = "1.11.0" }
 regex          = "1.12.2"
 vfs            = "0.13.0"               # for testing with in memory file system
 
+# Benchmark allocator features kept aligned with rspack's `xtask/benchmark`.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+mimalloc = { version = "0.1.48", features = ["local_dynamic_tls", "v3"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+mimalloc = { version = "0.1.48", features = ["v3"] }
+
+[target.'cfg(all(not(target_os = "linux"), not(target_os = "macos"), not(target_family = "wasm")))'.dev-dependencies]
+mimalloc = { version = "0.1.48", features = ["v3"] }
+
 [features]
 default = ["yarn_pnp"]
 ## Enables the [PackageJson::raw_json] API,
