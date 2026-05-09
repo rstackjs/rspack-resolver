@@ -1,5 +1,7 @@
+#[cfg(target_family = "wasm")]
+use std::alloc::System;
 use std::{
-  alloc::{GlobalAlloc, Layout, System},
+  alloc::{GlobalAlloc, Layout},
   env, fs,
   fs::read_to_string,
   future::Future,
@@ -9,20 +11,38 @@ use std::{
 };
 
 #[global_allocator]
-static GLOBAL: NeverGrowInPlaceAllocator = NeverGrowInPlaceAllocator;
+#[cfg(not(target_family = "wasm"))]
+static GLOBAL: NeverGrowInPlaceAllocator<mimalloc::MiMalloc> =
+  NeverGrowInPlaceAllocator::new(mimalloc::MiMalloc);
 
-/// Delegates `alloc`/`dealloc` to [`System`] but omits [`GlobalAlloc::realloc`],
-/// forcing the default "alloc-new + copy + dealloc-old" path so that benchmarks
-/// never benefit from non-deterministic in-place growth provided by `libc::realloc`.
-struct NeverGrowInPlaceAllocator;
+#[global_allocator]
+#[cfg(target_family = "wasm")]
+static GLOBAL: NeverGrowInPlaceAllocator<System> = NeverGrowInPlaceAllocator::new(System);
 
-unsafe impl GlobalAlloc for NeverGrowInPlaceAllocator {
+/// Delegates `alloc`/`dealloc` to the wrapped allocator but omits
+/// [`GlobalAlloc::realloc`], forcing the default "alloc-new + copy + dealloc-old"
+/// path so that benchmarks never benefit from non-deterministic in-place growth
+/// provided by the underlying allocator's `realloc`. Wrapping `mimalloc::MiMalloc`
+/// (instead of using it directly) also keeps `alloc` / `dealloc` visible to
+/// CodSpeed's mimalloc white-box allocator tracking.
+struct NeverGrowInPlaceAllocator<A> {
+  allocator: A,
+}
+
+impl<A> NeverGrowInPlaceAllocator<A> {
+  const fn new(allocator: A) -> Self {
+    Self { allocator }
+  }
+}
+
+// SAFETY: Methods simply delegate to the wrapped allocator.
+unsafe impl<A: GlobalAlloc> GlobalAlloc for NeverGrowInPlaceAllocator<A> {
   unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-    unsafe { System.alloc(layout) }
+    self.allocator.alloc(layout)
   }
 
   unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-    unsafe { System.dealloc(ptr, layout) }
+    self.allocator.dealloc(ptr, layout)
   }
 }
 
