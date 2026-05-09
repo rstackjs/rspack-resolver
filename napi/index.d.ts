@@ -194,6 +194,12 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean;
+  /**
+   * Whether to enable `NODE_PATH` support
+   *
+   * Default `false`
+   */
+  nodePath?: boolean;
 }
 
 export interface ResolveResult {

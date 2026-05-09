@@ -56,7 +56,7 @@ jobs:
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm
 
-      - uses: Boshen/setup-rust@main
+      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
         with:
           save-cache: true
           cache-key: build-${{ inputs.target }}-${{ inputs.profile }}

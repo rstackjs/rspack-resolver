@@ -28,6 +28,9 @@ async fn test_simple() {
         ("should resolve package #3", f.clone(), "#ccc/index.js", f.join("node_modules/c/index.js")),
         ("should resolve package #4", f.clone(), "#c", f.join("node_modules/c/index.js")),
         ("should resolve with wildcard pattern", f2.clone(), "#internal/i.js", f2.join("src/internal/i.js")),
+        // https://github.com/web-infra-dev/rspack/issues/13508
+        // https://github.com/nodejs/node/pull/60864
+        ("should resolve #/ wildcard imports", f.clone(), "#/foo", f.join("src/foo.js")),
     ];
 
   for (comment, path, request, expected) in pass {

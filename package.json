@@ -8,13 +8,15 @@
     "build:binding:profiling": "napi build --platform --profile profiling --package-json-path npm/package.json --manifest-path napi/Cargo.toml",
     "build:binding:debug": "napi build --platform                     --package-json-path npm/package.json --manifest-path napi/Cargo.toml",
     "prepublishOnly": "napi pre-publish -t npm --package-json-path npm/package.json --npm-dir bindings",
-    "test": "npm run test:resolver && npm run test:enhanced-resolve-compatible",
+    "test": "pnpm run test:resolver && pnpm run test:enhanced-resolve-compatible",
     "test:resolver": "rstest run -c rstest.config.resolver.mjs",
     "test:enhanced-resolve-compatible": "rstest run -c rstest.config.mjs",
+    "postbuild": "npm run format",
     "prettier": "prettier --check .",
     "prettier:ci": "prettier --list-different .",
     "format": "prettier --write .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "setup:fixtures": "cd fixtures/pnp && yarn && cd ../pnp-global-cache-enabled && yarn"
   },
   "devDependencies": {
     "@actions/core": "^3.0.0",
@@ -34,7 +36,7 @@
     "typescript": "^5.5.3",
     "zx": "^8.8.5"
   },
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.33.2",
   "repository": {
     "type": "git",
     "url": "git+https://rstackjs/rspack-resolver.git"
