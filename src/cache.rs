@@ -117,7 +117,7 @@ impl Hash for CachedPath {
 
 impl PartialEq for CachedPath {
   fn eq(&self, other: &Self) -> bool {
-    self.0.path == other.0.path
+    self.0.hash == other.0.hash && self.0.path == other.0.path
   }
 }
 impl Eq for CachedPath {}
