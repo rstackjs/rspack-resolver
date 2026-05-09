@@ -1,12 +1,8 @@
-import { describe, it } from "node:test";
+import { describe, it, expect } from "@rstest/core";
 import { ResolverFactory } from "../index.js";
-import * as assert from "node:assert";
 import * as path from "node:path";
-import { fileURLToPath } from "url";
 
-const fixtureDir = fileURLToPath(
-  new URL("../../fixtures/enhanced_resolve/test/fixtures", import.meta.url)
-);
+const fixtureDir = path.resolve("fixtures/enhanced_resolve/test/fixtures");
 
 describe("option", () => {
   describe("alias", () => {
@@ -14,8 +10,7 @@ describe("option", () => {
       const resolver = new ResolverFactory({
         alias: { strAlias: path.join(fixtureDir, "alias/files/a.js") }
       });
-      assert.equal(
-        resolver.sync(fixtureDir, "strAlias").path,
+      expect(resolver.sync(fixtureDir, "strAlias").path).toBe(
         path.join(fixtureDir, "alias/files/a.js")
       );
     });
@@ -24,8 +19,7 @@ describe("option", () => {
       const resolver = new ResolverFactory({
         alias: { strAlias: false }
       });
-      assert.match(
-        resolver.sync(fixtureDir, "strAlias").error,
+      expect(resolver.sync(fixtureDir, "strAlias").error).toMatch(
         /^Path is ignored/
       );
     });
@@ -34,8 +28,7 @@ describe("option", () => {
       const resolver = new ResolverFactory({
         alias: { strAlias: [path.join(fixtureDir, "alias/files/a.js")] }
       });
-      assert.equal(
-        resolver.sync(fixtureDir, "strAlias").path,
+      expect(resolver.sync(fixtureDir, "strAlias").path).toBe(
         path.join(fixtureDir, "alias/files/a.js")
       );
     });
@@ -44,20 +37,18 @@ describe("option", () => {
   describe("aliasFields", () => {
     it("should allow field string ", () => {
       const resolver = new ResolverFactory({ aliasFields: ["browser"] });
-      assert.equal(
-        resolver.sync(fixtureDir, "./browser-module/lib/replaced.js").path,
-        path.join(fixtureDir, "./browser-module/lib/browser.js")
-      );
+      expect(
+        resolver.sync(fixtureDir, "./browser-module/lib/replaced.js").path
+      ).toBe(path.join(fixtureDir, "./browser-module/lib/browser.js"));
     });
     it("should allow json path array", () => {
       const resolver = new ResolverFactory({
         aliasFields: [["innerBrowser1", "field", "browser"]]
       });
 
-      assert.equal(
-        resolver.sync(fixtureDir, "./browser-module/lib/main1.js").path,
-        path.join(fixtureDir, "./browser-module/lib/main.js")
-      );
+      expect(
+        resolver.sync(fixtureDir, "./browser-module/lib/main1.js").path
+      ).toBe(path.join(fixtureDir, "./browser-module/lib/main.js"));
     });
   });
 
@@ -65,11 +56,12 @@ describe("option", () => {
     const createTest = exportsFields => () => {
       const resolver = new ResolverFactory({ exportsFields });
 
-      assert.equal(
+      expect(
         resolver.sync(
           path.resolve(fixtureDir, "./exports-field3"),
           "exports-field"
-        ).path,
+        ).path
+      ).toBe(
         path.join(
           fixtureDir,
           "exports-field3/node_modules/exports-field/src/index.js"
@@ -83,8 +75,7 @@ describe("option", () => {
   describe("mainFields", () => {
     const createTest = mainFields => {
       const resolver = new ResolverFactory({ mainFields });
-      assert.equal(
-        resolver.sync(fixtureDir, "../..").path,
+      expect(resolver.sync(fixtureDir, "../..").path).toBe(
         path.join(fixtureDir, "../../", "lib/index.js")
       );
     };
