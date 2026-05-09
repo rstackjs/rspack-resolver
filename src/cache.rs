@@ -16,6 +16,7 @@ use tokio::sync::OnceCell as OnceLock;
 
 use crate::{
   context::ResolveContext as Ctx,
+  hashing::{hash_path, IdentityHasher},
   package_json::{off_to_location, PackageJson},
   path::PathUtil,
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
@@ -43,11 +44,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   }
 
   pub fn value(&self, path: &Path) -> CachedPath {
-    let hash = {
-      let mut hasher = FxHasher::default();
-      path.hash(&mut hasher);
-      hasher.finish()
-    };
+    let hash = hash_path(path);
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
@@ -116,8 +113,9 @@ impl Hash for CachedPath {
 }
 
 impl PartialEq for CachedPath {
+  #[inline]
   fn eq(&self, other: &Self) -> bool {
-    self.0.path == other.0.path
+    self.0.hash == other.0.hash && (Arc::ptr_eq(&self.0, &other.0) || self.0.path == other.0.path)
   }
 }
 impl Eq for CachedPath {}
@@ -390,7 +388,9 @@ impl Hash for dyn CacheKey + '_ {
 
 impl PartialEq for dyn CacheKey + '_ {
   fn eq(&self, other: &Self) -> bool {
-    self.tuple().1 == other.tuple().1
+    let self_tuple = self.tuple();
+    let other_tuple = other.tuple();
+    self_tuple.0 == other_tuple.0 && self_tuple.1 == other_tuple.1
   }
 }
 
@@ -405,22 +405,5 @@ impl CacheKey for (u64, &Path) {
 impl<'a> Borrow<dyn CacheKey + 'a> for (u64, &'a Path) {
   fn borrow(&self) -> &(dyn CacheKey + 'a) {
     self
-  }
-}
-
-/// Since the cache key is memoized, use an identity hasher
-/// to avoid double cache.
-#[derive(Default)]
-struct IdentityHasher(u64);
-
-impl Hasher for IdentityHasher {
-  fn write(&mut self, _: &[u8]) {
-    unreachable!("Invalid use of IdentityHasher")
-  }
-  fn write_u64(&mut self, n: u64) {
-    self.0 = n;
-  }
-  fn finish(&self) -> u64 {
-    self.0
   }
 }

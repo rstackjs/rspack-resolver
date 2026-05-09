@@ -2,12 +2,21 @@
 
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 mod windows {
-  use std::path::PathBuf;
+  use std::{
+    hash::{Hash, Hasher},
+    path::{Path, PathBuf},
+  };
 
-  use rustc_hash::FxHashSet;
+  use rustc_hash::{FxHashSet, FxHasher};
 
   use super::super::memory_fs::MemoryFS;
-  use crate::{ResolveContext, ResolveOptions, ResolverGeneric};
+  use crate::{ResolveContext, ResolveOptions, ResolvePreHashedContext, ResolverGeneric};
+
+  fn path_hash(path: &Path) -> u64 {
+    let mut hasher = FxHasher::default();
+    path.hash(&mut hasher);
+    hasher.finish()
+  }
 
   fn file_system() -> MemoryFS {
     MemoryFS::new(&[
@@ -100,7 +109,7 @@ mod windows {
       let mut ctx = ResolveContext::default();
       let path = PathBuf::from(context);
       let resolved = resolver
-        .resolve_with_context(path, request, &mut ctx)
+        .resolve_with_context(&path, request, &mut ctx)
         .await
         .map(|r| r.full_path());
       assert_eq!(resolved, Ok(PathBuf::from(result)));
@@ -109,6 +118,38 @@ mod windows {
         FxHashSet::from_iter(missing_dependencies.iter().map(PathBuf::from));
       assert_eq!(ctx.file_dependencies, file_dependencies, "{name}");
       assert_eq!(ctx.missing_dependencies, missing_dependencies, "{name}");
+
+      let mut prehashed_ctx = ResolvePreHashedContext::default();
+      let prehashed_resolved = resolver
+        .resolve_with_prehashed_context(&path, request, &mut prehashed_ctx)
+        .await
+        .map(|r| r.full_path());
+      assert_eq!(prehashed_resolved, Ok(PathBuf::from(result)));
+      assert!(prehashed_ctx
+        .file_dependencies
+        .iter()
+        .all(|dependency| { dependency.precomputed_hash() == path_hash(dependency.path()) }));
+      assert!(prehashed_ctx
+        .missing_dependencies
+        .iter()
+        .all(|dependency| { dependency.precomputed_hash() == path_hash(dependency.path()) }));
+      let prehashed_file_dependencies = FxHashSet::from_iter(
+        prehashed_ctx
+          .file_dependencies
+          .iter()
+          .map(|d| d.path().to_owned()),
+      );
+      let prehashed_missing_dependencies = FxHashSet::from_iter(
+        prehashed_ctx
+          .missing_dependencies
+          .iter()
+          .map(|d| d.path().to_owned()),
+      );
+      assert_eq!(prehashed_file_dependencies, file_dependencies, "{name}");
+      assert_eq!(
+        prehashed_missing_dependencies, missing_dependencies,
+        "{name}"
+      );
     }
   }
 }

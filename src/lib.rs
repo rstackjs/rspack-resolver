@@ -52,6 +52,7 @@ mod cache;
 mod context;
 mod error;
 mod file_system;
+mod hashing;
 mod options;
 mod package_json;
 mod path;
@@ -65,8 +66,10 @@ mod tests;
 use std::{
   borrow::Cow,
   cmp::Ordering,
+  collections::HashSet,
   ffi::OsStr,
   fmt,
+  hash::{BuildHasherDefault, Hash, Hasher},
   path::{Component, Path, PathBuf},
   sync::{Arc, OnceLock},
 };
@@ -79,6 +82,7 @@ pub use crate::{
   builtins::NODEJS_BUILTINS,
   error::{JSONError, ResolveError, SpecifierError},
   file_system::{FileMetadata, FileSystem, FileSystemOptions, FileSystemOs},
+  hashing::IdentityHasher,
   options::{
     Alias, AliasValue, EnforceExtension, ResolveOptions, Restriction, TsconfigOptions,
     TsconfigReferences,
@@ -89,6 +93,7 @@ pub use crate::{
 use crate::{
   cache::{Cache, CachedPath},
   context::ResolveContext as Ctx,
+  hashing::hash_path,
   package_json::JSONMap,
   path::{PathUtil, SLASH_START},
   specifier::Specifier,
@@ -105,6 +110,84 @@ pub struct ResolveContext {
 
   /// Dependencies that was not found on file system
   pub missing_dependencies: FxHashSet<PathBuf>,
+}
+
+pub type PathDependencySet = HashSet<PathDependency, BuildHasherDefault<IdentityHasher>>;
+
+#[derive(Debug, Clone)]
+pub struct PathDependency {
+  path: PathBuf,
+  hash: u64,
+}
+
+impl PathDependency {
+  #[inline]
+  pub fn new(path: PathBuf) -> Self {
+    let hash = hash_path(&path);
+    Self { path, hash }
+  }
+
+  #[inline]
+  pub fn path(&self) -> &Path {
+    &self.path
+  }
+
+  #[inline]
+  pub fn precomputed_hash(&self) -> u64 {
+    self.hash
+  }
+
+  #[inline]
+  pub fn into_path_buf(self) -> PathBuf {
+    self.path
+  }
+}
+
+impl From<PathBuf> for PathDependency {
+  #[inline]
+  fn from(value: PathBuf) -> Self {
+    Self::new(value)
+  }
+}
+
+impl From<PathDependency> for PathBuf {
+  #[inline]
+  fn from(value: PathDependency) -> Self {
+    value.path
+  }
+}
+
+impl AsRef<Path> for PathDependency {
+  #[inline]
+  fn as_ref(&self) -> &Path {
+    self.path()
+  }
+}
+
+impl Hash for PathDependency {
+  #[inline]
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    state.write_u64(self.hash);
+  }
+}
+
+impl PartialEq for PathDependency {
+  #[inline]
+  fn eq(&self, other: &Self) -> bool {
+    self.hash == other.hash && self.path == other.path
+  }
+}
+
+impl Eq for PathDependency {}
+
+/// Context returned from the [Resolver::resolve_with_prehashed_context] API.
+#[derive(Debug, Default, Clone)]
+pub struct ResolvePreHashedContext {
+  /// Files that was found on file system
+  pub file_dependencies: PathDependencySet,
+
+  /// Dependencies that was not found on file system
+  pub missing_dependencies: PathDependencySet,
 }
 
 /// Resolver with the current operating system as the file system
@@ -234,6 +317,36 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
     if let Some(deps) = &mut ctx.missing_dependencies {
       resolve_context.missing_dependencies.extend(deps.drain(..));
+    }
+    result
+  }
+
+  /// Resolve `specifier` at absolute `path` and return dependencies with
+  /// their precomputed path hash.
+  ///
+  /// # Errors
+  ///
+  /// * See [ResolveError]
+  pub async fn resolve_with_prehashed_context<P: Send + AsRef<Path>>(
+    &self,
+    directory: P,
+    specifier: &str,
+    resolve_context: &mut ResolvePreHashedContext,
+  ) -> Result<Resolution, ResolveError> {
+    let mut ctx = Ctx::default();
+    ctx.init_file_dependencies();
+    let result = self
+      .resolve_tracing(directory.as_ref(), specifier, &mut ctx)
+      .await;
+    if let Some(deps) = &mut ctx.file_dependencies {
+      resolve_context
+        .file_dependencies
+        .extend(deps.drain(..).map(PathDependency::from));
+    }
+    if let Some(deps) = &mut ctx.missing_dependencies {
+      resolve_context
+        .missing_dependencies
+        .extend(deps.drain(..).map(PathDependency::from));
     }
     result
   }
