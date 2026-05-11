@@ -106,7 +106,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CachedPath(Arc<CachedPathImpl>);
 
 impl Hash for CachedPath {
@@ -156,6 +156,12 @@ pub struct CachedPathImpl {
   canonicalized: OnceLock<Option<PathBuf>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
+}
+
+impl std::fmt::Debug for CachedPathImpl {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.path.fmt(f)
+  }
 }
 
 impl CachedPathImpl {
