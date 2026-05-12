@@ -13,17 +13,19 @@ on:
         required: false
         default: false
 
-permissions:
-  # trust publish needs
-  id-token: write
-  # push tag
-  contents: write
+permissions: {}
 
 jobs:
   release-plz:
     name: Release-plz
+    if: github.repository_owner == 'rstackjs'
     runs-on: ubuntu-latest
     environment: crate
+    permissions:
+      # OIDC trusted publishing to crates.io
+      id-token: write
+      # push release tag
+      contents: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
