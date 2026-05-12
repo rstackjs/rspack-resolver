@@ -36,9 +36,9 @@ jobs:
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - uses: ./.github/actions/pnpm
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
-          save-cache: ${{ github.ref_name == 'main' }}
+          cache-save-if: ${{ github.ref_name == 'main' }}
           cache-key: warm
 
       - run: cargo check --all-features --locked
@@ -59,10 +59,10 @@ jobs:
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
           cache-key: wasm
-          save-cache: ${{ github.ref_name == 'main' }}
+          cache-save-if: ${{ github.ref_name == 'main' }}
 
       - name: Check
         run: |
@@ -75,10 +75,10 @@ jobs:
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
           cache-key: wasi
-          save-cache: ${{ github.ref_name == 'main' }}
+          cache-save-if: ${{ github.ref_name == 'main' }}
 
       - uses: ./.github/actions/pnpm
 
@@ -115,10 +115,13 @@ jobs:
             src:
               - 'Cargo.lock'
 
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
-          restore-cache: false
-          tools: cargo-deny
+          cache: false
+
+      - uses: taiki-e/install-action@055f5df8c3f65ea01cd41e9dc855becd88953486 # v2.75.18
+        with:
+          tool: cargo-deny
 
       - if: steps.filter.outputs.src == 'true'
         run: cargo deny check
@@ -136,9 +139,9 @@ jobs:
               - '**/*.rs'
               - '**/Cargo.toml'
               - 'Cargo.lock'
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
-          restore-cache: false
+          cache: false
         if: steps.filter.outputs.src == 'true'
       - uses: cargo-bins/cargo-binstall@d125de8b4538541574fd9357b6feb61c8486464b # main
         if: steps.filter.outputs.src == 'true'
@@ -154,10 +157,10 @@ jobs:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
           components: rustfmt
-          restore-cache: false
+          cache: false
       - run: cargo fmt --all -- --check
       - run: pnpm run prettier:ci
       - run: pnpm exec taplo format --check
@@ -167,9 +170,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
           components: clippy
+          cache-save-if: ${{ github.ref_name == 'main' }}
       - run: cargo clippy --all-features -- -D warnings
 
   doc:
@@ -177,9 +181,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
           components: rust-docs
+          cache-save-if: ${{ github.ref_name == 'main' }}
       - run: RUSTDOCFLAGS='-D warnings --cfg docsrs' cargo doc --no-deps --all-features
 
   test:
@@ -202,9 +207,10 @@ jobs:
       - uses: ./.github/actions/pnpm
         with:
           node-version: ${{ matrix.node }}
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
           cache-key: warm
+          cache-save-if: false
       - run: cargo test --doc
       - run: cargo test --all-features
         env:
