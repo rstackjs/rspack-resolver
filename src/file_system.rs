@@ -3,9 +3,12 @@ use std::{
   path::{Path, PathBuf},
 };
 
+#[cfg(not(target_arch = "wasm32"))]
 use cfg_if::cfg_if;
 #[cfg(feature = "yarn_pnp")]
-use pnp::fs::{LruZipCache, VPath, VPathInfo, ZipCache};
+use pnp::fs::LruZipCache;
+#[cfg(all(feature = "yarn_pnp", not(target_arch = "wasm32")))]
+use pnp::fs::{VPath, VPathInfo, ZipCache};
 
 /// File System abstraction used for `ResolverGeneric`
 #[async_trait::async_trait]
@@ -114,6 +117,7 @@ impl Default for FileSystemOptions {
 }
 
 /// Operating System
+#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
 pub struct FileSystemOs {
   options: FileSystemOptions,
   #[cfg(feature = "yarn_pnp")]

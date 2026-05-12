@@ -40,8 +40,6 @@ jobs:
         with:
           cache-save-if: ${{ github.ref_name == 'main' }}
           cache-key: warm
-          rustflags: ""
-
       - run: cargo check --all-features --locked
 
       - name: Publish Dry-run Check
@@ -64,8 +62,6 @@ jobs:
         with:
           cache-key: wasm
           cache-save-if: ${{ github.ref_name == 'main' }}
-          rustflags: ""
-
       - name: Check
         run: |
           rustup target add wasm32-unknown-unknown
@@ -81,8 +77,6 @@ jobs:
         with:
           cache-key: wasi
           cache-save-if: ${{ github.ref_name == 'main' }}
-          rustflags: ""
-
       - uses: ./.github/actions/pnpm
 
       - name: Build
@@ -121,8 +115,6 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
           cache: false
-          rustflags: ""
-
       - uses: taiki-e/install-action@055f5df8c3f65ea01cd41e9dc855becd88953486 # v2.75.18
         with:
           tool: cargo-deny
@@ -146,7 +138,6 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
           cache: false
-          rustflags: ""
         if: steps.filter.outputs.src == 'true'
       - uses: cargo-bins/cargo-binstall@d125de8b4538541574fd9357b6feb61c8486464b # main
         if: steps.filter.outputs.src == 'true'
@@ -166,7 +157,6 @@ jobs:
         with:
           components: rustfmt
           cache: false
-          rustflags: ""
       - run: cargo fmt --all -- --check
       - run: pnpm run prettier:ci
       - run: pnpm exec taplo format --check
@@ -180,7 +170,6 @@ jobs:
         with:
           components: clippy
           cache-save-if: ${{ github.ref_name == 'main' }}
-          rustflags: ""
       - run: cargo clippy --all-features -- -D warnings
 
   doc:
@@ -192,7 +181,6 @@ jobs:
         with:
           components: rust-docs
           cache-save-if: ${{ github.ref_name == 'main' }}
-          rustflags: ""
       - run: RUSTDOCFLAGS='-D warnings --cfg docsrs' cargo doc --no-deps --all-features
 
   test:
@@ -219,7 +207,6 @@ jobs:
         with:
           cache-key: warm
           cache-save-if: false
-          rustflags: ""
       - run: cargo test --doc
       - run: cargo test --all-features
         env:
