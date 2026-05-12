@@ -40,6 +40,7 @@ jobs:
         with:
           cache-key: benchmark
           cache-save-if: ${{ github.ref_name == 'main' }}
+          rustflags: ""
 
       - uses: taiki-e/install-action@055f5df8c3f65ea01cd41e9dc855becd88953486 # v2.75.18
         with:

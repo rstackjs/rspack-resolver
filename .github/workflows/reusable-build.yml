@@ -60,6 +60,7 @@ jobs:
         with:
           cache-save-if: true
           cache-key: build-${{ inputs.target }}-${{ inputs.profile }}
+          rustflags: ""
 
       - name: Trim paths
         shell: bash
