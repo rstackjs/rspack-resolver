@@ -925,7 +925,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     self.node_path_dirs.get_or_init(Self::parse_node_path_env)
   }
 
-  #[cfg(test)]
+  #[cfg(all(test, not(target_os = "windows")))]
   fn with_node_path_dirs(self, dirs: Vec<PathBuf>) -> Self {
     let _ = self.node_path_dirs.set(dirs);
     self

@@ -26,12 +26,15 @@ jobs:
 
       - uses: ./.github/actions/pnpm
 
-      - uses: Boshen/setup-rust@d6c3ed678c68bc13d6fc5c0df3c60970f4077428 # main
+      - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
           cache-key: codecov
-          save-cache: ${{ github.ref_name == 'main' }}
-          tools: cargo-llvm-cov
+          cache-save-if: ${{ github.ref_name == 'main' }}
           components: llvm-tools-preview
+
+      - uses: taiki-e/install-action@055f5df8c3f65ea01cd41e9dc855becd88953486 # v2.75.18
+        with:
+          tool: cargo-llvm-cov
 
       - run: cargo llvm-cov --lcov --output-path lcov.info
         env:
