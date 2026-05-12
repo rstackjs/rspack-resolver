@@ -38,7 +38,6 @@ permissions: {}
 
 jobs:
   build:
-    if: github.repository_owner == 'rstackjs'
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
@@ -74,7 +73,6 @@ jobs:
 
   release:
     name: Release
-    if: github.repository_owner == 'rstackjs'
     environment: npm
     permissions:
       # push release tag via scripts/x.mjs publish --push-tags

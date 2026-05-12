@@ -18,7 +18,6 @@ permissions: {}
 jobs:
   release-plz:
     name: Release-plz
-    if: github.repository_owner == 'rstackjs'
     runs-on: ubuntu-latest
     environment: crate
     permissions:
