@@ -6,7 +6,5 @@
       "@/*": ["./aliased/*"]
     }
   },
-  "references": [
-    { "path": "../project_c" }
-  ]
+  "references": [{ "path": "../project_c" }]
 }
