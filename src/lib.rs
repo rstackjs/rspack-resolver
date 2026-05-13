@@ -1475,35 +1475,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           tracing::trace!(tsconfig = ?tsconfig, "load_tsconfig");
 
           // Extend tsconfig
-          if let Some(extends) = &tsconfig.extends {
-            let extended_tsconfig_paths = match extends {
-              ExtendsField::Single(s) => {
-                vec![
-                  self
-                    .get_extended_tsconfig_path(&directory, &tsconfig, s)
-                    .await?,
-                ]
-              }
-              ExtendsField::Multiple(specifiers) => {
-                try_join_all(
-                  specifiers
-                    .iter()
-                    .map(|s| self.get_extended_tsconfig_path(&directory, &tsconfig, s)),
-                )
-                .await?
-              }
-            };
-            for extended_tsconfig_path in extended_tsconfig_paths {
-              let extended_tsconfig = self
-                .load_tsconfig(
-                  /* root */ false,
-                  &extended_tsconfig_path,
-                  &TsconfigReferences::Disabled,
-                )
-                .await?;
-              tsconfig.extend_tsconfig(&extended_tsconfig);
-            }
-          }
+          self
+            .merge_tsconfig_extends(&mut tsconfig, &directory)
+            .await?;
 
           // Load project references
           match references {
@@ -1562,6 +1536,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
                     reference_tsconfig.path.clone(),
                   ));
                 }
+                // Apply `extends` so the reference inherits its base config's
+                // `baseUrl`/`paths` before its own references are walked.
+                let directory = self.cache.value(reference_tsconfig.directory());
+                self
+                  .merge_tsconfig_extends(&mut reference_tsconfig, &directory)
+                  .await?;
                 self.load_references(&mut reference_tsconfig).await?;
                 Ok(reference_tsconfig)
               }
@@ -1575,6 +1555,44 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
       Ok(())
     })
+  }
+
+  async fn merge_tsconfig_extends(
+    &self,
+    tsconfig: &mut TsConfig,
+    directory: &CachedPath,
+  ) -> Result<(), ResolveError> {
+    let Some(extends) = &tsconfig.extends else {
+      return Ok(());
+    };
+    let extended_tsconfig_paths = match extends {
+      ExtendsField::Single(s) => {
+        vec![
+          self
+            .get_extended_tsconfig_path(directory, tsconfig, s)
+            .await?,
+        ]
+      }
+      ExtendsField::Multiple(specifiers) => {
+        try_join_all(
+          specifiers
+            .iter()
+            .map(|s| self.get_extended_tsconfig_path(directory, tsconfig, s)),
+        )
+        .await?
+      }
+    };
+    for extended_tsconfig_path in extended_tsconfig_paths {
+      let extended_tsconfig = self
+        .load_tsconfig(
+          /* root */ false,
+          &extended_tsconfig_path,
+          &TsconfigReferences::Disabled,
+        )
+        .await?;
+      tsconfig.extend_tsconfig(&extended_tsconfig);
+    }
+    Ok(())
   }
 
   async fn get_extended_tsconfig_path(
