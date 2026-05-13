@@ -1022,21 +1022,26 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     match resolution {
       Ok(pnp::Resolution::Resolved(path, subpath)) => {
         let cached_path = self.cache.value(&path);
+        let normalized_subpath = subpath
+          .as_deref()
+          .map(|subpath| subpath.trim_start_matches('/'))
+          .filter(|subpath| !subpath.is_empty());
 
-        let export_resolution = self.load_package_self(&cached_path, specifier, ctx).await?;
-        // can be found in pnp cached folder
+        // Mirror enhanced-resolve's PnP pipeline by resolving exports from the
+        // request-derived subpath instead of PACKAGE_SELF name matching.
+        let exports_subpath =
+          normalized_subpath.map_or_else(String::new, |subpath| format!("/{subpath}"));
+        let export_resolution = self
+          .load_package_exports(specifier, &exports_subpath, &cached_path, ctx)
+          .await?;
         if export_resolution.is_some() {
           return Ok(export_resolution);
         }
-        let is_bare = subpath.is_none();
 
-        let inner_request = subpath.map_or_else(
-          || ".".to_string(),
-          |mut p| {
-            p.insert_str(0, "./");
-            p
-          },
-        );
+        let is_bare = normalized_subpath.is_none();
+
+        let inner_request = normalized_subpath
+          .map_or_else(|| ".".to_string(), |subpath| format!("./{subpath}"));
 
         let mut inner_options = self.options().clone();
         if is_bare {
