@@ -261,3 +261,33 @@ async fn references_with_extends() {
     .map(|p| p.full_path());
   assert_eq!(resolved_path, Ok(f.join("app/aliased/index.ts")));
 }
+
+// A pair of project references that form a cycle (a → b → a) must not
+// cause infinite recursion / stack overflow when `references: "auto"`
+// recursively walks the graph. Each project's own `paths` should still
+// be honored from within its own directory.
+#[tokio::test]
+async fn cyclic_references() {
+  let f = super::fixture_root().join("tsconfig/cases/references-cycle");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("a"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("a"), "@a/index")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("a/src/index.ts")));
+
+  let resolved_path = resolver
+    .resolve(&f.join("b"), "@b/index")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("b/src/index.ts")));
+}

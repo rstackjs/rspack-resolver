@@ -1495,7 +1495,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
                 .collect();
             }
           }
-          self.load_references(&mut tsconfig).await?;
+          let mut visited = FxHashSet::default();
+          self.load_references(&mut tsconfig, &mut visited).await?;
 
           Ok(tsconfig)
         })
@@ -1509,11 +1510,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   // honored — matching `tsc`'s "nearest tsconfig wins" behavior and
   // `enhanced-resolve`'s recursive `references: "auto"` walk.
   //
-  // The caller is expected to provide a DAG; cycle detection is intentionally
-  // not implemented here.
+  // `visited` carries the canonical paths of tsconfigs already being loaded
+  // along the current chain. When a reference points back into the chain,
+  // the cycle edge is cut: the reference is still attached with its own
+  // `paths` honored, but its nested references are not walked.
   fn load_references<'a>(
     &'a self,
     tsconfig: &'a mut TsConfig,
+    visited: &'a mut FxHashSet<PathBuf>,
   ) -> BoxFuture<'a, Result<(), ResolveError>> {
     Box::pin(async move {
       if tsconfig.references.is_empty() {
@@ -1521,8 +1525,13 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
       let directory = tsconfig.directory().to_path_buf();
       let current_path = tsconfig.path.clone();
+      visited.insert(current_path.clone());
       for reference in &mut tsconfig.references {
         let reference_tsconfig_path = directory.normalize_with(&reference.path);
+        // Reborrow so the closure below can capture `&mut FxHashSet` across
+        // multiple iterations of this loop. Without the reborrow, the first
+        // iteration would consume the original `&mut visited` binding.
+        let visited: &mut FxHashSet<PathBuf> = &mut *visited;
         let reference_tsconfig = self
           .cache
           .tsconfig(
@@ -1536,13 +1545,21 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
                     reference_tsconfig.path.clone(),
                   ));
                 }
+                // Cut the cycle: if this reference is already part of the
+                // ongoing load chain, return it without walking its own
+                // references. Its `paths` are still attached to the parent.
+                if visited.contains(&reference_tsconfig.path) {
+                  return Ok(reference_tsconfig);
+                }
                 // Apply `extends` so the reference inherits its base config's
                 // `baseUrl`/`paths` before its own references are walked.
                 let directory = self.cache.value(reference_tsconfig.directory());
                 self
                   .merge_tsconfig_extends(&mut reference_tsconfig, &directory)
                   .await?;
-                self.load_references(&mut reference_tsconfig).await?;
+                self
+                  .load_references(&mut reference_tsconfig, visited)
+                  .await?;
                 Ok(reference_tsconfig)
               }
             },
