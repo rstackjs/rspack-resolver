@@ -1521,37 +1521,60 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
                 .collect();
             }
           }
-          if !tsconfig.references.is_empty() {
-            let directory = tsconfig.directory().to_path_buf();
-            for reference in &mut tsconfig.references {
-              let reference_tsconfig_path = directory.normalize_with(&reference.path);
-              let reference_tsconfig = self
-                .cache
-                .tsconfig(
-                  /* root */ true,
-                  &reference_tsconfig_path,
-                  |reference_tsconfig| async {
-                    if reference_tsconfig.path == tsconfig.path {
-                      return Err(ResolveError::TsconfigSelfReference(
-                        reference_tsconfig.path.clone(),
-                      ));
-                    }
-                    Ok(reference_tsconfig)
-                  },
-                )
-                .await?;
-              tsconfig
-                .file_dependencies
-                .extend(reference_tsconfig.file_dependencies.iter().cloned());
-              reference.tsconfig.replace(reference_tsconfig);
-            }
-          }
+          self.load_references(&mut tsconfig).await?;
 
           Ok(tsconfig)
         })
         .await
     };
     Box::pin(fut)
+  }
+
+  // Walks `tsconfig.references` and loads each referenced tsconfig, recursing
+  // into nested references so that transitive `paths` (e.g. A → B → C) are
+  // honored — matching `tsc`'s "nearest tsconfig wins" behavior and
+  // `enhanced-resolve`'s recursive `references: "auto"` walk.
+  //
+  // The caller is expected to provide a DAG; cycle detection is intentionally
+  // not implemented here.
+  fn load_references<'a>(
+    &'a self,
+    tsconfig: &'a mut TsConfig,
+  ) -> BoxFuture<'a, Result<(), ResolveError>> {
+    Box::pin(async move {
+      if tsconfig.references.is_empty() {
+        return Ok(());
+      }
+      let directory = tsconfig.directory().to_path_buf();
+      let current_path = tsconfig.path.clone();
+      for reference in &mut tsconfig.references {
+        let reference_tsconfig_path = directory.normalize_with(&reference.path);
+        let reference_tsconfig = self
+          .cache
+          .tsconfig(
+            /* root */ true,
+            &reference_tsconfig_path,
+            |mut reference_tsconfig| {
+              let current_path = current_path.clone();
+              async move {
+                if reference_tsconfig.path == current_path {
+                  return Err(ResolveError::TsconfigSelfReference(
+                    reference_tsconfig.path.clone(),
+                  ));
+                }
+                self.load_references(&mut reference_tsconfig).await?;
+                Ok(reference_tsconfig)
+              }
+            },
+          )
+          .await?;
+        tsconfig
+          .file_dependencies
+          .extend(reference_tsconfig.file_dependencies.iter().cloned());
+        reference.tsconfig.replace(reference_tsconfig);
+      }
+      Ok(())
+    })
   }
 
   async fn get_extended_tsconfig_path(

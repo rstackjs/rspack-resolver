@@ -184,3 +184,47 @@ async fn self_reference() {
     );
   }
 }
+
+// Transitive project references: A → B → C.
+// When the entry tsconfig (A) declares `references: [B]` and B declares
+// `references: [C]`, a file inside C must resolve via C's own `paths`
+// (matching tsc's "nearest tsconfig wins" behavior and webpack's
+// recursive `references: "auto"` walk).
+#[tokio::test]
+async fn transitive_references() {
+  let f = super::fixture_root().join("tsconfig/cases/references-transitive");
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let cases = [
+    // Direct: file in app uses app's paths.
+    (f.join("app"), "@/index.ts", f.join("app/aliased/index.ts")),
+    // One level: file in project_b uses project_b's paths (baseUrl ./src).
+    (
+      f.join("project_b/src"),
+      "@/index.ts",
+      f.join("project_b/src/aliased/index.ts"),
+    ),
+    // Two levels: file in project_c (referenced by project_b which is
+    // referenced by app) uses project_c's paths.
+    (
+      f.join("project_c"),
+      "@/index.ts",
+      f.join("project_c/aliased/index.ts"),
+    ),
+  ];
+
+  for (path, request, expected) in cases {
+    let resolved_path = resolver
+      .resolve(&path, request)
+      .await
+      .map(|p| p.full_path());
+    assert_eq!(resolved_path, Ok(expected), "{request} from {path:?}");
+  }
+}

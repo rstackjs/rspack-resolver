@@ -170,17 +170,31 @@ impl TsConfig {
   }
 
   pub fn resolve(&self, path: &Path, specifier: &str) -> Vec<PathBuf> {
+    if let Some(matched) = self.find_reference_paths(path, specifier) {
+      return matched;
+    }
+    self.resolve_path_alias(specifier)
+  }
+
+  // Walks `references` recursively, returning the nearest reference whose
+  // `base_path` contains `path`. Used to honor transitive project references
+  // (A → B → C): a file inside C should resolve via C's own `paths` even
+  // when the entry tsconfig is A and only B is listed directly in A's
+  // references. Matches `tsc`'s "nearest tsconfig wins" semantics.
+  fn find_reference_paths(&self, path: &Path, specifier: &str) -> Option<Vec<PathBuf>> {
     for tsconfig in self
       .references
       .iter()
       .filter_map(|reference| reference.tsconfig.as_ref())
     {
+      if let Some(nested) = tsconfig.find_reference_paths(path, specifier) {
+        return Some(nested);
+      }
       if path.starts_with(tsconfig.base_path()) {
-        return tsconfig.resolve_path_alias(specifier);
+        return Some(tsconfig.resolve_path_alias(specifier));
       }
     }
-
-    self.resolve_path_alias(specifier)
+    None
   }
 
   // Copied from parcel
