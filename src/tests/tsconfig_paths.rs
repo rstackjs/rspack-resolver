@@ -269,6 +269,42 @@ async fn test_template_variable() {
   }
 }
 
+// https://github.com/webpack/enhanced-resolve/pull/579
+// https://github.com/webpack/webpack/issues/20944
+// When a tsconfig `paths` pattern (e.g. "@*") matches a request but the
+// mapped target does not exist, resolution should fall through to normal
+// module resolution (node_modules), matching TypeScript's native behavior.
+#[tokio::test]
+async fn tsconfig_paths_scoped_pkg_fallthrough() {
+  let f = super::fixture_root().join("tsconfig/cases/scoped-pkg-fallthrough");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into(), ".tsx".into(), ".js".into()],
+    main_fields: vec!["main".into()],
+    main_files: vec!["index".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  // "@helper" resolves via the "@*" mapping when the mapped path exists
+  let resolved_path = resolver.resolve(&f, "@helper").await.map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("src/helper/index.ts")));
+
+  // "@sentry/react" falls through to node_modules when "@*" mapping does
+  // not resolve to an existing file.
+  let resolved_path = resolver
+    .resolve(&f, "@sentry/react")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(
+    resolved_path,
+    Ok(f.join("node_modules/@sentry/react/index.js"))
+  );
+}
+
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 mod windows_test {
   use std::path::{Path, PathBuf};
