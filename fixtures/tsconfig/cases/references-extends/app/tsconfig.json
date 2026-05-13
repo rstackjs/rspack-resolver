@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "composite": true,
     "baseUrl": "./",
     "paths": {
       "@/*": ["./aliased/*"]
     }
-  }
+  },
+  "references": [{ "path": "../project_b" }]
 }

@@ -228,3 +228,36 @@ async fn transitive_references() {
     assert_eq!(resolved_path, Ok(expected), "{request} from {path:?}");
   }
 }
+
+// When a project reference uses `extends` to inherit its `baseUrl`/`paths`
+// from a shared base config, those fields must be merged before the
+// reference is consulted for resolution. Without merging `extends` on
+// referenced configs, a request from inside `project_b` would see no
+// alias candidates and fail to resolve.
+#[tokio::test]
+async fn references_with_extends() {
+  let f = super::fixture_root().join("tsconfig/cases/references-extends");
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  // From project_b's directory, the inherited `paths` from
+  // ../tsconfig.base.json must apply (baseUrl ./src).
+  let resolved_path = resolver
+    .resolve(&f.join("project_b/src"), "@/index.ts")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("project_b/src/aliased/index.ts")));
+
+  // The entry tsconfig still uses its own `paths`.
+  let resolved_path = resolver
+    .resolve(&f.join("app"), "@/index.ts")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("app/aliased/index.ts")));
+}
