@@ -43,7 +43,7 @@ importers:
         version: 1.10.0
       enhanced-resolve:
         specifier: ^5.17.1
-        version: 5.21.1
+        version: 5.21.3
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -55,7 +55,7 @@ importers:
         version: 3.8.3
       semver:
         specifier: ^7.7.1
-        version: 7.7.4
+        version: 7.8.0
       typescript:
         specifier: ^6.0.0
         version: 6.0.3
@@ -88,7 +88,7 @@ importers:
     dependencies:
       enhanced-resolve:
         specifier: ^5.17.1
-        version: 5.21.1
+        version: 5.21.3
 
   fixtures/pnpm-workspace/packages/app:
     dependencies:
@@ -908,8 +908,8 @@ packages:
   emoji-regex@10.3.0:
     resolution: {integrity: sha512-QpLs9D9v9kArv4lfDEgg1X/gN5XLnf/A6l9cs8SPZLRZR3ZkY9+kwIQTxm+fsSej5UMYGE8fdoaZVIBlqG0XTw==}
 
-  enhanced-resolve@5.21.1:
-    resolution: {integrity: sha512-8p7DUVq6XJnZEz9W4oSwiwycxBIjHjRzYb3Je3zVN+geKTRQKzAkR/K4PBExlS0090d9nshak6phMUxr3PDjmQ==}
+  enhanced-resolve@5.21.3:
+    resolution: {integrity: sha512-QyL119InA+XXEkNLNTPCXPugSvOfhwv0JOlGNzvxs0hZaiHLNvXSpudUWsOlsXGWJh8G6ckCScEkVHfX3kw/2Q==}
     engines: {node: '>=10.13.0'}
 
   environment@1.1.0:
@@ -1128,8 +1128,8 @@ packages:
   seedrandom@3.0.5:
     resolution: {integrity: sha512-8OwmbklUNzwezjGInmZ+2clQmExQPvomqjL7LFqOYqtmuxRgQYqOD3mHaU+MvZn5FLUeVxVfQjwLZW/n/JFuqg==}
 
-  semver@7.7.4:
-    resolution: {integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==}
+  semver@7.8.0:
+    resolution: {integrity: sha512-AcM7dV/5ul4EekoQ29Agm5vri8JNqRyj39o0qpX6vDF2GZrtutZl5RwgD1XnZjiTAfncsJhMI48QQH3sN87YNA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -1420,7 +1420,7 @@ snapshots:
       es-toolkit: 1.42.0
       js-yaml: 4.1.0
       obug: 2.1.1
-      semver: 7.7.4
+      semver: 7.8.0
       typanion: 3.14.0
     optionalDependencies:
       '@emnapi/runtime': 1.10.0
@@ -1918,7 +1918,7 @@ snapshots:
 
   emoji-regex@10.3.0: {}
 
-  enhanced-resolve@5.21.1:
+  enhanced-resolve@5.21.3:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
@@ -2118,7 +2118,7 @@ snapshots:
 
   seedrandom@3.0.5: {}
 
-  semver@7.7.4: {}
+  semver@7.8.0: {}
 
   shallowequal@1.1.0: {}
 
