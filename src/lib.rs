@@ -128,6 +128,12 @@ impl PathDependency {
   }
 
   #[inline]
+  pub fn with_hash(path: PathBuf, hash: u64) -> Self {
+    debug_assert_eq!(hash, hash_path(&path));
+    Self { path, hash }
+  }
+
+  #[inline]
   pub fn path(&self) -> &Path {
     &self.path
   }
@@ -334,19 +340,15 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     resolve_context: &mut ResolvePreHashedContext,
   ) -> Result<Resolution, ResolveError> {
     let mut ctx = Ctx::default();
-    ctx.init_file_dependencies();
+    ctx.init_prehashed_dependencies();
     let result = self
       .resolve_tracing(directory.as_ref(), specifier, &mut ctx)
       .await;
-    if let Some(deps) = &mut ctx.file_dependencies {
-      resolve_context
-        .file_dependencies
-        .extend(deps.drain(..).map(PathDependency::from));
+    if let Some(deps) = &mut ctx.prehashed_file_dependencies {
+      resolve_context.file_dependencies.extend(deps.drain(..));
     }
-    if let Some(deps) = &mut ctx.missing_dependencies {
-      resolve_context
-        .missing_dependencies
-        .extend(deps.drain(..).map(PathDependency::from));
+    if let Some(deps) = &mut ctx.prehashed_missing_dependencies {
+      resolve_context.missing_dependencies.extend(deps.drain(..));
     }
     result
   }

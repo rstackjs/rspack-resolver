@@ -192,10 +192,10 @@ impl CachedPathImpl {
 
   pub async fn is_file<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
     if let Some(meta) = self.meta(fs).await {
-      ctx.add_file_dependency(self.path());
+      ctx.add_file_dependency_with_hash(self.to_path_buf(), self.hash);
       meta.is_file
     } else {
-      ctx.add_missing_dependency(self.path());
+      ctx.add_missing_dependency_with_hash(self.to_path_buf(), self.hash);
       false
     }
   }
@@ -203,7 +203,7 @@ impl CachedPathImpl {
   pub async fn is_dir<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
     self.meta(fs).await.map_or_else(
       || {
-        ctx.add_missing_dependency(self.path());
+        ctx.add_missing_dependency_with_hash(self.to_path_buf(), self.hash);
         false
       },
       |meta| meta.is_dir,
@@ -365,14 +365,10 @@ impl CachedPathImpl {
       }
       Ok(None) => {
         // Avoid an allocation by making this lazy
-        if let Some(deps) = &mut ctx.missing_dependencies {
-          deps.push(package_json_path.clone());
-        }
+        ctx.add_missing_dependency(package_json_path);
       }
       Err(_) => {
-        if let Some(deps) = &mut ctx.file_dependencies {
-          deps.push(package_json_path.clone());
-        }
+        ctx.add_file_dependency(package_json_path);
       }
     }
     result
