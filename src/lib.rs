@@ -189,6 +189,22 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
   }
 
+  fn path_alias_may_match(path: &Path, aliases: &Alias) -> bool {
+    if aliases.is_empty() {
+      return false;
+    }
+    let Some(path) = path.to_str() else {
+      return true;
+    };
+    aliases.iter().any(|(alias_key_raw, _)| {
+      if let Some(alias_key) = alias_key_raw.strip_suffix('$') {
+        alias_key == path
+      } else {
+        Self::strip_package_name(path, alias_key_raw).is_some()
+      }
+    })
+  }
+
   pub fn new_with_file_system(file_system: Fs, options: ResolveOptions) -> Self {
     let options = options.sanitize();
     let (absolute_alias, relative_alias) = Self::partition_alias(&options.alias);
@@ -885,17 +901,20 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
     }
     // enhanced-resolve: try file as alias
-    let alias_specifier = cached_path.path().to_string_lossy();
-    if let Some(path) = self
-      .load_alias(
-        cached_path,
-        &alias_specifier,
-        Self::aliases_for(&alias_specifier, &self.absolute_alias, &self.relative_alias),
-        ctx,
-      )
-      .await?
-    {
-      return Ok(Some(path));
+    let path = cached_path.path();
+    let aliases = if path.is_absolute() {
+      &self.absolute_alias
+    } else {
+      &self.relative_alias
+    };
+    if Self::path_alias_may_match(path, aliases) {
+      let alias_specifier = path.to_string_lossy();
+      if let Some(path) = self
+        .load_alias(cached_path, &alias_specifier, aliases, ctx)
+        .await?
+      {
+        return Ok(Some(path));
+      }
     }
     if cached_path.is_file(&self.cache.fs, ctx).await && self.check_restrictions(cached_path.path())
     {
