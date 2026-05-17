@@ -1276,7 +1276,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     aliases: &Alias,
     ctx: &mut Ctx,
   ) -> ResolveResult {
+    let specifier_is_absolute = Path::new(specifier).is_absolute();
     for (alias_key_raw, specifiers) in aliases {
+      let alias_key_without_exact = alias_key_raw.strip_suffix('$').unwrap_or(alias_key_raw);
+      if specifier_is_absolute && !Path::new(alias_key_without_exact).is_absolute() {
+        continue;
+      }
       let alias_key = if let Some(alias_key) = alias_key_raw.strip_suffix('$') {
         if alias_key != specifier {
           continue;
