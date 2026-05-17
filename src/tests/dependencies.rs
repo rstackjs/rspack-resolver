@@ -108,16 +108,24 @@ mod windows {
     for (name, context, request, result, file_dependencies, missing_dependencies) in data {
       let mut ctx = ResolveContext::default();
       let path = PathBuf::from(context);
-      let resolved = resolver
+      let resolved_path = resolver
         .resolve_with_context(&path, request, &mut ctx)
         .await
         .map(|r| r.full_path());
-      assert_eq!(resolved, Ok(PathBuf::from(result)));
-      let file_dependencies = FxHashSet::from_iter(file_dependencies.iter().map(PathBuf::from));
-      let missing_dependencies =
-        FxHashSet::from_iter(missing_dependencies.iter().map(PathBuf::from));
-      assert_eq!(ctx.file_dependencies, file_dependencies, "{name}");
-      assert_eq!(ctx.missing_dependencies, missing_dependencies, "{name}");
+      assert_eq!(resolved_path, Ok(PathBuf::from(result)));
+      let expected_file_dependencies = file_dependencies
+        .iter()
+        .map(PathBuf::from)
+        .collect::<FxHashSet<_>>();
+      let expected_missing_dependencies = missing_dependencies
+        .iter()
+        .map(PathBuf::from)
+        .collect::<FxHashSet<_>>();
+      assert_eq!(ctx.file_dependencies, expected_file_dependencies, "{name}");
+      assert_eq!(
+        ctx.missing_dependencies, expected_missing_dependencies,
+        "{name}"
+      );
 
       let mut prehashed_ctx = ResolvePreHashedContext::default();
       let prehashed_resolved = resolver
@@ -133,21 +141,22 @@ mod windows {
         .missing_dependencies
         .iter()
         .all(|dependency| { dependency.precomputed_hash() == path_hash(dependency.path()) }));
-      let prehashed_file_dependencies = FxHashSet::from_iter(
-        prehashed_ctx
-          .file_dependencies
-          .iter()
-          .map(|d| d.path().to_owned()),
-      );
-      let prehashed_missing_dependencies = FxHashSet::from_iter(
-        prehashed_ctx
-          .missing_dependencies
-          .iter()
-          .map(|d| d.path().to_owned()),
-      );
-      assert_eq!(prehashed_file_dependencies, file_dependencies, "{name}");
+      let prehashed_file_dependencies = prehashed_ctx
+        .file_dependencies
+        .iter()
+        .map(|d| d.path().to_owned())
+        .collect::<FxHashSet<_>>();
+      let prehashed_missing_dependencies = prehashed_ctx
+        .missing_dependencies
+        .iter()
+        .map(|d| d.path().to_owned())
+        .collect::<FxHashSet<_>>();
       assert_eq!(
-        prehashed_missing_dependencies, missing_dependencies,
+        prehashed_file_dependencies, expected_file_dependencies,
+        "{name}"
+      );
+      assert_eq!(
+        prehashed_missing_dependencies, expected_missing_dependencies,
         "{name}"
       );
     }

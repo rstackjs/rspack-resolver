@@ -23,7 +23,7 @@ impl Hasher for IdentityHasher {
 }
 
 #[inline]
-pub(crate) fn hash_path(path: &Path) -> u64 {
+pub fn hash_path(path: &Path) -> u64 {
   let mut hasher = FxHasher::default();
   path.hash(&mut hasher);
   hasher.finish()
