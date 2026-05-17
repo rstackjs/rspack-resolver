@@ -154,6 +154,7 @@ pub struct CachedPathImpl {
   canonicalized: OnceLock<Option<PathBuf>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
+  package_json_path: OnceLock<PathBuf>,
 }
 
 impl CachedPathImpl {
@@ -166,6 +167,7 @@ impl CachedPathImpl {
       canonicalized: OnceLock::new(),
       node_modules: OnceLock::new(),
       package_json: OnceLock::new(),
+      package_json_path: OnceLock::new(),
     }
   }
 
@@ -306,11 +308,14 @@ impl CachedPathImpl {
     options: &ResolveOptions,
     ctx: &mut Ctx,
   ) -> Result<Option<Arc<PackageJson>>, ResolveError> {
+    let package_json_path = self
+      .package_json_path
+      .get_or_init(|| async { self.path.join("package.json") })
+      .await;
     // Change to `std::sync::OnceLock::get_or_try_init` when it is stable.
     let result = self
       .package_json
       .get_or_try_init(|| async {
-        let package_json_path = self.path.join("package.json");
         let Ok(package_json_string) = fs.read(&package_json_path).await else {
           return Ok(None);
         };
@@ -322,7 +327,6 @@ impl CachedPathImpl {
         match PackageJson::parse(package_json_path.clone(), real_path, package_json_string) {
           Ok(v) => Ok(Some(Arc::new(v))),
           Err(parse_err) => {
-            let package_json_path = self.path.join("package.json");
             let package_json_string = match fs.read_to_string(&package_json_path).await {
               Ok(c) => c,
               Err(io_err) => {
@@ -333,7 +337,7 @@ impl CachedPathImpl {
 
             if let Some(err) = serde_err {
               Err(ResolveError::from_serde_json_error(
-                package_json_path,
+                package_json_path.clone(),
                 &err,
                 Some(package_json_string),
               ))
@@ -341,7 +345,7 @@ impl CachedPathImpl {
               let (line, column) = off_to_location(&package_json_string, parse_err.index());
 
               Err(ResolveError::JSON(JSONError {
-                path: package_json_path,
+                path: package_json_path.clone(),
                 message: parse_err.error().to_string(),
                 line,
                 column,
@@ -362,12 +366,12 @@ impl CachedPathImpl {
       Ok(None) => {
         // Avoid an allocation by making this lazy
         if let Some(deps) = &mut ctx.missing_dependencies {
-          deps.push(self.path.join("package.json"));
+          deps.push(package_json_path.clone());
         }
       }
       Err(_) => {
         if let Some(deps) = &mut ctx.file_dependencies {
-          deps.push(self.path.join("package.json"));
+          deps.push(package_json_path.clone());
         }
       }
     }
