@@ -115,6 +115,10 @@ pub type Resolver = ResolverGeneric<FileSystemOs>;
 /// Generic implementation of the resolver, can be configured by the [FileSystem] trait
 pub struct ResolverGeneric<Fs> {
   options: ResolveOptions,
+  absolute_alias: Alias,
+  relative_alias: Alias,
+  absolute_fallback: Alias,
+  relative_fallback: Alias,
   cache: Arc<Cache<Fs>>,
   #[cfg(feature = "yarn_pnp")]
   pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
@@ -139,8 +143,15 @@ impl<Fs: Send + Sync + FileSystem + Default> Default for ResolverGeneric<Fs> {
 
 impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
   pub fn new(options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let (absolute_alias, relative_alias) = Self::partition_alias(&options.alias);
+    let (absolute_fallback, relative_fallback) = Self::partition_alias(&options.fallback);
     Self {
-      options: options.sanitize(),
+      options,
+      absolute_alias,
+      relative_alias,
+      absolute_fallback,
+      relative_fallback,
       cache: Arc::new(Cache::new(Fs::default())),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
@@ -152,9 +163,42 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
 }
 
 impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
+  fn partition_alias(aliases: &Alias) -> (Alias, Alias) {
+    let mut absolute_alias = Vec::new();
+    let mut relative_alias = Vec::new();
+    for (key, values) in aliases {
+      let key_without_exact = key.strip_suffix('$').unwrap_or(key);
+      if Path::new(key_without_exact).is_absolute() {
+        absolute_alias.push((key.clone(), values.clone()));
+      } else {
+        relative_alias.push((key.clone(), values.clone()));
+      }
+    }
+    (absolute_alias, relative_alias)
+  }
+
+  fn aliases_for<'a>(
+    specifier: &str,
+    absolute_aliases: &'a Alias,
+    relative_aliases: &'a Alias,
+  ) -> &'a Alias {
+    if Path::new(specifier).is_absolute() {
+      absolute_aliases
+    } else {
+      relative_aliases
+    }
+  }
+
   pub fn new_with_file_system(file_system: Fs, options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let (absolute_alias, relative_alias) = Self::partition_alias(&options.alias);
+    let (absolute_fallback, relative_fallback) = Self::partition_alias(&options.fallback);
     Self {
-      options: options.sanitize(),
+      options,
+      absolute_alias,
+      relative_alias,
+      absolute_fallback,
+      relative_fallback,
       cache: Arc::new(Cache::new(file_system)),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
@@ -167,8 +211,15 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// Clone the resolver using the same underlying cache.
   #[must_use]
   pub fn clone_with_options(&self, options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let (absolute_alias, relative_alias) = Self::partition_alias(&options.alias);
+    let (absolute_fallback, relative_fallback) = Self::partition_alias(&options.fallback);
     Self {
-      options: options.sanitize(),
+      options,
+      absolute_alias,
+      relative_alias,
+      absolute_fallback,
+      relative_fallback,
       cache: Arc::clone(&self.cache),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::clone(&self.pnp_manifest),
@@ -332,7 +383,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
     // enhanced-resolve: try alias
     if let Some(path) = self
-      .load_alias(cached_path, specifier, &self.options.alias, ctx)
+      .load_alias(
+        cached_path,
+        specifier,
+        Self::aliases_for(specifier, &self.absolute_alias, &self.relative_alias),
+        ctx,
+      )
       .await?
     {
       return Ok(path);
@@ -372,7 +428,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         }
         // enhanced-resolve: try fallback
         self
-          .load_alias(cached_path, specifier, &self.options.fallback, ctx)
+          .load_alias(
+            cached_path,
+            specifier,
+            Self::aliases_for(specifier, &self.absolute_fallback, &self.relative_fallback),
+            ctx,
+          )
           .await
           .and_then(|value| value.ok_or(err))
       }
@@ -826,7 +887,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // enhanced-resolve: try file as alias
     let alias_specifier = cached_path.path().to_string_lossy();
     if let Some(path) = self
-      .load_alias(cached_path, &alias_specifier, &self.options.alias, ctx)
+      .load_alias(
+        cached_path,
+        &alias_specifier,
+        Self::aliases_for(&alias_specifier, &self.absolute_alias, &self.relative_alias),
+        ctx,
+      )
       .await?
     {
       return Ok(Some(path));
@@ -1276,12 +1342,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     aliases: &Alias,
     ctx: &mut Ctx,
   ) -> ResolveResult {
-    let specifier_is_absolute = Path::new(specifier).is_absolute();
     for (alias_key_raw, specifiers) in aliases {
-      let alias_key_without_exact = alias_key_raw.strip_suffix('$').unwrap_or(alias_key_raw);
-      if specifier_is_absolute && !Path::new(alias_key_without_exact).is_absolute() {
-        continue;
-      }
       let alias_key = if let Some(alias_key) = alias_key_raw.strip_suffix('$') {
         if alias_key != specifier {
           continue;
