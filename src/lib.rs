@@ -62,6 +62,8 @@ mod tsconfig;
 #[cfg(test)]
 mod tests;
 
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
 use std::{
   borrow::Cow,
   cmp::Ordering,
@@ -692,20 +694,44 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(None);
     }
     let path = path.path().as_os_str();
-    // 8 is wild guess for max extension length
-    let mut path_with_extension_buffer = String::with_capacity(path.len() + 8);
-    path_with_extension_buffer.push_str(&path.to_string_lossy());
-    let base_len = path_with_extension_buffer.len();
 
-    for extension in extensions {
-      path_with_extension_buffer.truncate(base_len);
-      path_with_extension_buffer.push_str(extension);
-      let cached_path = self.cache.value(Path::new(&path_with_extension_buffer));
-      if let Some(path) = self.load_alias_or_file(&cached_path, ctx).await? {
-        return Ok(Some(path));
+    #[cfg(unix)]
+    {
+      let path = path.as_bytes();
+      let mut path_with_extension_buffer = Vec::with_capacity(path.len() + 8);
+      path_with_extension_buffer.extend_from_slice(path);
+      let base_len = path_with_extension_buffer.len();
+
+      for extension in extensions {
+        path_with_extension_buffer.truncate(base_len);
+        path_with_extension_buffer.extend_from_slice(extension.as_bytes());
+        let cached_path = self
+          .cache
+          .value(Path::new(OsStr::from_bytes(&path_with_extension_buffer)));
+        if let Some(path) = self.load_alias_or_file(&cached_path, ctx).await? {
+          return Ok(Some(path));
+        }
       }
+      return Ok(None);
     }
-    Ok(None)
+
+    #[cfg(not(unix))]
+    {
+      // 8 is wild guess for max extension length
+      let mut path_with_extension_buffer = String::with_capacity(path.len() + 8);
+      path_with_extension_buffer.push_str(&path.to_string_lossy());
+      let base_len = path_with_extension_buffer.len();
+
+      for extension in extensions {
+        path_with_extension_buffer.truncate(base_len);
+        path_with_extension_buffer.push_str(extension);
+        let cached_path = self.cache.value(Path::new(&path_with_extension_buffer));
+        if let Some(path) = self.load_alias_or_file(&cached_path, ctx).await? {
+          return Ok(Some(path));
+        }
+      }
+      Ok(None)
+    }
   }
 
   #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
