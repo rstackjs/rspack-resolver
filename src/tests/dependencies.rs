@@ -99,14 +99,19 @@ mod windows {
     for (name, context, request, result, file_dependencies, missing_dependencies) in data {
       let mut ctx = ResolveContext::default();
       let path = PathBuf::from(context);
-      let resolved = resolver
+      let resolution = resolver
         .resolve_with_context(path, request, &mut ctx)
         .await
         .map(|r| r.full_path());
-      assert_eq!(resolved, Ok(PathBuf::from(result)));
-      let file_dependencies = FxHashSet::from_iter(file_dependencies.iter().map(PathBuf::from));
-      let missing_dependencies =
-        FxHashSet::from_iter(missing_dependencies.iter().map(PathBuf::from));
+      assert_eq!(resolution, Ok(PathBuf::from(result)));
+      let file_dependencies = file_dependencies
+        .iter()
+        .map(PathBuf::from)
+        .collect::<FxHashSet<_>>();
+      let missing_dependencies = missing_dependencies
+        .iter()
+        .map(PathBuf::from)
+        .collect::<FxHashSet<_>>();
       assert_eq!(ctx.file_dependencies, file_dependencies, "{name}");
       assert_eq!(ctx.missing_dependencies, missing_dependencies, "{name}");
     }

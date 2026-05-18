@@ -1,7 +1,7 @@
-///! See documentation at <https://docs.rs/rspack_resolver>
+//! See documentation at <https://docs.rs/rspack_resolver>
 use std::{env, path::PathBuf};
 
-use rspack_resolver::{AliasValue, ResolveOptions, Resolver};
+use rspack_resolver::{AliasValue, ResolveContext, ResolveOptions, Resolver};
 
 #[tokio::main]
 async fn main() {
@@ -9,13 +9,18 @@ async fn main() {
 
   assert!(
     path.is_dir(),
-    "{path:?} must be a directory that will be resolved against."
+    "{} must be a directory that will be resolved against.",
+    path.display()
   );
-  assert!(path.is_absolute(), "{path:?} must be an absolute path.",);
+  assert!(
+    path.is_absolute(),
+    "{} must be an absolute path.",
+    path.display()
+  );
 
   let specifier = env::args().nth(2).expect("specifier");
 
-  println!("path: {path:?}");
+  println!("path: {}", path.display());
   println!("specifier: {specifier}");
 
   let options = ResolveOptions {
@@ -29,21 +34,21 @@ async fn main() {
     // condition_names: vec!["node".into(), "require".into()],
     ..ResolveOptions::default()
   };
-  let mut ctx = Default::default();
+  let mut ctx = ResolveContext::default();
 
   match Resolver::new(options)
     .resolve_with_context(path, &specifier, &mut ctx)
     .await
   {
     Err(error) => println!("Error: {error}"),
-    Ok(resolution) => println!("Resolved: {:?}", resolution.full_path()),
-  };
+    Ok(resolution) => println!("Resolved: {}", resolution.full_path().display()),
+  }
 
   let mut sorted_file_deps = ctx.file_dependencies.iter().collect::<Vec<_>>();
   sorted_file_deps.sort();
-  println!("file_deps: {:#?}", sorted_file_deps);
+  println!("file_deps: {sorted_file_deps:#?}");
 
   let mut sorted_missing = ctx.missing_dependencies.iter().collect::<Vec<_>>();
   sorted_missing.sort();
-  println!("missing_deps: {:#?}", sorted_missing);
+  println!("missing_deps: {sorted_missing:#?}");
 }

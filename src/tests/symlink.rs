@@ -1,6 +1,6 @@
 use std::{fs, io, path::Path};
 
-use crate::{ResolveOptions, Resolver};
+use crate::{ResolveContext, ResolveOptions, Resolver};
 
 #[derive(Debug, Clone, Copy)]
 enum FileType {
@@ -141,7 +141,7 @@ async fn test() -> io::Result<()> {
       .map(|r| r.full_path());
     assert_eq!(filename, Ok(root.join("lib/index.js")), "{comment:?}");
 
-    let mut ctx = &mut Default::default();
+    let mut ctx = ResolveContext::default();
     let resolved_path = resolver_without_symlinks
       .resolve_with_context(&path, request, &mut ctx)
       .await

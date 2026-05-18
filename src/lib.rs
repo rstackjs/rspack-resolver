@@ -62,6 +62,8 @@ mod tsconfig;
 #[cfg(test)]
 mod tests;
 
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
 use std::{
   borrow::Cow,
   cmp::Ordering,
@@ -113,6 +115,10 @@ pub type Resolver = ResolverGeneric<FileSystemOs>;
 /// Generic implementation of the resolver, can be configured by the [FileSystem] trait
 pub struct ResolverGeneric<Fs> {
   options: ResolveOptions,
+  absolute_alias: Alias,
+  relative_alias: Alias,
+  absolute_fallback: Alias,
+  relative_fallback: Alias,
   cache: Arc<Cache<Fs>>,
   #[cfg(feature = "yarn_pnp")]
   pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
@@ -137,8 +143,15 @@ impl<Fs: Send + Sync + FileSystem + Default> Default for ResolverGeneric<Fs> {
 
 impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
   pub fn new(options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let (absolute_alias, relative_alias) = Self::partition_alias(&options.alias);
+    let (absolute_fallback, relative_fallback) = Self::partition_alias(&options.fallback);
     Self {
-      options: options.sanitize(),
+      options,
+      absolute_alias,
+      relative_alias,
+      absolute_fallback,
+      relative_fallback,
       cache: Arc::new(Cache::new(Fs::default())),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
@@ -150,9 +163,57 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
 }
 
 impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
+  fn partition_alias(aliases: &Alias) -> (Alias, Alias) {
+    let mut absolute_alias = Vec::new();
+    let mut relative_alias = Vec::new();
+    for (key, values) in aliases {
+      let key_without_exact = key.strip_suffix('$').unwrap_or(key);
+      if Path::new(key_without_exact).is_absolute() {
+        absolute_alias.push((key.clone(), values.clone()));
+      } else {
+        relative_alias.push((key.clone(), values.clone()));
+      }
+    }
+    (absolute_alias, relative_alias)
+  }
+
+  fn aliases_for<'a>(
+    specifier: &str,
+    absolute_aliases: &'a Alias,
+    relative_aliases: &'a Alias,
+  ) -> &'a Alias {
+    if Path::new(specifier).is_absolute() {
+      absolute_aliases
+    } else {
+      relative_aliases
+    }
+  }
+
+  fn path_alias_may_match(path: &Path, aliases: &Alias) -> bool {
+    if aliases.is_empty() {
+      return false;
+    }
+    let Some(path) = path.to_str() else {
+      return true;
+    };
+    aliases.iter().any(|(alias_key_raw, _)| {
+      alias_key_raw.strip_suffix('$').map_or_else(
+        || Self::strip_package_name(path, alias_key_raw).is_some(),
+        |alias_key| alias_key == path,
+      )
+    })
+  }
+
   pub fn new_with_file_system(file_system: Fs, options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let (absolute_alias, relative_alias) = Self::partition_alias(&options.alias);
+    let (absolute_fallback, relative_fallback) = Self::partition_alias(&options.fallback);
     Self {
-      options: options.sanitize(),
+      options,
+      absolute_alias,
+      relative_alias,
+      absolute_fallback,
+      relative_fallback,
       cache: Arc::new(Cache::new(file_system)),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
@@ -165,8 +226,15 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// Clone the resolver using the same underlying cache.
   #[must_use]
   pub fn clone_with_options(&self, options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let (absolute_alias, relative_alias) = Self::partition_alias(&options.alias);
+    let (absolute_fallback, relative_fallback) = Self::partition_alias(&options.fallback);
     Self {
-      options: options.sanitize(),
+      options,
+      absolute_alias,
+      relative_alias,
+      absolute_fallback,
+      relative_fallback,
       cache: Arc::clone(&self.cache),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::clone(&self.pnp_manifest),
@@ -330,7 +398,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
     // enhanced-resolve: try alias
     if let Some(path) = self
-      .load_alias(cached_path, specifier, &self.options.alias, ctx)
+      .load_alias(
+        cached_path,
+        specifier,
+        Self::aliases_for(specifier, &self.absolute_alias, &self.relative_alias),
+        ctx,
+      )
       .await?
     {
       return Ok(path);
@@ -370,7 +443,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         }
         // enhanced-resolve: try fallback
         self
-          .load_alias(cached_path, specifier, &self.options.fallback, ctx)
+          .load_alias(
+            cached_path,
+            specifier,
+            Self::aliases_for(specifier, &self.absolute_fallback, &self.relative_fallback),
+            ctx,
+          )
           .await
           .and_then(|value| value.ok_or(err))
       }
@@ -692,20 +770,44 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(None);
     }
     let path = path.path().as_os_str();
-    // 8 is wild guess for max extension length
-    let mut path_with_extension_buffer = String::with_capacity(path.len() + 8);
-    path_with_extension_buffer.push_str(&path.to_string_lossy());
-    let base_len = path_with_extension_buffer.len();
 
-    for extension in extensions {
-      path_with_extension_buffer.truncate(base_len);
-      path_with_extension_buffer.push_str(extension);
-      let cached_path = self.cache.value(Path::new(&path_with_extension_buffer));
-      if let Some(path) = self.load_alias_or_file(&cached_path, ctx).await? {
-        return Ok(Some(path));
+    #[cfg(unix)]
+    {
+      let path = path.as_bytes();
+      let mut path_with_extension_buffer = Vec::with_capacity(path.len() + 8);
+      path_with_extension_buffer.extend_from_slice(path);
+      let base_len = path_with_extension_buffer.len();
+
+      for extension in extensions {
+        path_with_extension_buffer.truncate(base_len);
+        path_with_extension_buffer.extend_from_slice(extension.as_bytes());
+        let cached_path = self
+          .cache
+          .value(Path::new(OsStr::from_bytes(&path_with_extension_buffer)));
+        if let Some(path) = self.load_alias_or_file(&cached_path, ctx).await? {
+          return Ok(Some(path));
+        }
       }
+      return Ok(None);
     }
-    Ok(None)
+
+    #[cfg(not(unix))]
+    {
+      // 8 is wild guess for max extension length
+      let mut path_with_extension_buffer = String::with_capacity(path.len() + 8);
+      path_with_extension_buffer.push_str(&path.to_string_lossy());
+      let base_len = path_with_extension_buffer.len();
+
+      for extension in extensions {
+        path_with_extension_buffer.truncate(base_len);
+        path_with_extension_buffer.push_str(extension);
+        let cached_path = self.cache.value(Path::new(&path_with_extension_buffer));
+        if let Some(path) = self.load_alias_or_file(&cached_path, ctx).await? {
+          return Ok(Some(path));
+        }
+      }
+      Ok(None)
+    }
   }
 
   #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
@@ -798,12 +900,20 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
     }
     // enhanced-resolve: try file as alias
-    let alias_specifier = cached_path.path().to_string_lossy();
-    if let Some(path) = self
-      .load_alias(cached_path, &alias_specifier, &self.options.alias, ctx)
-      .await?
-    {
-      return Ok(Some(path));
+    let path = cached_path.path();
+    let aliases = if path.is_absolute() {
+      &self.absolute_alias
+    } else {
+      &self.relative_alias
+    };
+    if Self::path_alias_may_match(path, aliases) {
+      let alias_specifier = path.to_string_lossy();
+      if let Some(path) = self
+        .load_alias(cached_path, &alias_specifier, aliases, ctx)
+        .await?
+      {
+        return Ok(Some(path));
+      }
     }
     if cached_path.is_file(&self.cache.fs, ctx).await && self.check_restrictions(cached_path.path())
     {

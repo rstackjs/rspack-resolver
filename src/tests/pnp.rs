@@ -201,13 +201,13 @@ async fn resolve_pnp_with_global_cache_enabled_windows() {
     ..ResolveOptions::default()
   });
 
-  let resolved = resolver
+  let resolution = resolver
     .resolve(&fixture, "path-to-regexp")
     .await
     .map(|r| r.full_path())
     .unwrap();
 
-  let module_root = resolved.parent().unwrap();
+  let module_root = resolution.parent().unwrap();
   let module_root_str = module_root.to_string_lossy().replace('\\', "/");
   assert!(
     module_root_str.contains("/Yarn/Berry/cache/path-to-regexp"),
@@ -241,13 +241,13 @@ async fn resolve_pnp_with_global_cache_enabled_unix() {
     ..ResolveOptions::default()
   });
 
-  let resolved = resolver
+  let resolution = resolver
     .resolve(&fixture, "path-to-regexp")
     .await
     .map(|r| r.full_path())
     .unwrap();
 
-  let module_root = resolved.parent().unwrap();
+  let module_root = resolution.parent().unwrap();
   let module_root_str = module_root.to_string_lossy();
   assert!(
     module_root_str.contains("/.yarn/berry/cache/path-to-regexp"),
@@ -292,7 +292,6 @@ async fn resolve_pnp_transitive_dep_from_global_cache() {
         .to_string_lossy()
         .replace('\\', "/")
         .to_lowercase()
-        .to_string()
     })
     .unwrap();
 
