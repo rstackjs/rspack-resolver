@@ -7,7 +7,7 @@ use std::path::{Component, Path, PathBuf};
 
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
 
-pub(crate) fn path_to_str(path: &Path) -> &str {
+pub fn path_to_str(path: &Path) -> &str {
   path.to_str().expect("path should be UTF-8")
 }
 

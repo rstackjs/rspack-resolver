@@ -800,7 +800,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // enhanced-resolve: try file as alias
     let alias_specifier = path_to_str(cached_path.path());
     if let Some(path) = self
-      .load_alias(cached_path, &alias_specifier, &self.options.alias, ctx)
+      .load_alias(cached_path, alias_specifier, &self.options.alias, ctx)
       .await?
     {
       return Ok(Some(path));
