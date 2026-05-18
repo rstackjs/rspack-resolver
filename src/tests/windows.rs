@@ -36,7 +36,11 @@ mod tests {
       .resolve_with_context(&file, &specifier, &mut ctx)
       .await
       .unwrap();
-    let resolved_path_string = resolved.path.to_string_lossy().to_string();
+    let resolved_path_string = resolved
+      .path
+      .to_str()
+      .expect("path should be UTF-8")
+      .to_string();
     let actual_file_deps = ctx
       .file_dependencies
       .iter()
@@ -48,6 +52,10 @@ mod tests {
   }
 
   fn to_string<P: AsRef<Path>>(p: P) -> String {
-    p.as_ref().normalize().to_string_lossy().to_string()
+    p.as_ref()
+      .normalize()
+      .to_str()
+      .expect("path should be UTF-8")
+      .to_string()
   }
 }

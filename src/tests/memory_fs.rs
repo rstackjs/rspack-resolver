@@ -5,6 +5,10 @@ use std::{
 
 use crate::{FileMetadata, FileSystem};
 
+fn path_to_str(path: &Path) -> &str {
+  path.to_str().expect("path should be UTF-8")
+}
+
 #[derive(Default)]
 pub struct MemoryFS {
   fs: vfs::MemoryFS,
@@ -32,13 +36,13 @@ impl MemoryFS {
     let fs = &mut self.fs;
     // Create all parent directories
     for path in path.ancestors().collect::<Vec<_>>().iter().rev() {
-      let path = path.to_string_lossy();
-      if !fs.exists(path.as_ref()).unwrap() {
-        fs.create_dir(path.as_ref()).unwrap();
+      let path = path_to_str(path);
+      if !fs.exists(path).unwrap() {
+        fs.create_dir(path).unwrap();
       }
     }
     // Create file
-    let mut file = fs.create_file(path.to_string_lossy().as_ref()).unwrap();
+    let mut file = fs.create_file(path_to_str(path)).unwrap();
     file.write_all(content.as_bytes()).unwrap();
   }
 }
@@ -48,7 +52,7 @@ impl FileSystem for MemoryFS {
     use vfs::FileSystem;
     let mut file = self
       .fs
-      .open_file(path.to_string_lossy().as_ref())
+      .open_file(path_to_str(path))
       .map_err(|err| io::Error::new(io::ErrorKind::NotFound, err))?;
     let mut buffer = String::new();
     file.read_to_string(&mut buffer).unwrap();
@@ -63,7 +67,7 @@ impl FileSystem for MemoryFS {
     use vfs::FileSystem;
     let metadata = self
       .fs
-      .metadata(path.to_string_lossy().as_ref())
+      .metadata(path_to_str(path))
       .map_err(|err| io::Error::new(io::ErrorKind::NotFound, err))?;
     let is_file = metadata.file_type == vfs::VfsFileType::File;
     let is_dir = metadata.file_type == vfs::VfsFileType::Directory;

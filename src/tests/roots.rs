@@ -73,7 +73,7 @@ async fn prefer_absolute() {
 
   #[rustfmt::skip]
     let pass = [
-        ("should resolve an absolute path (prefer absolute)", f.join("b.js").to_string_lossy().to_string(), f.join("b.js")),
+        ("should resolve an absolute path (prefer absolute)", f.join("b.js").to_str().expect("path should be UTF-8").to_string(), f.join("b.js")),
     ];
 
   for (comment, request, expected) in pass {
@@ -86,7 +86,7 @@ async fn prefer_absolute() {
 async fn roots_fall_through() {
   let f = super::fixture();
   let absolute_path = f.join("roots_fall_through/index.js");
-  let specifier = absolute_path.to_string_lossy();
+  let specifier = absolute_path.to_str().expect("path should be UTF-8");
   let resolution = Resolver::new(ResolveOptions::default().with_root(&f))
     .resolve(&f, &specifier)
     .await;

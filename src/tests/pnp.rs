@@ -137,18 +137,25 @@ async fn pnp_resolve_description_file() {
     .join(
       ".yarn/cache/preact-npm-10.25.4-2dd2c0aa44-33a009d614.zip/node_modules/preact/dist/preact.js",
     )
-    .to_string_lossy()
+    .to_str()
+    .expect("path should be UTF-8")
     .to_string();
 
   let r = resolver.resolve(&fixture, &full_path).await.unwrap();
 
   assert_eq!(
-    r.package_json.unwrap().path.to_string_lossy().to_string(),
+    r.package_json
+      .unwrap()
+      .path
+      .to_str()
+      .expect("path should be UTF-8")
+      .to_string(),
     fixture
       .join(".yarn/cache/preact-npm-10.25.4-2dd2c0aa44-33a009d614.zip/node_modules/preact")
       .join("package.json")
       .normalize()
-      .to_string_lossy()
+      .to_str()
+      .expect("path should be UTF-8")
       .to_string()
   );
 }
@@ -208,7 +215,10 @@ async fn resolve_pnp_with_global_cache_enabled_windows() {
     .unwrap();
 
   let module_root = resolved.parent().unwrap();
-  let module_root_str = module_root.to_string_lossy().replace('\\', "/");
+  let module_root_str = module_root
+    .to_str()
+    .expect("path should be UTF-8")
+    .replace('\\', "/");
   assert!(
     module_root_str.contains("/Yarn/Berry/cache/path-to-regexp"),
     "Expected global cache path, got: {module_root_str}"
@@ -219,7 +229,8 @@ async fn resolve_pnp_with_global_cache_enabled_windows() {
     .await
     .map(|r| {
       r.full_path()
-        .to_string_lossy()
+        .to_str()
+        .expect("path should be UTF-8")
         .replace('\\', "/")
         .to_string()
     })
@@ -248,7 +259,7 @@ async fn resolve_pnp_with_global_cache_enabled_unix() {
     .unwrap();
 
   let module_root = resolved.parent().unwrap();
-  let module_root_str = module_root.to_string_lossy();
+  let module_root_str = module_root.to_str().expect("path should be UTF-8");
   assert!(
     module_root_str.contains("/.yarn/berry/cache/path-to-regexp"),
     "Expected global cache path, got: {module_root_str}"
@@ -259,7 +270,7 @@ async fn resolve_pnp_with_global_cache_enabled_unix() {
     .await
     .map(|r| r.full_path())
     .unwrap();
-  let resolved_str = resolved_from_cache.to_string_lossy();
+  let resolved_str = resolved_from_cache.to_str().expect("path should be UTF-8");
   assert!(
     resolved_str.contains("/.yarn/berry/cache/path-to-regexp"),
     "Expected global cache path, got: {resolved_str}"
@@ -289,7 +300,8 @@ async fn resolve_pnp_transitive_dep_from_global_cache() {
     .await
     .map(|r| {
       r.full_path()
-        .to_string_lossy()
+        .to_str()
+        .expect("path should be UTF-8")
         .replace('\\', "/")
         .to_lowercase()
         .to_string()

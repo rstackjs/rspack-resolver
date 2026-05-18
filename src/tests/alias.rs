@@ -152,7 +152,7 @@ async fn infinite_recursion() {
 }
 
 fn check_slash(path: &Path) {
-  let s = path.to_string_lossy().to_string();
+  let s = path.to_str().expect("path should be UTF-8").to_string();
   #[cfg(target_os = "windows")]
   {
     assert!(!s.contains('/'), "{s}");
@@ -186,7 +186,9 @@ async fn system_path() {
   let resolver = Resolver::new(ResolveOptions {
     alias: vec![(
       "@app".into(),
-      vec![AliasValue::from(f.join("alias").to_string_lossy())],
+      vec![AliasValue::from(
+        f.join("alias").to_str().expect("path should be UTF-8"),
+      )],
     )],
     ..ResolveOptions::default()
   });
@@ -208,7 +210,7 @@ async fn system_path() {
 async fn alias_is_full_path() {
   let f = super::fixture();
   let dir = f.join("foo");
-  let dir_str = dir.to_string_lossy().to_string();
+  let dir_str = dir.to_str().expect("path should be UTF-8").to_string();
 
   let resolver = Resolver::new(ResolveOptions {
     alias: vec![("@".into(), vec![AliasValue::Path(dir_str.clone())])],
@@ -258,7 +260,8 @@ async fn all_alias_values_are_not_found() {
       vec![AliasValue::Path(
         f.join("node_modules")
           .join("m2")
-          .to_string_lossy()
+          .to_str()
+          .expect("path should be UTF-8")
           .to_string(),
       )],
     )],
@@ -318,7 +321,12 @@ async fn alias_try_fragment_as_path() {
   let resolver = Resolver::new(ResolveOptions {
     alias: vec![(
       "#".to_string(),
-      vec![AliasValue::Path(f.join("#").to_string_lossy().to_string())],
+      vec![AliasValue::Path(
+        f.join("#")
+          .to_str()
+          .expect("path should be UTF-8")
+          .to_string(),
+      )],
     )],
     ..ResolveOptions::default()
   });

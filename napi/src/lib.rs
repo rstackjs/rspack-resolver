@@ -26,7 +26,13 @@ pub struct ResolveResult {
 async fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResult {
   match resolver.resolve(path, request).await {
     Ok(resolution) => ResolveResult {
-      path: Some(resolution.full_path().to_string_lossy().to_string()),
+      path: Some(
+        resolution
+          .full_path()
+          .to_str()
+          .expect("path should be UTF-8")
+          .to_string(),
+      ),
       error: None,
       module_type: resolution
         .package_json()
