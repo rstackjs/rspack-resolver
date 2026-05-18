@@ -1,9 +1,6 @@
-use std::{
-  fmt,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{fmt, sync::Arc};
 
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 /// Module Resolution Options
 ///
 /// Options are directly ported from [enhanced-resolve](https://github.com/webpack/enhanced-resolve#resolver-options).
@@ -209,8 +206,7 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
+  /// use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_root("foo");
@@ -227,8 +223,7 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
+  /// use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_extension("jsonc");
@@ -245,8 +240,7 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
+  /// use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_main_field("something");
@@ -263,8 +257,7 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
+  /// use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
   /// use rspack_resolver::{EnforceExtension, ResolveOptions};
   ///
   /// let options = ResolveOptions::default().with_force_extension(EnforceExtension::Enabled);
@@ -281,8 +274,7 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
+  /// use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_fully_specified(true);
@@ -298,8 +290,7 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
+  /// use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_prefer_relative(true);
@@ -315,8 +306,7 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
+  /// use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_prefer_absolute(true);
@@ -590,7 +580,7 @@ impl fmt::Display for ResolveOptions {
 
 #[cfg(test)]
 mod test {
-  use std::path::PathBuf;
+  use camino::Utf8PathBuf as PathBuf;
 
   use super::{
     AliasValue, EnforceExtension, ResolveOptions, Restriction, TsconfigOptions, TsconfigReferences,

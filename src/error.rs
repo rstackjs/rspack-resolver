@@ -1,5 +1,6 @@
-use std::{io, path::PathBuf, sync::Arc};
+use std::{io, sync::Arc};
 
+use camino::Utf8PathBuf as PathBuf;
 use thiserror::Error;
 
 /// All resolution errors

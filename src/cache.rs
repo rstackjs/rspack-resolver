@@ -5,10 +5,10 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
-  path::{Path, PathBuf},
   sync::Arc,
 };
 
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 use dashmap::{DashMap, DashSet};
 use futures::future::BoxFuture;
 use rustc_hash::FxHasher;
@@ -80,9 +80,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     } else if meta.is_some_and(|m| m.is_dir) {
       Cow::Owned(path.join("tsconfig.json"))
     } else {
-      let mut os_string = path.to_path_buf().into_os_string();
-      os_string.push(".json");
-      Cow::Owned(PathBuf::from(os_string))
+      Cow::Owned(PathBuf::from(format!("{path}.json")))
     };
     let mut tsconfig_string = self
       .fs
@@ -228,7 +226,7 @@ impl CachedPathImpl {
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
             return Ok(Some(
-              parent_path.normalize_with(self.path.strip_prefix(&parent.path).unwrap()),
+              parent_path.normalize_with(self.path.strip_prefix(&*parent.path).unwrap()),
             ));
           }
           Ok(None)
@@ -270,7 +268,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path.display())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path)))]
   pub async fn find_package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -301,7 +299,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path.display())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path)))]
   pub async fn package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,

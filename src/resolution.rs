@@ -1,8 +1,6 @@
-use std::{
-  fmt,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{fmt, sync::Arc};
+
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 
 use crate::package_json::PackageJson;
 
@@ -66,12 +64,12 @@ impl Resolution {
 
   /// Returns the full path with query and fragment
   pub fn full_path(&self) -> PathBuf {
-    let mut path = self.path.clone().into_os_string();
+    let mut path = self.path.as_str().to_string();
     if let Some(query) = &self.query {
-      path.push(query);
+      path.push_str(query);
     }
     if let Some(fragment) = &self.fragment {
-      path.push(fragment);
+      path.push_str(fragment);
     }
     PathBuf::from(path)
   }

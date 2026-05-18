@@ -1,12 +1,9 @@
 mod options;
 mod tracing;
 
-use std::{
-  path::{Path, PathBuf},
-  sync::Arc,
-  vec,
-};
+use std::{sync::Arc, vec};
 
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 use napi::tokio::runtime;
 use napi_derive::napi;
 use rspack_resolver::{ResolveOptions, Resolver};
@@ -26,13 +23,7 @@ pub struct ResolveResult {
 async fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResult {
   match resolver.resolve(path, request).await {
     Ok(resolution) => ResolveResult {
-      path: Some(
-        resolution
-          .full_path()
-          .to_str()
-          .expect("path should be UTF-8")
-          .to_string(),
-      ),
+      path: Some(resolution.full_path().as_str().to_string()),
       error: None,
       module_type: resolution
         .package_json()

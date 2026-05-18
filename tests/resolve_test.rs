@@ -1,9 +1,10 @@
-use std::{env, path::PathBuf};
+use std::env;
 
+use camino::Utf8PathBuf as PathBuf;
 use rspack_resolver::{ResolveError, ResolveOptions, Resolver};
 
 fn dir() -> PathBuf {
-  env::current_dir().unwrap()
+  PathBuf::from_path_buf(env::current_dir().unwrap()).unwrap()
 }
 
 #[tokio::test]

@@ -1,4 +1,6 @@
-use std::{fs, io, path::Path};
+use std::{fs, io};
+
+use camino::Utf8Path as Path;
 
 use crate::{ResolveOptions, Resolver};
 
@@ -9,80 +11,67 @@ enum FileType {
 }
 
 #[allow(unused_variables)]
-fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(
-  original: P,
-  link: Q,
-  file_type: FileType,
-) -> io::Result<()> {
+fn symlink(original: &std::path::Path, link: &Path, file_type: FileType) -> io::Result<()> {
   #[cfg(target_family = "unix")]
   {
-    std::os::unix::fs::symlink(original, link)
+    std::os::unix::fs::symlink(original, link.as_std_path())
   }
 
   #[cfg(target_family = "windows")]
   match file_type {
-    FileType::File => std::os::windows::fs::symlink_file(original, link),
-    FileType::Dir => std::os::windows::fs::symlink_dir(original, link),
+    FileType::File => std::os::windows::fs::symlink_file(original, link.as_std_path()),
+    FileType::Dir => std::os::windows::fs::symlink_dir(original, link.as_std_path()),
   }
 }
 
 fn init(dirname: &Path, temp_path: &Path) -> io::Result<()> {
   if temp_path.exists() {
-    _ = fs::remove_dir_all(temp_path);
+    _ = fs::remove_dir_all(temp_path.as_std_path());
   }
-  fs::create_dir(temp_path)?;
+  fs::create_dir(temp_path.as_std_path())?;
   symlink(
-    dirname.join("../lib/index.js"),
-    temp_path.join("test"),
+    dirname.join("../lib/index.js").as_std_path(),
+    &temp_path.join("test"),
     FileType::File,
   )?;
   symlink(
-    dirname.join("../lib"),
-    temp_path.join("test2"),
+    dirname.join("../lib").as_std_path(),
+    &temp_path.join("test2"),
     FileType::Dir,
   )?;
-  fs::remove_file(temp_path.join("test"))?;
-  fs::remove_file(temp_path.join("test2"))?;
-  fs::remove_dir(temp_path)
+  fs::remove_file(temp_path.join("test").as_std_path())?;
+  fs::remove_file(temp_path.join("test2").as_std_path())?;
+  fs::remove_dir(temp_path.as_std_path())
 }
 
 fn create_symlinks(dirname: &Path, temp_path: &Path) -> io::Result<()> {
-  fs::create_dir(temp_path).unwrap();
+  fs::create_dir(temp_path.as_std_path()).unwrap();
+  let index = dirname.join("../lib/index.js").canonicalize().unwrap();
+  symlink(index.as_path(), &temp_path.join("index.js"), FileType::File)?;
+  let lib = dirname.join("../lib").canonicalize().unwrap();
+  symlink(lib.as_path(), &temp_path.join("lib"), FileType::Dir)?;
+  let parent = dirname.join("..").canonicalize().unwrap();
+  symlink(parent.as_path(), &temp_path.join("this"), FileType::Dir)?;
   symlink(
-    dirname.join("../lib/index.js").canonicalize().unwrap(),
-    temp_path.join("index.js"),
+    temp_path.join("this").as_std_path(),
+    &temp_path.join("that"),
+    FileType::Dir,
+  )?;
+  symlink(
+    Path::new("../../lib/index.js").as_std_path(),
+    &temp_path.join("node.relative.js"),
     FileType::File,
   )?;
   symlink(
-    dirname.join("../lib").canonicalize().unwrap(),
-    temp_path.join("lib"),
-    FileType::Dir,
-  )?;
-  symlink(
-    dirname.join("..").canonicalize().unwrap(),
-    temp_path.join("this"),
-    FileType::Dir,
-  )?;
-  symlink(
-    temp_path.join("this"),
-    temp_path.join("that"),
-    FileType::Dir,
-  )?;
-  symlink(
-    Path::new("../../lib/index.js"),
-    temp_path.join("node.relative.js"),
-    FileType::File,
-  )?;
-  symlink(
-    Path::new("./node.relative.js"),
-    temp_path.join("node.relative.sym.js"),
+    Path::new("./node.relative.js").as_std_path(),
+    &temp_path.join("node.relative.sym.js"),
     FileType::File,
   )?;
   Ok(())
 }
 
 fn cleanup_symlinks(temp_path: &Path) {
-  _ = fs::remove_dir_all(temp_path);
+  _ = fs::remove_dir_all(temp_path.as_std_path());
 }
 
 #[tokio::test]

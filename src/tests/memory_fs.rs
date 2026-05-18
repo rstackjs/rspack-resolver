@@ -1,12 +1,11 @@
-use std::{
-  io,
-  path::{Path, PathBuf},
-};
+use std::io;
+
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 
 use crate::{FileMetadata, FileSystem};
 
 fn path_to_str(path: &Path) -> &str {
-  path.to_str().expect("path should be UTF-8")
+  path.as_str()
 }
 
 #[derive(Default)]

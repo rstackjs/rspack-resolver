@@ -28,12 +28,16 @@ mod tsconfig_project_references;
 #[cfg(windows)]
 mod windows;
 
-use std::{env, path::PathBuf, sync::Arc, thread};
+use std::{env, sync::Arc, thread};
+
+use camino::Utf8PathBuf as PathBuf;
 
 use crate::Resolver;
 
 pub fn fixture_root() -> PathBuf {
-  env::current_dir().unwrap().join("fixtures")
+  PathBuf::from_path_buf(env::current_dir().unwrap())
+    .unwrap()
+    .join("fixtures")
 }
 
 pub fn fixture() -> PathBuf {
@@ -45,7 +49,7 @@ pub fn fixture() -> PathBuf {
 
 #[tokio::test]
 async fn threaded_environment() {
-  let cwd = env::current_dir().unwrap();
+  let cwd = PathBuf::from_path_buf(env::current_dir().unwrap()).unwrap();
   let resolver = Arc::new(Resolver::default());
   for _ in 0..2 {
     _ = thread::spawn({

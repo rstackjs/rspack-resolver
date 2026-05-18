@@ -1,8 +1,6 @@
 //! https://github.com/webpack/enhanced-resolve/blob/main/test/missing.test.js
 
-use normalize_path::NormalizePath;
-
-use crate::{AliasValue, ResolveContext, ResolveOptions, Resolver};
+use crate::{path::PathUtil, AliasValue, ResolveContext, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn test() {
@@ -82,19 +80,13 @@ async fn alias_and_extensions() {
       (
         "@scope-js/package-name/dir$".into(),
         vec![AliasValue::Path(
-          f.join("foo/index.js")
-            .to_str()
-            .expect("path should be UTF-8")
-            .to_string(),
+          f.join("foo/index.js").as_str().to_string(),
         )],
       ),
       (
         "react-dom".into(),
         vec![AliasValue::Path(
-          f.join("foo/index.js")
-            .to_str()
-            .expect("path should be UTF-8")
-            .to_string(),
+          f.join("foo/index.js").as_str().to_string(),
         )],
       ),
     ],

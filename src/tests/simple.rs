@@ -2,12 +2,16 @@
 
 use std::env;
 
+use camino::Utf8PathBuf as PathBuf;
+
 use crate::Resolver;
 
 #[tokio::test]
 async fn resolve_abs_main() {
   let resolver = Resolver::default();
-  let dirname = env::current_dir().unwrap().join("fixtures");
+  let dirname = PathBuf::from_path_buf(env::current_dir().unwrap())
+    .unwrap()
+    .join("fixtures");
   let f = dirname.join("invalid/main.js");
   // a's main field id `/dist/index.js`
   let resolution = resolver.resolve(&f, "a").await.unwrap();
@@ -21,7 +25,9 @@ async fn resolve_abs_main() {
 #[tokio::test]
 async fn simple() {
   // mimic `enhanced-resolve/test/simple.test.js`
-  let dirname = env::current_dir().unwrap().join("fixtures");
+  let dirname = PathBuf::from_path_buf(env::current_dir().unwrap())
+    .unwrap()
+    .join("fixtures");
   let f = dirname.join("enhanced_resolve/test");
 
   let resolver = Resolver::default();
@@ -93,7 +99,7 @@ mod windows {
 
   #[tokio::test]
   async fn no_package() {
-    use std::path::Path;
+    use camino::Utf8Path as Path;
 
     use crate::ResolverGeneric;
     let f = Path::new("/");
