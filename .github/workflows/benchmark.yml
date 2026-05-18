@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   benchmark:
-    name: Benchmark
+    name: Benchmark (Gungraun)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Branch
@@ -41,31 +41,29 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
-          cache-key: benchmark
+          cache-key: benchmark-gungraun
           cache-save-if: ${{ github.ref_name == 'main' }}
+
+      - uses: ./.github/actions/pnpm
+
+      - name: Install valgrind
+        run: sudo apt-get update && sudo apt-get install -y valgrind
 
       - uses: taiki-e/install-action@055f5df8c3f65ea01cd41e9dc855becd88953486 # v2.75.18
         with:
-          tool: cargo-codspeed
+          tool: gungraun-runner
 
-      - uses: ./.github/actions/pnpm
-      - name: Build Benchmark
+      - name: Run gungraun benchmark
+        timeout-minutes: 45
         env:
+          GUNGRAUN_VALGRIND_BIN: /usr/bin/valgrind
           RUSTFLAGS: "-C debuginfo=1 -C strip=none -g"
-        run: cargo codspeed build
+        run: cargo bench --bench resolver_gungraun -- --nocapture
 
-      - name: Run CPU benchmark
-        uses: CodSpeedHQ/action@281164b0f014a4e7badd2c02cecad9b595b70537 # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
-        timeout-minutes: 30
+      - name: Upload gungraun result files
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          mode: simulation
-          run: cargo codspeed run
-          token: ${{ secrets.CODSPEED_TOKEN }}
-
-      - name: Run memory benchmark
-        uses: CodSpeedHQ/action@281164b0f014a4e7badd2c02cecad9b595b70537 # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6
-        timeout-minutes: 30
-        with:
-          mode: memory
-          run: cargo codspeed run
-          token: ${{ secrets.CODSPEED_TOKEN }}
+          name: gungraun-target
+          path: target/gungraun
+          if-no-files-found: ignore
