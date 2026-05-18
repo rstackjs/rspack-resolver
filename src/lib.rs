@@ -197,11 +197,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return true;
     };
     aliases.iter().any(|(alias_key_raw, _)| {
-      if let Some(alias_key) = alias_key_raw.strip_suffix('$') {
-        alias_key == path
-      } else {
-        Self::strip_package_name(path, alias_key_raw).is_some()
-      }
+      alias_key_raw.strip_suffix('$').map_or_else(
+        || Self::strip_package_name(path, alias_key_raw).is_some(),
+        |alias_key| alias_key == path,
+      )
     })
   }
 

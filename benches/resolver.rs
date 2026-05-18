@@ -1,10 +1,11 @@
+#![allow(clippy::significant_drop_tightening)]
+
 #[cfg(target_family = "wasm")]
 use std::alloc::System;
 use std::{
   alloc::{GlobalAlloc, Layout},
   env, fs,
   fs::read_to_string,
-  future::Future,
   io::{self, Write},
   path::{Path, PathBuf},
   sync::Arc,
@@ -42,7 +43,7 @@ unsafe impl<A: GlobalAlloc> GlobalAlloc for NeverGrowInPlaceAllocator<A> {
   }
 
   unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-    self.allocator.dealloc(ptr, layout)
+    self.allocator.dealloc(ptr, layout);
   }
 }
 
@@ -170,14 +171,12 @@ fn resolver_with_many_extensions() -> rspack_resolver::Resolver {
   })
 }
 
-fn create_async_resolve_task(
+async fn create_async_resolve_task(
   rspack_resolver: Arc<rspack_resolver::Resolver>,
   path: PathBuf,
   request: String,
-) -> impl Future<Output = ()> {
-  async move {
-    let _ = rspack_resolver.resolve(path, &request).await;
-  }
+) {
+  let _ = rspack_resolver.resolve(path, &request).await;
 }
 
 fn bench_resolver(c: &mut Criterion) {
@@ -197,9 +196,11 @@ fn bench_resolver(c: &mut Criterion) {
   runtime::Builder::new_current_thread().enable_all().build().unwrap().block_on(async {
         for (path, request) in &data {
             let r = rspack_resolver(false).resolve(path, request).await;
-            if !r.is_ok() {
-                panic!("resolve failed {path:?} {request},\n\nplease run `pnpm install --ignore-workspace` in `/benches` before running the benchmarks");
-            }
+            assert!(
+                r.is_ok(),
+                "resolve failed {} {request},\n\nplease run `pnpm install --ignore-workspace` in `/benches` before running the benchmarks",
+                path.display(),
+            );
         }
     });
 
@@ -255,7 +256,7 @@ fn bench_resolver(c: &mut Criterion) {
         || {
           rspack_resolver.clear_cache();
         },
-        |_| async {
+        |()| async {
           for (path, request) in data {
             _ = rspack_resolver.resolve(path, request).await;
           }
@@ -278,10 +279,10 @@ fn bench_resolver(c: &mut Criterion) {
         || {
           rspack_resolver.clear_cache();
         },
-        |_| async {
+        |()| async {
           for (path, request) in data {
             _ = rspack_resolver
-              .resolve(path, &format!("{}/bad", request))
+              .resolve(path, &format!("{request}/bad"))
               .await;
           }
         },
@@ -300,16 +301,16 @@ fn bench_resolver(c: &mut Criterion) {
         || {
           rspack_resolver.clear_cache();
         },
-        |_| {
+        |()| {
           runner.block_on(async {
             let mut join_set = JoinSet::new();
-            data.iter().for_each(|(path, request)| {
+            for (path, request) in data {
               join_set.spawn(create_async_resolve_task(
-                rspack_resolver.clone(),
-                path.to_path_buf(),
-                request.to_string(),
+                Arc::clone(&rspack_resolver),
+                (*path).clone(),
+                (*request).clone(),
               ));
-            });
+            }
             let _ = join_set.join_all().await;
           });
         },
@@ -328,7 +329,7 @@ fn bench_resolver(c: &mut Criterion) {
         || {
           rspack_resolver.clear_cache();
         },
-        |_| async {
+        |()| async {
           for i in data.clone() {
             assert!(
               rspack_resolver
@@ -357,9 +358,9 @@ fn bench_resolver(c: &mut Criterion) {
 
         data.clone().for_each(|i| {
           join_set.spawn(create_async_resolve_task(
-            rspack_resolver.clone(),
+            Arc::clone(&rspack_resolver),
             symlink_test_dir.clone(),
-            format!("./file{i}").to_string(),
+            format!("./file{i}"),
           ));
         });
         join_set.join_all().await;
@@ -381,7 +382,7 @@ fn bench_resolver(c: &mut Criterion) {
         || {
           rspack_resolver.clear_cache();
         },
-        |_| async {
+        |()| async {
           for i in data.clone() {
             let _ = rspack_resolver
               .resolve(pnp_workspace.join(format!("{i}")), "preact")

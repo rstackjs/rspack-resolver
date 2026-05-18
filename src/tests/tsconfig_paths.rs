@@ -35,7 +35,7 @@ async fn tsconfig() {
       }),
       ..ResolveOptions::default()
     });
-    let path = subdir.map_or(dir.clone(), |subdir| dir.join(subdir));
+    let path = subdir.map_or_else(|| dir.clone(), |subdir| dir.join(subdir));
     let resolved_path = resolver
       .resolve(&path, request)
       .await
