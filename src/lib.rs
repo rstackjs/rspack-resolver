@@ -90,7 +90,7 @@ use crate::{
   cache::{Cache, CachedPath},
   context::ResolveContext as Ctx,
   package_json::JSONMap,
-  path::{PathUtil, SLASH_START},
+  path::{path_to_str, PathUtil, SLASH_START},
   specifier::Specifier,
   tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
@@ -239,7 +239,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// Wrap `resolve_impl` with `tracing` information
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %directory.to_string_lossy(), specifier = specifier)))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(directory), specifier = specifier)))]
   async fn resolve_tracing(
     &self,
     directory: &Path,
@@ -436,7 +436,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   // 3. If X begins with './' or '/' or '../'
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn require_relative(
     &self,
     cached_path: &CachedPath,
@@ -536,7 +536,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok((parsed, None))
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_package_self_or_node_modules(
     &self,
     cached_path: &CachedPath,
@@ -590,7 +590,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
   async fn load_as_file(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     // enhanced-resolve feature: extension_alias
     if let Some(path) = self.load_extension_alias(cached_path, ctx).await? {
@@ -653,7 +653,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     self.load_index(cached_path, ctx).await
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_as_file_or_directory(
     &self,
     cached_path: &CachedPath,
@@ -681,7 +681,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(path.path()))))]
   async fn load_extensions(
     &self,
     path: &CachedPath,
@@ -691,10 +691,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if ctx.fully_specified {
       return Ok(None);
     }
-    let path = path.path().as_os_str();
+    let path = path_to_str(path.path());
     // 8 is wild guess for max extension length
     let mut path_with_extension_buffer = String::with_capacity(path.len() + 8);
-    path_with_extension_buffer.push_str(&path.to_string_lossy());
+    path_with_extension_buffer.push_str(path);
     let base_len = path_with_extension_buffer.len();
 
     for extension in extensions {
@@ -708,7 +708,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
   async fn load_realpath(
     &self,
     cached_path: &CachedPath,
@@ -758,7 +758,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     true
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
   async fn load_index(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     for main_file in &self.options.main_files {
       let main_path = cached_path.path().normalize_with(main_file);
@@ -798,7 +798,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
     }
     // enhanced-resolve: try file as alias
-    let alias_specifier = cached_path.path().to_string_lossy();
+    let alias_specifier = path_to_str(cached_path.path());
     if let Some(path) = self
       .load_alias(cached_path, &alias_specifier, &self.options.alias, ctx)
       .await?
@@ -812,7 +812,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_node_modules(
     &self,
     cached_path: &CachedPath,
@@ -956,7 +956,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
   fn find_pnp_manifest(&self, cached_path: &CachedPath) -> Option<Arc<(PathBuf, pnp::Manifest)>> {
     // 1. Already have a manifest → return it (covers global cache paths too)
     if let Some(manifest) = self.pnp_manifest.load_full() {
@@ -1000,7 +1000,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_pnp(
     &self,
     cached_path: &CachedPath,
@@ -1108,7 +1108,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_package_self(
     &self,
     cached_path: &CachedPath,
@@ -1152,7 +1152,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// RESOLVE_ESM_MATCH(MATCH)
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn resolve_esm_match(
     &self,
     specifier: &str,
@@ -1192,7 +1192,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// enhanced-resolve: AliasFieldPlugin for [ResolveOptions::alias_fields]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = module_specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = module_specifier, path = path_to_str(cached_path.path()))))]
   async fn load_browser_field(
     &self,
     cached_path: &CachedPath,
@@ -1332,7 +1332,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           Cow::Borrowed(alias_value)
         } else {
           let normalized = alias_path.normalize_with(tail);
-          Cow::Owned(normalized.to_string_lossy().to_string())
+          Cow::Owned(path_to_str(&normalized).to_string())
         }
       };
 
@@ -1397,14 +1397,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // Create a meaningful error message.
     let dir = path.parent().unwrap().to_path_buf();
     let filename_without_extension = Path::new(filename).with_extension("");
-    let filename_without_extension = filename_without_extension.to_string_lossy();
+    let filename_without_extension = path_to_str(&filename_without_extension);
     let files = extensions
       .iter()
       .map(|ext| format!("{filename_without_extension}{ext}"))
       .collect::<Vec<_>>()
       .join(",");
     Err(ResolveError::ExtensionAlias(
-      filename.to_string_lossy().to_string(),
+      filename.to_str().expect("path should be UTF-8").to_string(),
       files,
       dir,
     ))

@@ -263,7 +263,12 @@ impl FileSystem for FileSystemOs {
           path_buf.pop();
         }
         Component::Normal(seg) => {
-          path_buf.push(seg.to_string_lossy().trim_end_matches('\0'));
+          path_buf.push(
+            seg
+              .to_str()
+              .expect("path should be UTF-8")
+              .trim_end_matches('\0'),
+          );
         }
         Component::RootDir => {
           path_buf = PathBuf::from("/");

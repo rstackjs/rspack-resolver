@@ -7,6 +7,10 @@ use std::path::{Component, Path, PathBuf};
 
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
 
+pub(crate) fn path_to_str(path: &Path) -> &str {
+  path.to_str().expect("path should be UTF-8")
+}
+
 /// Extension trait to add path normalization to std's [`Path`].
 pub trait PathUtil {
   /// Normalize this path without performing I/O.

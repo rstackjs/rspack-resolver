@@ -162,7 +162,9 @@ async fn crypto_js() {
     alias_fields: vec![vec!["browser".into()]],
     fallback: vec![(
       "crypto".into(),
-      vec![AliasValue::from(f.join("lib.js").to_string_lossy())],
+      vec![AliasValue::from(
+        f.join("lib.js").to_str().expect("path should be UTF-8"),
+      )],
     )],
     ..ResolveOptions::default()
   });
