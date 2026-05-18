@@ -90,7 +90,7 @@ use crate::{
   cache::{Cache, CachedPath},
   context::ResolveContext as Ctx,
   package_json::JSONMap,
-  path::{path_to_str, PathUtil, SLASH_START},
+  path::{path_to_str, path_to_utf8, PathUtil, SLASH_START},
   specifier::Specifier,
   tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
@@ -691,7 +691,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if ctx.fully_specified {
       return Ok(None);
     }
-    let path = path_to_str(path.path());
+    let path = path_to_utf8(path.path()).as_str();
     // 8 is wild guess for max extension length
     let mut path_with_extension_buffer = String::with_capacity(path.len() + 8);
     path_with_extension_buffer.push_str(path);
@@ -1332,7 +1332,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           Cow::Borrowed(alias_value)
         } else {
           let normalized = alias_path.normalize_with(tail);
-          Cow::Owned(path_to_str(&normalized).to_string())
+          Cow::Owned(path_to_utf8(&normalized).as_str().to_string())
         }
       };
 
@@ -1397,14 +1397,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // Create a meaningful error message.
     let dir = path.parent().unwrap().to_path_buf();
     let filename_without_extension = Path::new(filename).with_extension("");
-    let filename_without_extension = path_to_str(&filename_without_extension);
+    let filename_without_extension = path_to_utf8(&filename_without_extension).as_str();
     let files = extensions
       .iter()
       .map(|ext| format!("{filename_without_extension}{ext}"))
       .collect::<Vec<_>>()
       .join(",");
     Err(ResolveError::ExtensionAlias(
-      filename.to_str().expect("path should be UTF-8").to_string(),
+      path_to_utf8(Path::new(filename)).as_str().to_string(),
       files,
       dir,
     ))
