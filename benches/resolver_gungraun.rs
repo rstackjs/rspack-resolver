@@ -1,4 +1,7 @@
-use gungraun::{binary_benchmark, binary_benchmark_group, main, BinaryBenchmarkConfig, Command};
+use gungraun::{
+  binary_benchmark, binary_benchmark_group, main, BinaryBenchmarkConfig, Callgrind, Command,
+  FlamegraphConfig, FlamegraphKind,
+};
 
 #[binary_benchmark]
 #[bench::resolve_dependencies("deps")]
@@ -13,6 +16,12 @@ fn bench_resolver(scenario: &str) -> Command {
 binary_benchmark_group!(name = resolver_group, benchmarks = bench_resolver);
 
 main!(
-  config = BinaryBenchmarkConfig::default().env_clear(false),
+  config = BinaryBenchmarkConfig::default().env_clear(false).tool(
+    Callgrind::default().flamegraph(
+      FlamegraphConfig::default()
+        .kind(FlamegraphKind::All)
+        .normalize_differential(true),
+    ),
+  ),
   binary_benchmark_groups = resolver_group
 );

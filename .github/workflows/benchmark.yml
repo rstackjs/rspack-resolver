@@ -23,6 +23,9 @@ jobs:
   benchmark:
     name: Benchmark (Gungraun)
     runs-on: ubuntu-latest
+    env:
+      GUNGRAUN_HOME: ${{ github.workspace }}/target/gungraun
+      GUNGRAUN_VALGRIND_BIN: /usr/bin/valgrind
     steps:
       - name: Checkout Branch
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
@@ -53,14 +56,99 @@ jobs:
         with:
           tool: gungraun-runner@0.18.2
 
-      - name: Run gungraun benchmark
+      - name: Run gungraun baseline benchmark (PR base)
+        if: github.event_name == 'pull_request'
         timeout-minutes: 45
         env:
-          GUNGRAUN_VALGRIND_BIN: /usr/bin/valgrind
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           RUSTFLAGS: "-C debuginfo=1 -C strip=none -g"
-        run: cargo bench --bench resolver_gungraun -- --nocapture
+        run: |
+          set -euxo pipefail
+          git fetch --no-tags --depth=1 origin "${BASE_SHA}"
+          git worktree add /tmp/gungraun-pr-base "${BASE_SHA}"
+          pushd /tmp/gungraun-pr-base
+          pnpm install --dir benches --ignore-workspace
+          cargo bench --bench resolver_gungraun -- \
+            --home="${GUNGRAUN_HOME}" \
+            --save-baseline=pr_base \
+            --save-summary=pretty-json
+          popd
+          git worktree remove /tmp/gungraun-pr-base --force
 
-      - name: Upload gungraun result files
+      - name: Run gungraun benchmark with baseline compare (PR head)
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 45
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g"
+        run: |
+          set -euxo pipefail
+          cargo bench --bench resolver_gungraun -- \
+            --home="${GUNGRAUN_HOME}" \
+            --baseline=pr_base \
+            --save-summary=pretty-json \
+            --output-format=json \
+            > target/gungraun/benchmark-diff.ndjson
+
+      - name: Run gungraun benchmark (push/manual)
+        if: github.event_name != 'pull_request'
+        timeout-minutes: 45
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g"
+        run: |
+          set -euxo pipefail
+          cargo bench --bench resolver_gungraun -- \
+            --home="${GUNGRAUN_HOME}" \
+            --save-summary=pretty-json
+
+      - name: Publish benchmark and commit diff summary
+        if: always()
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          echo "## Gungraun Benchmark" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "- Base commit: \`${BASE_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Head commit: \`${HEAD_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Benchmark Diff (Estimated Cycles)" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Benchmark | Base | Head | Diff |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|---|---:|---:|---:|" >> "$GITHUB_STEP_SUMMARY"
+
+            shopt -s nullglob
+            summary_files=(target/gungraun/rspack_resolver/resolver_gungraun/resolver_group/*/summary.json)
+            if [ "${#summary_files[@]}" -eq 0 ]; then
+              echo "| (no benchmark summary found) | - | - | - |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              for f in "${summary_files[@]}"; do
+                jq -r '
+                  def n: (.Int // .Float // 0);
+                  def m($k): .profiles[0].summaries.total.summary.Callgrind[$k];
+                  "| \(.id) | \((m("EstimatedCycles").metrics.Both[1] | n)) | \((m("EstimatedCycles").metrics.Both[0] | n)) | \((m("EstimatedCycles").diffs.diff_pct | tonumber) | if . > 0 then "+" + (.|tostring) else (.|tostring) end)% |"
+                ' "$f" >> "$GITHUB_STEP_SUMMARY"
+              done
+            fi
+
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Code Diff (Base..Head)" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            git diff --stat --no-color "${BASE_SHA}..${HEAD_SHA}" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Commit: \`${HEAD_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          flamegraph_count="$(find target/gungraun -name '*.flamegraph*.svg' | wc -l | tr -d ' ')"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Flamegraph SVG files: ${flamegraph_count}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload gungraun result files (including flamegraphs)
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
