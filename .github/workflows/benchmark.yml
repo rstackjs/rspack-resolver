@@ -51,7 +51,7 @@ jobs:
 
       - uses: taiki-e/install-action@055f5df8c3f65ea01cd41e9dc855becd88953486 # v2.75.18
         with:
-          tool: gungraun-runner
+          tool: gungraun-runner@0.18.2
 
       - name: Run gungraun benchmark
         timeout-minutes: 45
