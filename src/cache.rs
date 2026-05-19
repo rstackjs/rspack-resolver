@@ -117,7 +117,7 @@ impl Hash for CachedPath {
 
 impl PartialEq for CachedPath {
   fn eq(&self, other: &Self) -> bool {
-    self.0.path == other.0.path
+    self.0.hash == other.0.hash && self.0.path == other.0.path
   }
 }
 impl Eq for CachedPath {}
@@ -390,7 +390,9 @@ impl Hash for dyn CacheKey + '_ {
 
 impl PartialEq for dyn CacheKey + '_ {
   fn eq(&self, other: &Self) -> bool {
-    self.tuple().1 == other.tuple().1
+    let (self_hash, self_path) = self.tuple();
+    let (other_hash, other_path) = other.tuple();
+    self_hash == other_hash && self_path == other_path
   }
 }
 
