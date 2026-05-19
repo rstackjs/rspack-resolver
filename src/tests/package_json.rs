@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-  use std::path::PathBuf;
+  use camino::Utf8PathBuf as PathBuf;
 
   use crate::{package_json::ParseError, PackageJson};
 

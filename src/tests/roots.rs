@@ -1,6 +1,6 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/roots.test.js>
 
-use std::path::PathBuf;
+use camino::Utf8PathBuf as PathBuf;
 
 use crate::{AliasValue, ResolveError, ResolveOptions, Resolver};
 
@@ -73,7 +73,7 @@ async fn prefer_absolute() {
 
   #[rustfmt::skip]
     let pass = [
-        ("should resolve an absolute path (prefer absolute)", f.join("b.js").to_str().expect("path should be UTF-8").to_string(), f.join("b.js")),
+        ("should resolve an absolute path (prefer absolute)", f.join("b.js").as_str().to_string(), f.join("b.js")),
     ];
 
   for (comment, request, expected) in pass {
@@ -86,7 +86,7 @@ async fn prefer_absolute() {
 async fn roots_fall_through() {
   let f = super::fixture();
   let absolute_path = f.join("roots_fall_through/index.js");
-  let specifier = absolute_path.to_str().expect("path should be UTF-8");
+  let specifier = absolute_path.as_str();
   let resolution = Resolver::new(ResolveOptions::default().with_root(&f))
     .resolve(&f, &specifier)
     .await;

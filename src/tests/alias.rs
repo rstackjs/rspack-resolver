@@ -1,15 +1,15 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/alias.test.js>
 
-use std::path::Path;
+use camino::Utf8Path as Path;
 
-use normalize_path::NormalizePath;
-
-use crate::{AliasValue, Resolution, ResolveContext, ResolveError, ResolveOptions, Resolver};
+use crate::{
+  path::PathUtil, AliasValue, Resolution, ResolveContext, ResolveError, ResolveOptions, Resolver,
+};
 
 #[tokio::test]
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 async fn alias() {
-  use std::path::{Path, PathBuf};
+  use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 
   use super::memory_fs::MemoryFS;
   use crate::ResolverGeneric;
@@ -152,7 +152,7 @@ async fn infinite_recursion() {
 }
 
 fn check_slash(path: &Path) {
-  let s = path.to_str().expect("path should be UTF-8").to_string();
+  let s = path.as_str().to_string();
   #[cfg(target_os = "windows")]
   {
     assert!(!s.contains('/'), "{s}");
@@ -169,11 +169,8 @@ fn check_slash(path: &Path) {
 async fn absolute_path() {
   let f = super::fixture();
   let resolver = Resolver::new(ResolveOptions {
-    alias: vec![(
-      f.join("foo").to_str().unwrap().to_string(),
-      vec![AliasValue::Ignore],
-    )],
-    modules: vec![f.clone().to_str().unwrap().to_string()],
+    alias: vec![(f.join("foo").as_str().to_string(), vec![AliasValue::Ignore])],
+    modules: vec![f.clone().as_str().to_string()],
     ..ResolveOptions::default()
   });
   let resolution = resolver.resolve(&f, "foo/index").await;
@@ -186,9 +183,7 @@ async fn system_path() {
   let resolver = Resolver::new(ResolveOptions {
     alias: vec![(
       "@app".into(),
-      vec![AliasValue::from(
-        f.join("alias").to_str().expect("path should be UTF-8"),
-      )],
+      vec![AliasValue::from(f.join("alias").as_str())],
     )],
     ..ResolveOptions::default()
   });
@@ -210,7 +205,7 @@ async fn system_path() {
 async fn alias_is_full_path() {
   let f = super::fixture();
   let dir = f.join("foo");
-  let dir_str = dir.to_str().expect("path should be UTF-8").to_string();
+  let dir_str = dir.as_str().to_string();
 
   let resolver = Resolver::new(ResolveOptions {
     alias: vec![("@".into(), vec![AliasValue::Path(dir_str.clone())])],
@@ -258,11 +253,7 @@ async fn all_alias_values_are_not_found() {
     alias: vec![(
       "m1".to_string(),
       vec![AliasValue::Path(
-        f.join("node_modules")
-          .join("m2")
-          .to_str()
-          .expect("path should be UTF-8")
-          .to_string(),
+        f.join("node_modules").join("m2").as_str().to_string(),
       )],
     )],
     ..ResolveOptions::default()
@@ -321,12 +312,7 @@ async fn alias_try_fragment_as_path() {
   let resolver = Resolver::new(ResolveOptions {
     alias: vec![(
       "#".to_string(),
-      vec![AliasValue::Path(
-        f.join("#")
-          .to_str()
-          .expect("path should be UTF-8")
-          .to_string(),
-      )],
+      vec![AliasValue::Path(f.join("#").as_str().to_string())],
     )],
     ..ResolveOptions::default()
   });

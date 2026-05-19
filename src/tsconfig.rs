@@ -1,9 +1,6 @@
-use std::{
-  hash::BuildHasherDefault,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{hash::BuildHasherDefault, sync::Arc};
 
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 use indexmap::IndexMap;
 use rustc_hash::FxHasher;
 use serde::Deserialize;

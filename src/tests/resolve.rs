@@ -8,11 +8,7 @@ async fn resolve() {
 
   let resolver = Resolver::default();
 
-  let main1_js_path = f
-    .join("main1.js")
-    .to_str()
-    .expect("path should be UTF-8")
-    .to_string();
+  let main1_js_path = f.join("main1.js").as_str().to_string();
 
   #[rustfmt::skip]
     let pass = [

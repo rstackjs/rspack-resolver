@@ -5,9 +5,9 @@
 use std::{
   fmt::{Debug, Formatter},
   marker::PhantomData,
-  path::{Path, PathBuf},
 };
 
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 use simd_json::{
   borrowed::Value, prelude::*, to_borrowed_value, BorrowedValue, Error as SimdParseError,
 };

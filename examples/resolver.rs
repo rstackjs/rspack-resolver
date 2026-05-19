@@ -1,6 +1,7 @@
 ///! See documentation at <https://docs.rs/rspack_resolver>
-use std::{env, path::PathBuf};
+use std::env;
 
+use camino::Utf8PathBuf as PathBuf;
 use rspack_resolver::{AliasValue, ResolveOptions, Resolver};
 
 #[tokio::main]

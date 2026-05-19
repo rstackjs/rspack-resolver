@@ -1,5 +1,6 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
+use camino::Utf8PathBuf as PathBuf;
 use napi::bindgen_prelude::{Either, Either3};
 use napi_derive::napi;
 use regex::Regex;
@@ -223,9 +224,7 @@ impl From<Restriction> for rspack_resolver::Restriction {
       }
       (None, Some(regex)) => {
         let re = Regex::new(&regex).unwrap_or_else(|_| panic!("Invalid regex pattern: {regex}"));
-        Self::Fn(Arc::new(move |path| {
-          re.is_match(path.to_str().unwrap_or_default())
-        }))
+        Self::Fn(Arc::new(move |path| re.is_match(path.as_str())))
       }
       (Some(path), None) => Self::Path(PathBuf::from(path)),
       (Some(_), Some(_)) => {

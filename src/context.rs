@@ -1,7 +1,6 @@
-use std::{
-  ops::{Deref, DerefMut},
-  path::{Path, PathBuf},
-};
+use std::ops::{Deref, DerefMut};
+
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 
 use crate::error::ResolveError;
 

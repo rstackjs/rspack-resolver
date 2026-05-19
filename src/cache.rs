@@ -5,10 +5,10 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
-  path::{Path, PathBuf},
   sync::Arc,
 };
 
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 use dashmap::{DashMap, DashSet};
 use futures::future::BoxFuture;
 use rustc_hash::FxHasher;
@@ -43,11 +43,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   }
 
   pub fn value(&self, path: &Path) -> CachedPath {
-    let hash = {
-      let mut hasher = FxHasher::default();
-      path.hash(&mut hasher);
-      hasher.finish()
-    };
+    let hash = path_hash(path);
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
@@ -80,9 +76,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     } else if meta.is_some_and(|m| m.is_dir) {
       Cow::Owned(path.join("tsconfig.json"))
     } else {
-      let mut os_string = path.to_path_buf().into_os_string();
-      os_string.push(".json");
-      Cow::Owned(PathBuf::from(os_string))
+      Cow::Owned(PathBuf::from(format!("{path}.json")))
     };
     let mut tsconfig_string = self
       .fs
@@ -117,7 +111,7 @@ impl Hash for CachedPath {
 
 impl PartialEq for CachedPath {
   fn eq(&self, other: &Self) -> bool {
-    self.0.path == other.0.path
+    self.0.path.as_std_path() == other.0.path.as_std_path()
   }
 }
 impl Eq for CachedPath {}
@@ -228,7 +222,7 @@ impl CachedPathImpl {
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
             return Ok(Some(
-              parent_path.normalize_with(self.path.strip_prefix(&parent.path).unwrap()),
+              parent_path.normalize_with(self.path.strip_prefix(&*parent.path).unwrap()),
             ));
           }
           Ok(None)
@@ -270,7 +264,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path.display())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path)))]
   pub async fn find_package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -301,7 +295,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path.display())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path)))]
   pub async fn package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -390,7 +384,7 @@ impl Hash for dyn CacheKey + '_ {
 
 impl PartialEq for dyn CacheKey + '_ {
   fn eq(&self, other: &Self) -> bool {
-    self.tuple().1 == other.tuple().1
+    self.tuple().1.as_std_path() == other.tuple().1.as_std_path()
   }
 }
 
@@ -406,6 +400,12 @@ impl<'a> Borrow<dyn CacheKey + 'a> for (u64, &'a Path) {
   fn borrow(&self) -> &(dyn CacheKey + 'a) {
     self
   }
+}
+
+fn path_hash(path: &Path) -> u64 {
+  let mut hasher = FxHasher::default();
+  path.as_std_path().hash(&mut hasher);
+  hasher.finish()
 }
 
 /// Since the cache key is memoized, use an identity hasher

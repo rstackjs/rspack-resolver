@@ -2,7 +2,7 @@
 //!
 //! Fixtures copied from <https://github.com/parcel-bundler/parcel/tree/v2/packages/utils/node-resolver-core/test/fixture/tsconfig>.
 
-use std::path::{Path, PathBuf};
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 
 use crate::{
   JSONError, ResolveError, ResolveOptions, Resolver, TsConfig, TsconfigOptions, TsconfigReferences,
@@ -307,7 +307,7 @@ async fn tsconfig_paths_scoped_pkg_fallthrough() {
 
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 mod windows_test {
-  use std::path::{Path, PathBuf};
+  use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 
   use super::super::memory_fs::MemoryFS;
   use crate::{ResolveError, ResolveOptions, ResolverGeneric, TsconfigOptions, TsconfigReferences};

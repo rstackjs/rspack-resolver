@@ -3,12 +3,12 @@
 //! Code adapted from the following libraries
 //! * [path-absolutize](https://docs.rs/path-absolutize)
 //! * [normalize_path](https://docs.rs/normalize-path)
-use std::path::{Component, Path, PathBuf};
+use camino::{Utf8Component as Component, Utf8Path as Path, Utf8PathBuf as PathBuf};
 
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
 
 pub fn path_to_str(path: &Path) -> &str {
-  path.to_str().expect("path should be UTF-8")
+  path.as_str()
 }
 
 /// Extension trait to add path normalization to std's [`Path`].
@@ -37,7 +37,7 @@ impl PathUtil for Path {
   fn normalize(&self) -> PathBuf {
     let mut components = self.components().peekable();
     let mut ret = if let Some(c @ Component::Prefix(..)) = components.peek() {
-      let buf = PathBuf::from(c.as_os_str());
+      let buf = PathBuf::from(c.as_str());
       components.next();
       buf
     } else {
@@ -48,7 +48,7 @@ impl PathUtil for Path {
       match component {
         Component::Prefix(..) => unreachable!("Path {:?}", self),
         Component::RootDir => {
-          ret.push(component.as_os_str());
+          ret.push(component);
         }
         Component::CurDir => {}
         Component::ParentDir => {

@@ -6,10 +6,10 @@ use std::{
   fs::read_to_string,
   future::Future,
   io::{self, Write},
-  path::{Path, PathBuf},
   sync::Arc,
 };
 
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 #[global_allocator]
 #[cfg(not(target_family = "wasm"))]
 static GLOBAL: NeverGrowInPlaceAllocator<mimalloc::MiMalloc> =
@@ -57,17 +57,19 @@ use tokio::{
 fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
   #[cfg(target_family = "unix")]
   {
-    std::os::unix::fs::symlink(original, link)
+    std::os::unix::fs::symlink(original.as_ref().as_std_path(), link.as_ref().as_std_path())
   }
 
   #[cfg(target_family = "windows")]
   {
-    std::os::windows::fs::symlink_file(original, link)
+    std::os::windows::fs::symlink_file(original.as_ref().as_std_path(), link.as_ref().as_std_path())
   }
 }
 
 fn create_symlinks() -> io::Result<PathBuf> {
-  let root = env::current_dir()?.join("fixtures/enhanced_resolve");
+  let root = PathBuf::from_path_buf(env::current_dir()?)
+    .map_err(|path| io::Error::new(io::ErrorKind::InvalidData, path.display().to_string()))?
+    .join("fixtures/enhanced_resolve");
   let dirname = root.join("test");
   let temp_path = dirname.join("temp_symlinks");
   let create_symlink_fixtures = || -> io::Result<()> {
@@ -181,7 +183,9 @@ fn create_async_resolve_task(
 }
 
 fn bench_resolver(c: &mut Criterion) {
-  let cwd = env::current_dir().unwrap().join("benches");
+  let cwd = PathBuf::from_path_buf(env::current_dir().unwrap())
+    .unwrap()
+    .join("benches");
 
   let pkg_content = read_to_string("./benches/package.json").unwrap();
   let pkg_json: Value = serde_json::from_str(&pkg_content).unwrap();
@@ -367,7 +371,9 @@ fn bench_resolver(c: &mut Criterion) {
     },
   );
 
-  let pnp_workspace = env::current_dir().unwrap().join("fixtures/pnp");
+  let pnp_workspace = PathBuf::from_path_buf(env::current_dir().unwrap())
+    .unwrap()
+    .join("fixtures/pnp");
   let root_range = 1..11;
 
   group.bench_with_input(

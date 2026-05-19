@@ -3,7 +3,7 @@
 #[tokio::test]
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 async fn fallback() {
-  use std::path::{Path, PathBuf};
+  use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 
   use super::memory_fs::MemoryFS;
   use crate::{AliasValue, ResolveError, ResolveOptions, ResolverGeneric};

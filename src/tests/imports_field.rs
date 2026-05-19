@@ -2,8 +2,7 @@
 //!
 //! The huge imports field test cases are at the bottom of this file.
 
-use std::path::Path;
-
+use camino::Utf8Path as Path;
 use simd_json::{json, prelude::*};
 
 use crate::{package_json::JSONValue, Ctx, PathUtil, ResolveError, ResolveOptions, Resolver};

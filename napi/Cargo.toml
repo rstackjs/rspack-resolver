@@ -10,6 +10,7 @@ doctest    = false
 test       = false
 
 [dependencies]
+camino             = "1.2.2"
 napi               = { version = "3.5.2", default-features = false, features = ["napi3", "serde-json", "async"] }
 napi-build         = { version = "2.3.1", default-features = false }
 napi-derive        = { version = "3.3.3" }

@@ -1,8 +1,8 @@
-use std::{
-  fs, io,
-  path::{Path, PathBuf},
-};
+use std::{fs, io};
 
+#[cfg(target_arch = "wasm32")]
+use camino::Utf8Component as Component;
+use camino::{Utf8Path as Path, Utf8PathBuf as PathBuf};
 #[cfg(not(target_arch = "wasm32"))]
 use cfg_if::cfg_if;
 #[cfg(feature = "yarn_pnp")]
@@ -144,6 +144,15 @@ impl FileSystemOs {
   }
 }
 
+fn into_utf8_path_buf(path: std::path::PathBuf) -> io::Result<PathBuf> {
+  PathBuf::from_path_buf(path).map_err(|path| {
+    io::Error::new(
+      io::ErrorKind::InvalidData,
+      format!("path is not valid UTF-8: {}", path.display()),
+    )
+  })
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait::async_trait]
 impl FileSystem for FileSystemOs {
@@ -151,7 +160,7 @@ impl FileSystem for FileSystemOs {
     cfg_if! {
       if #[cfg(feature = "yarn_pnp")] {
         if self.options.enable_pnp {
-            return match VPath::from(path)? {
+            return match VPath::from(path.as_std_path())? {
                 VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
                 VPath::Virtual(info) => tokio::fs::read(info.physical_base_path()).await,
                 VPath::Native(path) => tokio::fs::read(&path).await,
@@ -159,14 +168,14 @@ impl FileSystem for FileSystemOs {
         }
     }}
 
-    tokio::fs::read(path).await
+    tokio::fs::read(path.as_std_path()).await
   }
 
   async fn read_to_string(&self, path: &Path) -> io::Result<String> {
     cfg_if! {
     if #[cfg(feature = "yarn_pnp")] {
         if self.options.enable_pnp {
-            return match VPath::from(path)? {
+            return match VPath::from(path.as_std_path())? {
                 VPath::Zip(info) => self.pnp_lru.read_to_string(info.physical_base_path(), info.zip_path),
                 VPath::Virtual(info) => tokio::fs::read_to_string(info.physical_base_path()).await,
                 VPath::Native(path) => tokio::fs::read_to_string(&path).await,
@@ -174,14 +183,14 @@ impl FileSystem for FileSystemOs {
             }
         }
     }
-    tokio::fs::read_to_string(path).await
+    tokio::fs::read_to_string(path.as_std_path()).await
   }
 
   async fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
     cfg_if! {
         if #[cfg(feature = "yarn_pnp")] {
             if self.options.enable_pnp {
-                return match VPath::from(path)? {
+                return match VPath::from(path.as_std_path())? {
                     VPath::Zip(info) => self
                         .pnp_lru
                         .file_type(info.physical_base_path(), info.zip_path)
@@ -197,11 +206,13 @@ impl FileSystem for FileSystemOs {
         }
     }
 
-    tokio::fs::metadata(path).await.map(FileMetadata::from)
+    tokio::fs::metadata(path.as_std_path())
+      .await
+      .map(FileMetadata::from)
   }
 
   async fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    tokio::fs::symlink_metadata(path)
+    tokio::fs::symlink_metadata(path.as_std_path())
       .await
       .map(FileMetadata::from)
   }
@@ -210,18 +221,19 @@ impl FileSystem for FileSystemOs {
     cfg_if! {
         if #[cfg(feature = "yarn_pnp")] {
             if self.options.enable_pnp {
-                return match VPath::from(path)? {
+                let canonicalized = match VPath::from(path.as_std_path())? {
                     VPath::Zip(info) => {
                         dunce::canonicalize(info.physical_base_path().join(info.zip_path))
                     }
                     VPath::Virtual(info) => dunce::canonicalize(info.physical_base_path()),
                     VPath::Native(path) => dunce::canonicalize(path),
-                }
+                }?;
+                return into_utf8_path_buf(canonicalized)
             }
         }
     }
 
-    dunce::canonicalize(path)
+    into_utf8_path_buf(dunce::canonicalize(path.as_std_path())?)
   }
 }
 
@@ -229,33 +241,32 @@ impl FileSystem for FileSystemOs {
 #[async_trait::async_trait]
 impl FileSystem for FileSystemOs {
   async fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
-    std::fs::read(path)
+    std::fs::read(path.as_std_path())
   }
 
   async fn read_to_string(&self, path: &Path) -> io::Result<String> {
-    std::fs::read_to_string(path)
+    std::fs::read_to_string(path.as_std_path())
   }
 
   async fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
     // This implementation is verbose because there might be something wrong node wasm runtime.
     // I will investigate it in the future.
-    if let Ok(m) = std::fs::metadata(path).map(FileMetadata::from) {
+    if let Ok(m) = std::fs::metadata(path.as_std_path()).map(FileMetadata::from) {
       return Ok(m);
     }
 
     self.symlink_metadata(path).await?;
     let path = self.canonicalize(path).await?;
-    std::fs::metadata(path).map(FileMetadata::from)
+    std::fs::metadata(path.as_std_path()).map(FileMetadata::from)
   }
 
   async fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    std::fs::symlink_metadata(path).map(FileMetadata::from)
+    std::fs::symlink_metadata(path.as_std_path()).map(FileMetadata::from)
   }
 
   async fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
-    use std::path::Component;
     let mut path_buf = path.to_path_buf();
-    let link = fs::read_link(&path_buf)?;
+    let link = into_utf8_path_buf(fs::read_link(path_buf.as_std_path())?)?;
     path_buf.pop();
     for component in link.components() {
       match component {
@@ -263,12 +274,7 @@ impl FileSystem for FileSystemOs {
           path_buf.pop();
         }
         Component::Normal(seg) => {
-          path_buf.push(
-            seg
-              .to_str()
-              .expect("path should be UTF-8")
-              .trim_end_matches('\0'),
-          );
+          path_buf.push(seg.trim_end_matches('\0'));
         }
         Component::RootDir => {
           path_buf = PathBuf::from("/");
@@ -277,7 +283,7 @@ impl FileSystem for FileSystemOs {
       }
 
       // This is not performant, we may optimize it with cache in the future
-      if fs::symlink_metadata(&path_buf).is_ok_and(|m| m.is_symlink()) {
+      if fs::symlink_metadata(path_buf.as_std_path()).is_ok_and(|m| m.is_symlink()) {
         let dir = self.canonicalize(&path_buf).await?;
         path_buf = dir;
       }

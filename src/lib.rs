@@ -65,12 +65,11 @@ mod tests;
 use std::{
   borrow::Cow,
   cmp::Ordering,
-  ffi::OsStr,
   fmt,
-  path::{Component, Path, PathBuf},
   sync::{Arc, OnceLock},
 };
 
+use camino::{Utf8Component as Component, Utf8Path as Path, Utf8PathBuf as PathBuf};
 use dashmap::DashSet;
 use futures::future::{try_join_all, BoxFuture};
 use rustc_hash::FxHashSet;
@@ -734,7 +733,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       if !path.starts_with(parent) {
         return false;
       }
-      if path.as_os_str().len() == parent.as_os_str().len() {
+      if path.as_str().len() == parent.as_str().len() {
         return true;
       }
       path
@@ -912,6 +911,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .map(|path| {
         std::env::split_paths(&path)
           .filter(|paths| paths.is_absolute())
+          .filter_map(|path| PathBuf::from_path_buf(path).ok())
           .collect::<Vec<PathBuf>>()
       })
       .unwrap_or_default()
@@ -970,7 +970,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
     // 3. Search for `.pnp.cjs` by walking up from this path
     let base_path = cached_path.to_path_buf();
-    let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(&base_path) else {
+    let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(base_path.as_std_path()) else {
       self.pnp_no_manifest_cache.insert(cached_path.clone());
 
       for p in base_path.ancestors() {
@@ -986,6 +986,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     tracing::debug!("use manifest path: {:?}", manifest_path);
 
     let manifest = pnp::load_pnp_manifest(&manifest_path).ok()?;
+    let manifest_path = PathBuf::from_path_buf(manifest_path).ok()?;
     let manifest = Arc::new((manifest_path, manifest));
 
     let previous = self
@@ -1013,14 +1014,16 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let (manifest_path, manifest) = pnp_data.as_ref();
     ctx.add_file_dependency(manifest_path);
 
-    let mut path = cached_path.to_path_buf();
-    path.push("");
-    let resolution = pnp::resolve_to_unqualified_via_manifest(manifest, specifier, &path);
+    let mut pnp_path = cached_path.to_path_buf().into_std_path_buf();
+    pnp_path.push("");
+    let resolution = pnp::resolve_to_unqualified_via_manifest(manifest, specifier, &pnp_path);
 
     tracing::debug!("pnp resolve unqualified as: {:?}", resolution);
 
     match resolution {
       Ok(pnp::Resolution::Resolved(path, subpath)) => {
+        let path = PathBuf::from_path_buf(path)
+          .map_err(|_| ResolveError::NotFound(specifier.to_string()))?;
         let cached_path = self.cache.value(&path);
 
         let export_resolution = self.load_package_self(&cached_path, specifier, ctx).await?;
@@ -1065,9 +1068,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> Option<CachedPath> {
     if module_name == "node_modules" {
       cached_path.cached_node_modules(&self.cache, ctx).await
-    } else if cached_path.path().components().next_back()
-      == Some(Component::Normal(OsStr::new(module_name)))
-    {
+    } else if cached_path.path().components().next_back() == Some(Component::Normal(module_name)) {
       Some(cached_path.clone())
     } else {
       cached_path
@@ -1167,7 +1168,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(Some(path));
     }
 
-    let mut path_str = cached_path.path().to_str();
+    let mut path_str = Some(cached_path.path().as_str());
 
     // 3. If the RESOLVED_PATH contains `?``, it could be a path with query
     //    so try to resolve it as a file or directory without the query,
@@ -1366,7 +1367,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .options
       .extension_alias
       .iter()
-      .find(|(ext, _)| OsStr::new(ext.trim_start_matches('.')) == path_extension)
+      .find(|(ext, _)| ext.trim_start_matches('.') == path_extension)
     else {
       return Ok(None);
     };
@@ -1378,9 +1379,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
     ctx.with_fully_specified(true);
     for extension in extensions {
-      let mut path_with_extension = path_without_extension.clone().into_os_string();
+      let mut path_with_extension = path_without_extension.as_str().to_string();
       path_with_extension.reserve_exact(extension.len());
-      path_with_extension.push(extension);
+      path_with_extension.push_str(extension);
       let cached_path = self.cache.value(Path::new(&path_with_extension));
       if let Some(path) = self.load_alias_or_file(&cached_path, ctx).await? {
         ctx.with_fully_specified(false);
@@ -1404,7 +1405,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .collect::<Vec<_>>()
       .join(",");
     Err(ResolveError::ExtensionAlias(
-      filename.to_str().expect("path should be UTF-8").to_string(),
+      filename.to_string(),
       files,
       dir,
     ))
@@ -1460,7 +1461,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip(self), fields(path = path.display().to_string())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip(self), fields(path = path.to_string())))]
   fn load_tsconfig<'a>(
     &'a self,
     root: bool,

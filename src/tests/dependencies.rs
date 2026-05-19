@@ -2,8 +2,7 @@
 
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 mod windows {
-  use std::path::PathBuf;
-
+  use camino::Utf8PathBuf as PathBuf;
   use rustc_hash::FxHashSet;
 
   use super::super::memory_fs::MemoryFS;
