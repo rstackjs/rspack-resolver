@@ -9,6 +9,8 @@ use cfg_if::cfg_if;
 use pnp::fs::LruZipCache;
 #[cfg(all(feature = "yarn_pnp", not(target_arch = "wasm32")))]
 use pnp::fs::{VPath, VPathInfo, ZipCache};
+#[cfg(not(target_arch = "wasm32"))]
+use tokio::runtime::{Handle, RuntimeFlavor};
 
 /// File System abstraction used for `ResolverGeneric`
 #[async_trait::async_trait]
@@ -145,6 +147,11 @@ impl FileSystemOs {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+fn use_direct_fs_calls() -> bool {
+  Handle::try_current().is_ok_and(|handle| handle.runtime_flavor() == RuntimeFlavor::CurrentThread)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 #[async_trait::async_trait]
 impl FileSystem for FileSystemOs {
   async fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
@@ -158,6 +165,10 @@ impl FileSystem for FileSystemOs {
             }
         }
     }}
+
+    if use_direct_fs_calls() {
+      return fs::read(path);
+    }
 
     tokio::fs::read(path).await
   }
@@ -173,6 +184,9 @@ impl FileSystem for FileSystemOs {
                 }
             }
         }
+    }
+    if use_direct_fs_calls() {
+      return fs::read_to_string(path);
     }
     tokio::fs::read_to_string(path).await
   }
@@ -197,10 +211,18 @@ impl FileSystem for FileSystemOs {
         }
     }
 
+    if use_direct_fs_calls() {
+      return fs::metadata(path).map(FileMetadata::from);
+    }
+
     tokio::fs::metadata(path).await.map(FileMetadata::from)
   }
 
   async fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
+    if use_direct_fs_calls() {
+      return fs::symlink_metadata(path).map(FileMetadata::from);
+    }
+
     tokio::fs::symlink_metadata(path)
       .await
       .map(FileMetadata::from)
