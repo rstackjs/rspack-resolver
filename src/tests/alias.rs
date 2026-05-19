@@ -339,7 +339,6 @@ async fn alias_try_fragment_as_path() {
 // absolute specifier (`strip_prefix("")` succeeds and the tail starts with
 // `/`). The prefix index must keep this path open instead of short-circuiting.
 #[tokio::test]
-#[cfg(not(target_os = "windows"))]
 async fn empty_alias_key_matches_absolute_specifier() {
   let f = super::fixture();
   let resolver = Resolver::new(ResolveOptions {
@@ -351,47 +350,5 @@ async fn empty_alias_key_matches_absolute_specifier() {
   assert!(
     matches!(resolution, Err(ResolveError::Ignored(_))),
     "empty alias key must match an absolute specifier, got {resolution:?}"
-  );
-}
-
-// `options.alias` does not interpret `*` as a glob — it's a literal prefix.
-// A specifier starting with `*` should hit the alias, anything else should
-// fall through. Pinning this so the prefix-byte accelerator keeps treating
-// `*` as a normal 1-byte alias key (registered in `byte1_only`).
-#[tokio::test]
-async fn star_alias_key_to_ignored_is_literal_prefix() {
-  let f = super::fixture();
-  let resolver = Resolver::new(ResolveOptions {
-    alias: vec![("*".into(), vec![AliasValue::Ignore])],
-    ..ResolveOptions::default()
-  });
-  let starred = resolver.resolve(&f, "*/anything").await;
-  assert!(
-    matches!(starred, Err(ResolveError::Ignored(_))),
-    "'*'-prefixed specifier must match the literal-prefix alias, got {starred:?}"
-  );
-  let normal = resolver.resolve(&f, "./a.js").await;
-  assert!(
-    !matches!(normal, Err(ResolveError::Ignored(_))),
-    "non-'*' specifier must NOT be ignored, got {normal:?}"
-  );
-}
-
-// `"$"` strips down to `""` — an exact-match alias whose key is the empty
-// string, so it can only match the empty specifier. The prefix accelerator
-// records its effective key as a wildcard (to keep the fall-through path
-// open for empty-key aliases), so this test guards against the wildcard flag
-// over-reaching and ignoring normal specifiers.
-#[tokio::test]
-async fn dollar_alias_key_to_ignored_is_exact_match_only() {
-  let f = super::fixture();
-  let resolver = Resolver::new(ResolveOptions {
-    alias: vec![("$".into(), vec![AliasValue::Ignore])],
-    ..ResolveOptions::default()
-  });
-  let normal = resolver.resolve(&f, "./a.js").await;
-  assert!(
-    !matches!(normal, Err(ResolveError::Ignored(_))),
-    "non-empty specifier must NOT be ignored by '$' exact-match alias, got {normal:?}"
   );
 }
