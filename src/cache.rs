@@ -16,6 +16,7 @@ use tokio::sync::OnceCell as OnceLock;
 
 use crate::{
   context::ResolveContext as Ctx,
+  hashing::{hash_path, IdentityHasher},
   package_json::{off_to_location, PackageJson},
   path::PathUtil,
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
@@ -43,11 +44,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   }
 
   pub fn value(&self, path: &Path) -> CachedPath {
-    let hash = {
-      let mut hasher = FxHasher::default();
-      path.hash(&mut hasher);
-      hasher.finish()
-    };
+    let hash = hash_path(path);
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
@@ -116,8 +113,9 @@ impl Hash for CachedPath {
 }
 
 impl PartialEq for CachedPath {
+  #[inline]
   fn eq(&self, other: &Self) -> bool {
-    self.0.path == other.0.path
+    self.0.hash == other.0.hash && (Arc::ptr_eq(&self.0, &other.0) || self.0.path == other.0.path)
   }
 }
 impl Eq for CachedPath {}
@@ -156,6 +154,7 @@ pub struct CachedPathImpl {
   canonicalized: OnceLock<Option<PathBuf>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
+  package_json_path: OnceLock<PathBuf>,
 }
 
 impl CachedPathImpl {
@@ -168,6 +167,7 @@ impl CachedPathImpl {
       canonicalized: OnceLock::new(),
       node_modules: OnceLock::new(),
       package_json: OnceLock::new(),
+      package_json_path: OnceLock::new(),
     }
   }
 
@@ -192,10 +192,10 @@ impl CachedPathImpl {
 
   pub async fn is_file<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
     if let Some(meta) = self.meta(fs).await {
-      ctx.add_file_dependency(self.path());
+      ctx.add_file_dependency_with_hash(self.to_path_buf(), self.hash);
       meta.is_file
     } else {
-      ctx.add_missing_dependency(self.path());
+      ctx.add_missing_dependency_with_hash(self.to_path_buf(), self.hash);
       false
     }
   }
@@ -203,7 +203,7 @@ impl CachedPathImpl {
   pub async fn is_dir<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
     self.meta(fs).await.map_or_else(
       || {
-        ctx.add_missing_dependency(self.path());
+        ctx.add_missing_dependency_with_hash(self.to_path_buf(), self.hash);
         false
       },
       |meta| meta.is_dir,
@@ -308,11 +308,14 @@ impl CachedPathImpl {
     options: &ResolveOptions,
     ctx: &mut Ctx,
   ) -> Result<Option<Arc<PackageJson>>, ResolveError> {
+    let package_json_path = self
+      .package_json_path
+      .get_or_init(|| async { self.path.join("package.json") })
+      .await;
     // Change to `std::sync::OnceLock::get_or_try_init` when it is stable.
     let result = self
       .package_json
       .get_or_try_init(|| async {
-        let package_json_path = self.path.join("package.json");
         let Ok(package_json_string) = fs.read(&package_json_path).await else {
           return Ok(None);
         };
@@ -324,7 +327,6 @@ impl CachedPathImpl {
         match PackageJson::parse(package_json_path.clone(), real_path, package_json_string) {
           Ok(v) => Ok(Some(Arc::new(v))),
           Err(parse_err) => {
-            let package_json_path = self.path.join("package.json");
             let package_json_string = match fs.read_to_string(&package_json_path).await {
               Ok(c) => c,
               Err(io_err) => {
@@ -335,7 +337,7 @@ impl CachedPathImpl {
 
             if let Some(err) = serde_err {
               Err(ResolveError::from_serde_json_error(
-                package_json_path,
+                package_json_path.clone(),
                 &err,
                 Some(package_json_string),
               ))
@@ -343,7 +345,7 @@ impl CachedPathImpl {
               let (line, column) = off_to_location(&package_json_string, parse_err.index());
 
               Err(ResolveError::JSON(JSONError {
-                path: package_json_path,
+                path: package_json_path.clone(),
                 message: parse_err.error().to_string(),
                 line,
                 column,
@@ -363,14 +365,10 @@ impl CachedPathImpl {
       }
       Ok(None) => {
         // Avoid an allocation by making this lazy
-        if let Some(deps) = &mut ctx.missing_dependencies {
-          deps.push(self.path.join("package.json"));
-        }
+        ctx.add_missing_dependency(package_json_path);
       }
       Err(_) => {
-        if let Some(deps) = &mut ctx.file_dependencies {
-          deps.push(self.path.join("package.json"));
-        }
+        ctx.add_file_dependency(package_json_path);
       }
     }
     result
@@ -390,7 +388,9 @@ impl Hash for dyn CacheKey + '_ {
 
 impl PartialEq for dyn CacheKey + '_ {
   fn eq(&self, other: &Self) -> bool {
-    self.tuple().1 == other.tuple().1
+    let self_tuple = self.tuple();
+    let other_tuple = other.tuple();
+    self_tuple.0 == other_tuple.0 && self_tuple.1 == other_tuple.1
   }
 }
 
@@ -405,22 +405,5 @@ impl CacheKey for (u64, &Path) {
 impl<'a> Borrow<dyn CacheKey + 'a> for (u64, &'a Path) {
   fn borrow(&self) -> &(dyn CacheKey + 'a) {
     self
-  }
-}
-
-/// Since the cache key is memoized, use an identity hasher
-/// to avoid double cache.
-#[derive(Default)]
-struct IdentityHasher(u64);
-
-impl Hasher for IdentityHasher {
-  fn write(&mut self, _: &[u8]) {
-    unreachable!("Invalid use of IdentityHasher")
-  }
-  fn write_u64(&mut self, n: u64) {
-    self.0 = n;
-  }
-  fn finish(&self) -> u64 {
-    self.0
   }
 }

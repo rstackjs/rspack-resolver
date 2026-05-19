@@ -3,7 +3,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use crate::error::ResolveError;
+use crate::{error::ResolveError, PathDependency};
 
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext(ResolveContextImpl);
@@ -21,6 +21,12 @@ pub struct ResolveContextImpl {
 
   /// Files that was found on file system
   pub missing_dependencies: Option<Vec<PathBuf>>,
+
+  /// Files that was found on file system, with precomputed hashes.
+  pub prehashed_file_dependencies: Option<Vec<PathDependency>>,
+
+  /// Files that were not found on file system, with precomputed hashes.
+  pub prehashed_missing_dependencies: Option<Vec<PathDependency>>,
 
   /// The current resolving alias for bailing recursion alias.
   pub resolving_alias: Option<String>,
@@ -62,15 +68,40 @@ impl ResolveContext {
     self.missing_dependencies.replace(vec![]);
   }
 
+  pub fn init_prehashed_dependencies(&mut self) {
+    self.prehashed_file_dependencies.replace(vec![]);
+    self.prehashed_missing_dependencies.replace(vec![]);
+  }
+
   pub fn add_file_dependency(&mut self, dep: &Path) {
-    if let Some(deps) = &mut self.file_dependencies {
+    if let Some(deps) = &mut self.prehashed_file_dependencies {
+      deps.push(PathDependency::new(dep.to_path_buf()));
+    } else if let Some(deps) = &mut self.file_dependencies {
       deps.push(dep.to_path_buf());
     }
   }
 
+  pub fn add_file_dependency_with_hash(&mut self, dep: PathBuf, hash: u64) {
+    if let Some(deps) = &mut self.prehashed_file_dependencies {
+      deps.push(PathDependency::with_hash(dep, hash));
+    } else if let Some(deps) = &mut self.file_dependencies {
+      deps.push(dep);
+    }
+  }
+
   pub fn add_missing_dependency(&mut self, dep: &Path) {
-    if let Some(deps) = &mut self.missing_dependencies {
+    if let Some(deps) = &mut self.prehashed_missing_dependencies {
+      deps.push(PathDependency::new(dep.to_path_buf()));
+    } else if let Some(deps) = &mut self.missing_dependencies {
       deps.push(dep.to_path_buf());
+    }
+  }
+
+  pub fn add_missing_dependency_with_hash(&mut self, dep: PathBuf, hash: u64) {
+    if let Some(deps) = &mut self.prehashed_missing_dependencies {
+      deps.push(PathDependency::with_hash(dep, hash));
+    } else if let Some(deps) = &mut self.missing_dependencies {
+      deps.push(dep);
     }
   }
 
