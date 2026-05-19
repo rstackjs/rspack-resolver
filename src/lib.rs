@@ -1475,35 +1475,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           tracing::trace!(tsconfig = ?tsconfig, "load_tsconfig");
 
           // Extend tsconfig
-          if let Some(extends) = &tsconfig.extends {
-            let extended_tsconfig_paths = match extends {
-              ExtendsField::Single(s) => {
-                vec![
-                  self
-                    .get_extended_tsconfig_path(&directory, &tsconfig, s)
-                    .await?,
-                ]
-              }
-              ExtendsField::Multiple(specifiers) => {
-                try_join_all(
-                  specifiers
-                    .iter()
-                    .map(|s| self.get_extended_tsconfig_path(&directory, &tsconfig, s)),
-                )
-                .await?
-              }
-            };
-            for extended_tsconfig_path in extended_tsconfig_paths {
-              let extended_tsconfig = self
-                .load_tsconfig(
-                  /* root */ false,
-                  &extended_tsconfig_path,
-                  &TsconfigReferences::Disabled,
-                )
-                .await?;
-              tsconfig.extend_tsconfig(&extended_tsconfig);
-            }
-          }
+          self
+            .merge_tsconfig_extends(&mut tsconfig, &directory)
+            .await?;
 
           // Load project references
           match references {
@@ -1521,37 +1495,121 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
                 .collect();
             }
           }
-          if !tsconfig.references.is_empty() {
-            let directory = tsconfig.directory().to_path_buf();
-            for reference in &mut tsconfig.references {
-              let reference_tsconfig_path = directory.normalize_with(&reference.path);
-              let reference_tsconfig = self
-                .cache
-                .tsconfig(
-                  /* root */ true,
-                  &reference_tsconfig_path,
-                  |reference_tsconfig| async {
-                    if reference_tsconfig.path == tsconfig.path {
-                      return Err(ResolveError::TsconfigSelfReference(
-                        reference_tsconfig.path.clone(),
-                      ));
-                    }
-                    Ok(reference_tsconfig)
-                  },
-                )
-                .await?;
-              tsconfig
-                .file_dependencies
-                .extend(reference_tsconfig.file_dependencies.iter().cloned());
-              reference.tsconfig.replace(reference_tsconfig);
-            }
-          }
+          let mut visited = FxHashSet::default();
+          self.load_references(&mut tsconfig, &mut visited).await?;
 
           Ok(tsconfig)
         })
         .await
     };
     Box::pin(fut)
+  }
+
+  // Walks `tsconfig.references` and loads each referenced tsconfig, recursing
+  // into nested references so that transitive `paths` (e.g. A → B → C) are
+  // honored — matching `tsc`'s "nearest tsconfig wins" behavior and
+  // `enhanced-resolve`'s recursive `references: "auto"` walk.
+  //
+  // `visited` carries the canonical paths of tsconfigs already being loaded
+  // along the current chain. When a reference points back into the chain,
+  // the cycle edge is cut: the reference is still attached with its own
+  // `paths` honored, but its nested references are not walked.
+  fn load_references<'a>(
+    &'a self,
+    tsconfig: &'a mut TsConfig,
+    visited: &'a mut FxHashSet<PathBuf>,
+  ) -> BoxFuture<'a, Result<(), ResolveError>> {
+    Box::pin(async move {
+      if tsconfig.references.is_empty() {
+        return Ok(());
+      }
+      let directory = tsconfig.directory().to_path_buf();
+      let current_path = tsconfig.path.clone();
+      visited.insert(current_path.clone());
+      for reference in &mut tsconfig.references {
+        let reference_tsconfig_path = directory.normalize_with(&reference.path);
+        // Reborrow so the closure below can capture `&mut FxHashSet` across
+        // multiple iterations of this loop. Without the reborrow, the first
+        // iteration would consume the original `&mut visited` binding.
+        let visited: &mut FxHashSet<PathBuf> = &mut *visited;
+        let reference_tsconfig = self
+          .cache
+          .tsconfig(
+            /* root */ true,
+            &reference_tsconfig_path,
+            |mut reference_tsconfig| {
+              let current_path = current_path.clone();
+              async move {
+                if reference_tsconfig.path == current_path {
+                  return Err(ResolveError::TsconfigSelfReference(
+                    reference_tsconfig.path.clone(),
+                  ));
+                }
+                // Cut the cycle: if this reference is already part of the
+                // ongoing load chain, return it without walking its own
+                // references. Its `paths` are still attached to the parent.
+                if visited.contains(&reference_tsconfig.path) {
+                  return Ok(reference_tsconfig);
+                }
+                // Apply `extends` so the reference inherits its base config's
+                // `baseUrl`/`paths` before its own references are walked.
+                let directory = self.cache.value(reference_tsconfig.directory());
+                self
+                  .merge_tsconfig_extends(&mut reference_tsconfig, &directory)
+                  .await?;
+                self
+                  .load_references(&mut reference_tsconfig, visited)
+                  .await?;
+                Ok(reference_tsconfig)
+              }
+            },
+          )
+          .await?;
+        tsconfig
+          .file_dependencies
+          .extend(reference_tsconfig.file_dependencies.iter().cloned());
+        reference.tsconfig.replace(reference_tsconfig);
+      }
+      Ok(())
+    })
+  }
+
+  async fn merge_tsconfig_extends(
+    &self,
+    tsconfig: &mut TsConfig,
+    directory: &CachedPath,
+  ) -> Result<(), ResolveError> {
+    let Some(extends) = &tsconfig.extends else {
+      return Ok(());
+    };
+    let extended_tsconfig_paths = match extends {
+      ExtendsField::Single(s) => {
+        vec![
+          self
+            .get_extended_tsconfig_path(directory, tsconfig, s)
+            .await?,
+        ]
+      }
+      ExtendsField::Multiple(specifiers) => {
+        try_join_all(
+          specifiers
+            .iter()
+            .map(|s| self.get_extended_tsconfig_path(directory, tsconfig, s)),
+        )
+        .await?
+      }
+    };
+    for extended_tsconfig_path in extended_tsconfig_paths {
+      let extended_tsconfig = self
+        .load_tsconfig(
+          /* root */ false,
+          &extended_tsconfig_path,
+          &TsconfigReferences::Disabled,
+        )
+        .await?;
+      tsconfig.extend_tsconfig(&extended_tsconfig);
+    }
+    Ok(())
   }
 
   async fn get_extended_tsconfig_path(
