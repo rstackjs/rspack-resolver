@@ -353,3 +353,26 @@ async fn empty_alias_key_matches_absolute_specifier() {
     "empty alias key must match an absolute specifier, got {resolution:?}"
   );
 }
+
+// `options.alias` does not interpret `*` as a glob — it's a literal prefix.
+// A specifier starting with `*` should hit the alias, anything else should
+// fall through. Pinning this so the prefix-byte accelerator keeps treating
+// `*` as a normal 1-byte alias key (registered in `byte1_only`).
+#[tokio::test]
+async fn star_alias_key_to_ignored_is_literal_prefix() {
+  let f = super::fixture();
+  let resolver = Resolver::new(ResolveOptions {
+    alias: vec![("*".into(), vec![AliasValue::Ignore])],
+    ..ResolveOptions::default()
+  });
+  let starred = resolver.resolve(&f, "*/anything").await;
+  assert!(
+    matches!(starred, Err(ResolveError::Ignored(_))),
+    "'*'-prefixed specifier must match the literal-prefix alias, got {starred:?}"
+  );
+  let normal = resolver.resolve(&f, "./a.js").await;
+  assert!(
+    !matches!(normal, Err(ResolveError::Ignored(_))),
+    "non-'*' specifier must NOT be ignored, got {normal:?}"
+  );
+}
