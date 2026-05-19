@@ -90,7 +90,7 @@ use crate::{
   cache::{Cache, CachedPath},
   context::ResolveContext as Ctx,
   package_json::JSONMap,
-  path::{PathUtil, SLASH_START},
+  path::{path_to_str, PathUtil, SLASH_START},
   specifier::Specifier,
   tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
@@ -305,7 +305,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// Wrap `resolve_impl` with `tracing` information
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %directory.to_string_lossy(), specifier = specifier)))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(directory), specifier = specifier)))]
   async fn resolve_tracing(
     &self,
     directory: &Path,
@@ -514,7 +514,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   // 3. If X begins with './' or '/' or '../'
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn require_relative(
     &self,
     cached_path: &CachedPath,
@@ -614,7 +614,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok((parsed, None))
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_package_self_or_node_modules(
     &self,
     cached_path: &CachedPath,
@@ -668,7 +668,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
   async fn load_as_file(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     // enhanced-resolve feature: extension_alias
     if let Some(path) = self.load_extension_alias(cached_path, ctx).await? {
@@ -731,7 +731,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     self.load_index(cached_path, ctx).await
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_as_file_or_directory(
     &self,
     cached_path: &CachedPath,
@@ -759,7 +759,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(path.path()))))]
   async fn load_extensions(
     &self,
     path: &CachedPath,
@@ -769,10 +769,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if ctx.fully_specified {
       return Ok(None);
     }
-    let path = path.path().as_os_str();
+    let path = path_to_str(path.path());
     // 8 is wild guess for max extension length
     let mut path_with_extension_buffer = String::with_capacity(path.len() + 8);
-    path_with_extension_buffer.push_str(&path.to_string_lossy());
+    path_with_extension_buffer.push_str(path);
     let base_len = path_with_extension_buffer.len();
 
     for extension in extensions {
@@ -786,7 +786,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
   async fn load_realpath(
     &self,
     cached_path: &CachedPath,
@@ -836,7 +836,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     true
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
   async fn load_index(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     for main_file in &self.options.main_files {
       let main_path = cached_path.path().normalize_with(main_file);
@@ -876,11 +876,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
     }
     // enhanced-resolve: try file as alias
-    let alias_specifier = cached_path.path().to_string_lossy();
+    let alias_specifier = path_to_str(cached_path.path());
     if let Some(path) = self
       .load_alias(
         cached_path,
-        &alias_specifier,
+        alias_specifier,
         &self.options.alias,
         &self.alias_first_bytes,
         ctx,
@@ -896,7 +896,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_node_modules(
     &self,
     cached_path: &CachedPath,
@@ -1040,7 +1040,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
   fn find_pnp_manifest(&self, cached_path: &CachedPath) -> Option<Arc<(PathBuf, pnp::Manifest)>> {
     // 1. Already have a manifest → return it (covers global cache paths too)
     if let Some(manifest) = self.pnp_manifest.load_full() {
@@ -1084,7 +1084,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_pnp(
     &self,
     cached_path: &CachedPath,
@@ -1192,7 +1192,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn load_package_self(
     &self,
     cached_path: &CachedPath,
@@ -1236,7 +1236,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// RESOLVE_ESM_MATCH(MATCH)
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
   async fn resolve_esm_match(
     &self,
     specifier: &str,
@@ -1276,7 +1276,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// enhanced-resolve: AliasFieldPlugin for [ResolveOptions::alias_fields]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = module_specifier, path = %cached_path.path().to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = module_specifier, path = path_to_str(cached_path.path()))))]
   async fn load_browser_field(
     &self,
     cached_path: &CachedPath,
@@ -1422,7 +1422,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           Cow::Borrowed(alias_value)
         } else {
           let normalized = alias_path.normalize_with(tail);
-          Cow::Owned(normalized.to_string_lossy().to_string())
+          Cow::Owned(path_to_str(&normalized).to_string())
         }
       };
 
@@ -1487,14 +1487,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // Create a meaningful error message.
     let dir = path.parent().unwrap().to_path_buf();
     let filename_without_extension = Path::new(filename).with_extension("");
-    let filename_without_extension = filename_without_extension.to_string_lossy();
+    let filename_without_extension = path_to_str(&filename_without_extension);
     let files = extensions
       .iter()
       .map(|ext| format!("{filename_without_extension}{ext}"))
       .collect::<Vec<_>>()
       .join(",");
     Err(ResolveError::ExtensionAlias(
-      filename.to_string_lossy().to_string(),
+      filename.to_str().expect("path should be UTF-8").to_string(),
       files,
       dir,
     ))
@@ -1565,35 +1565,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           tracing::trace!(tsconfig = ?tsconfig, "load_tsconfig");
 
           // Extend tsconfig
-          if let Some(extends) = &tsconfig.extends {
-            let extended_tsconfig_paths = match extends {
-              ExtendsField::Single(s) => {
-                vec![
-                  self
-                    .get_extended_tsconfig_path(&directory, &tsconfig, s)
-                    .await?,
-                ]
-              }
-              ExtendsField::Multiple(specifiers) => {
-                try_join_all(
-                  specifiers
-                    .iter()
-                    .map(|s| self.get_extended_tsconfig_path(&directory, &tsconfig, s)),
-                )
-                .await?
-              }
-            };
-            for extended_tsconfig_path in extended_tsconfig_paths {
-              let extended_tsconfig = self
-                .load_tsconfig(
-                  /* root */ false,
-                  &extended_tsconfig_path,
-                  &TsconfigReferences::Disabled,
-                )
-                .await?;
-              tsconfig.extend_tsconfig(&extended_tsconfig);
-            }
-          }
+          self
+            .merge_tsconfig_extends(&mut tsconfig, &directory)
+            .await?;
 
           // Load project references
           match references {
@@ -1611,37 +1585,121 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
                 .collect();
             }
           }
-          if !tsconfig.references.is_empty() {
-            let directory = tsconfig.directory().to_path_buf();
-            for reference in &mut tsconfig.references {
-              let reference_tsconfig_path = directory.normalize_with(&reference.path);
-              let reference_tsconfig = self
-                .cache
-                .tsconfig(
-                  /* root */ true,
-                  &reference_tsconfig_path,
-                  |reference_tsconfig| async {
-                    if reference_tsconfig.path == tsconfig.path {
-                      return Err(ResolveError::TsconfigSelfReference(
-                        reference_tsconfig.path.clone(),
-                      ));
-                    }
-                    Ok(reference_tsconfig)
-                  },
-                )
-                .await?;
-              tsconfig
-                .file_dependencies
-                .extend(reference_tsconfig.file_dependencies.iter().cloned());
-              reference.tsconfig.replace(reference_tsconfig);
-            }
-          }
+          let mut visited = FxHashSet::default();
+          self.load_references(&mut tsconfig, &mut visited).await?;
 
           Ok(tsconfig)
         })
         .await
     };
     Box::pin(fut)
+  }
+
+  // Walks `tsconfig.references` and loads each referenced tsconfig, recursing
+  // into nested references so that transitive `paths` (e.g. A → B → C) are
+  // honored — matching `tsc`'s "nearest tsconfig wins" behavior and
+  // `enhanced-resolve`'s recursive `references: "auto"` walk.
+  //
+  // `visited` carries the canonical paths of tsconfigs already being loaded
+  // along the current chain. When a reference points back into the chain,
+  // the cycle edge is cut: the reference is still attached with its own
+  // `paths` honored, but its nested references are not walked.
+  fn load_references<'a>(
+    &'a self,
+    tsconfig: &'a mut TsConfig,
+    visited: &'a mut FxHashSet<PathBuf>,
+  ) -> BoxFuture<'a, Result<(), ResolveError>> {
+    Box::pin(async move {
+      if tsconfig.references.is_empty() {
+        return Ok(());
+      }
+      let directory = tsconfig.directory().to_path_buf();
+      let current_path = tsconfig.path.clone();
+      visited.insert(current_path.clone());
+      for reference in &mut tsconfig.references {
+        let reference_tsconfig_path = directory.normalize_with(&reference.path);
+        // Reborrow so the closure below can capture `&mut FxHashSet` across
+        // multiple iterations of this loop. Without the reborrow, the first
+        // iteration would consume the original `&mut visited` binding.
+        let visited: &mut FxHashSet<PathBuf> = &mut *visited;
+        let reference_tsconfig = self
+          .cache
+          .tsconfig(
+            /* root */ true,
+            &reference_tsconfig_path,
+            |mut reference_tsconfig| {
+              let current_path = current_path.clone();
+              async move {
+                if reference_tsconfig.path == current_path {
+                  return Err(ResolveError::TsconfigSelfReference(
+                    reference_tsconfig.path.clone(),
+                  ));
+                }
+                // Cut the cycle: if this reference is already part of the
+                // ongoing load chain, return it without walking its own
+                // references. Its `paths` are still attached to the parent.
+                if visited.contains(&reference_tsconfig.path) {
+                  return Ok(reference_tsconfig);
+                }
+                // Apply `extends` so the reference inherits its base config's
+                // `baseUrl`/`paths` before its own references are walked.
+                let directory = self.cache.value(reference_tsconfig.directory());
+                self
+                  .merge_tsconfig_extends(&mut reference_tsconfig, &directory)
+                  .await?;
+                self
+                  .load_references(&mut reference_tsconfig, visited)
+                  .await?;
+                Ok(reference_tsconfig)
+              }
+            },
+          )
+          .await?;
+        tsconfig
+          .file_dependencies
+          .extend(reference_tsconfig.file_dependencies.iter().cloned());
+        reference.tsconfig.replace(reference_tsconfig);
+      }
+      Ok(())
+    })
+  }
+
+  async fn merge_tsconfig_extends(
+    &self,
+    tsconfig: &mut TsConfig,
+    directory: &CachedPath,
+  ) -> Result<(), ResolveError> {
+    let Some(extends) = &tsconfig.extends else {
+      return Ok(());
+    };
+    let extended_tsconfig_paths = match extends {
+      ExtendsField::Single(s) => {
+        vec![
+          self
+            .get_extended_tsconfig_path(directory, tsconfig, s)
+            .await?,
+        ]
+      }
+      ExtendsField::Multiple(specifiers) => {
+        try_join_all(
+          specifiers
+            .iter()
+            .map(|s| self.get_extended_tsconfig_path(directory, tsconfig, s)),
+        )
+        .await?
+      }
+    };
+    for extended_tsconfig_path in extended_tsconfig_paths {
+      let extended_tsconfig = self
+        .load_tsconfig(
+          /* root */ false,
+          &extended_tsconfig_path,
+          &TsconfigReferences::Disabled,
+        )
+        .await?;
+      tsconfig.extend_tsconfig(&extended_tsconfig);
+    }
+    Ok(())
   }
 
   async fn get_extended_tsconfig_path(

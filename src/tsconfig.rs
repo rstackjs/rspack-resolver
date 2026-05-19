@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxHasher;
 use serde::Deserialize;
 
-use crate::PathUtil;
+use crate::path::{path_to_str, PathUtil};
 
 pub type CompilerOptionsPathsMap = IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>;
 
@@ -78,7 +78,7 @@ pub struct ProjectReference {
 }
 
 impl TsConfig {
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %path.to_string_lossy())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(path))))]
   pub fn parse(root: bool, path: &Path, json: &mut str) -> Result<Self, serde_json::Error> {
     _ = json_strip_comments::strip(json);
     if json.trim().is_empty() {
@@ -121,16 +121,12 @@ impl TsConfig {
         }
       }
 
-      let mut p = self
-        .compiler_options
-        .paths_base
-        .to_string_lossy()
-        .to_string();
+      let mut p = path_to_str(&self.compiler_options.paths_base).to_string();
       Self::substitute_template_variable(&dir, &mut p);
       self.compiler_options.paths_base = p.into();
 
       if let Some(base_url) = self.compiler_options.base_url.as_mut() {
-        let mut p = base_url.to_string_lossy().to_string();
+        let mut p = path_to_str(base_url).to_string();
         Self::substitute_template_variable(&dir, &mut p);
         *base_url = p.into();
       }
@@ -170,17 +166,31 @@ impl TsConfig {
   }
 
   pub fn resolve(&self, path: &Path, specifier: &str) -> Vec<PathBuf> {
+    if let Some(matched) = self.find_reference_paths(path, specifier) {
+      return matched;
+    }
+    self.resolve_path_alias(specifier)
+  }
+
+  // Walks `references` recursively, returning the nearest reference whose
+  // `base_path` contains `path`. Used to honor transitive project references
+  // (A → B → C): a file inside C should resolve via C's own `paths` even
+  // when the entry tsconfig is A and only B is listed directly in A's
+  // references. Matches `tsc`'s "nearest tsconfig wins" semantics.
+  fn find_reference_paths(&self, path: &Path, specifier: &str) -> Option<Vec<PathBuf>> {
     for tsconfig in self
       .references
       .iter()
       .filter_map(|reference| reference.tsconfig.as_ref())
     {
+      if let Some(nested) = tsconfig.find_reference_paths(path, specifier) {
+        return Some(nested);
+      }
       if path.starts_with(tsconfig.base_path()) {
-        return tsconfig.resolve_path_alias(specifier);
+        return Some(tsconfig.resolve_path_alias(specifier));
       }
     }
-
-    self.resolve_path_alias(specifier)
+    None
   }
 
   // Copied from parcel
@@ -262,9 +272,9 @@ impl TsConfig {
   fn substitute_template_variable(directory: &Path, path: &mut String) {
     if let Some(stripped_path) = path.strip_prefix(TEMPLATE_VARIABLE) {
       if let Some(unleashed_path) = stripped_path.strip_prefix("/") {
-        *path = directory.join(unleashed_path).to_string_lossy().to_string();
+        *path = path_to_str(&directory.join(unleashed_path)).to_string();
       } else {
-        *path = directory.join(stripped_path).to_string_lossy().to_string();
+        *path = path_to_str(&directory.join(stripped_path)).to_string();
       }
     }
   }

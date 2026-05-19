@@ -184,6 +184,11 @@ impl CachedPathImpl {
   }
 
   async fn meta<Fs: Send + Sync + FileSystem>(&self, fs: &Fs) -> Option<FileMetadata> {
+    // Skip the Future state-machine + poll on cache hit. `tokio::sync::OnceCell::get`
+    // is sync and bypasses constructing the `get_or_init` future entirely.
+    if let Some(m) = self.meta.get() {
+      return *m;
+    }
     *self
       .meta
       .get_or_init(|| async { fs.metadata(&self.path).await.ok() })
@@ -215,6 +220,15 @@ impl CachedPathImpl {
     fs: &'a Fs,
   ) -> BoxFuture<'a, io::Result<PathBuf>> {
     let fut = async move {
+      // Cache hit: return immediately and avoid the recursive parent walk +
+      // `Box::pin` per call on the hot path.
+      if let Some(cached) = self.canonicalized.get() {
+        return Ok(
+          cached
+            .clone()
+            .unwrap_or_else(|| self.path.clone().to_path_buf()),
+        );
+      }
       self
         .canonicalized
         .get_or_try_init(|| async move {
@@ -258,6 +272,9 @@ impl CachedPathImpl {
     cache: &Cache<Fs>,
     ctx: &mut Ctx,
   ) -> Option<CachedPath> {
+    if let Some(nm) = self.node_modules.get() {
+      return nm.clone();
+    }
     self
       .node_modules
       .get_or_init(|| self.module_directory("node_modules", cache, ctx))
@@ -308,6 +325,18 @@ impl CachedPathImpl {
     options: &ResolveOptions,
     ctx: &mut Ctx,
   ) -> Result<Option<Arc<PackageJson>>, ResolveError> {
+    if let Some(pkg) = self.package_json.get() {
+      // Preserve ctx dependency tracking on cache hit.
+      match pkg {
+        Some(package_json) => ctx.add_file_dependency(&package_json.path),
+        None => {
+          if let Some(deps) = &mut ctx.missing_dependencies {
+            deps.push(self.path.join("package.json"));
+          }
+        }
+      }
+      return Ok(pkg.clone());
+    }
     // Change to `std::sync::OnceLock::get_or_try_init` when it is stable.
     let result = self
       .package_json

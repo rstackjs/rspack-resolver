@@ -82,13 +82,19 @@ async fn alias_and_extensions() {
       (
         "@scope-js/package-name/dir$".into(),
         vec![AliasValue::Path(
-          f.join("foo/index.js").to_string_lossy().to_string(),
+          f.join("foo/index.js")
+            .to_str()
+            .expect("path should be UTF-8")
+            .to_string(),
         )],
       ),
       (
         "react-dom".into(),
         vec![AliasValue::Path(
-          f.join("foo/index.js").to_string_lossy().to_string(),
+          f.join("foo/index.js")
+            .to_str()
+            .expect("path should be UTF-8")
+            .to_string(),
         )],
       ),
     ],
