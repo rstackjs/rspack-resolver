@@ -333,3 +333,23 @@ async fn alias_try_fragment_as_path() {
   let resolution = resolver.resolve(&f, "#/a").await.map(|r| r.full_path());
   assert_eq!(resolution, Ok(f.join("#").join("a.js")));
 }
+
+// Regression for the alias prefix-byte accelerator.
+// enhanced-resolve treats an alias key of "" as a wildcard that matches any
+// absolute specifier (`strip_prefix("")` succeeds and the tail starts with
+// `/`). The prefix index must keep this path open instead of short-circuiting.
+#[tokio::test]
+#[cfg(not(target_os = "windows"))]
+async fn empty_alias_key_matches_absolute_specifier() {
+  let f = super::fixture();
+  let resolver = Resolver::new(ResolveOptions {
+    alias: vec![(String::new(), vec![AliasValue::Ignore])],
+    ..ResolveOptions::default()
+  });
+  let absolute = f.join("a.js").to_str().unwrap().to_string();
+  let resolution = resolver.resolve(&f, &absolute).await;
+  assert!(
+    matches!(resolution, Err(ResolveError::Ignored(_))),
+    "empty alias key must match an absolute specifier, got {resolution:?}"
+  );
+}

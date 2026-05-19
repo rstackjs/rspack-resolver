@@ -120,12 +120,17 @@ pub type Resolver = ResolverGeneric<FileSystemOs>;
 struct AliasFirstBytes {
   byte1_only: [bool; 256],
   byte12: rustc_hash::FxHashSet<u16>,
+  /// An empty alias key (or a bare `$` exact-match) matches any absolute
+  /// specifier in enhanced-resolve. When present, the prefix gate must
+  /// fall through to the full loop instead of short-circuiting.
+  wildcard: bool,
 }
 
 impl AliasFirstBytes {
   fn build(aliases: &Alias) -> Self {
     let mut byte1_only = [false; 256];
     let mut byte12 = rustc_hash::FxHashSet::default();
+    let mut wildcard = false;
     for (key, _) in aliases {
       // `$`-suffixed keys are exact-match aliases — index by the stripped key.
       let effective = key.strip_suffix('$').unwrap_or(key);
@@ -135,13 +140,20 @@ impl AliasFirstBytes {
         [b1, b2, ..] => {
           byte12.insert(u16::from(*b1) << 8 | u16::from(*b2));
         }
-        [] => {}
+        [] => wildcard = true,
       }
     }
-    Self { byte1_only, byte12 }
+    Self {
+      byte1_only,
+      byte12,
+      wildcard,
+    }
   }
 
   fn may_match_bytes(&self, bytes: &[u8]) -> bool {
+    if self.wildcard {
+      return true;
+    }
     match bytes {
       [] => false,
       [b1] => self.byte1_only[*b1 as usize],
