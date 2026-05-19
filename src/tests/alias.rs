@@ -376,3 +376,22 @@ async fn star_alias_key_to_ignored_is_literal_prefix() {
     "non-'*' specifier must NOT be ignored, got {normal:?}"
   );
 }
+
+// `"$"` strips down to `""` — an exact-match alias whose key is the empty
+// string, so it can only match the empty specifier. The prefix accelerator
+// records its effective key as a wildcard (to keep the fall-through path
+// open for empty-key aliases), so this test guards against the wildcard flag
+// over-reaching and ignoring normal specifiers.
+#[tokio::test]
+async fn dollar_alias_key_to_ignored_is_exact_match_only() {
+  let f = super::fixture();
+  let resolver = Resolver::new(ResolveOptions {
+    alias: vec![("$".into(), vec![AliasValue::Ignore])],
+    ..ResolveOptions::default()
+  });
+  let normal = resolver.resolve(&f, "./a.js").await;
+  assert!(
+    !matches!(normal, Err(ResolveError::Ignored(_))),
+    "non-empty specifier must NOT be ignored by '$' exact-match alias, got {normal:?}"
+  );
+}
