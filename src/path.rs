@@ -5,10 +5,16 @@
 //! * [normalize_path](https://docs.rs/normalize-path)
 use std::path::{Component, Path, PathBuf};
 
+use camino::Utf8Path;
+
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
 
+pub fn path_to_utf8(path: &Path) -> &Utf8Path {
+  Utf8Path::from_path(path).expect("path should be UTF-8")
+}
+
 pub fn path_to_str(path: &Path) -> &str {
-  path.to_str().expect("path should be UTF-8")
+  path_to_utf8(path).as_str()
 }
 
 /// Extension trait to add path normalization to std's [`Path`].
