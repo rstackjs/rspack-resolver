@@ -5,7 +5,7 @@
 use std::{
   fmt::{Debug, Formatter},
   marker::PhantomData,
-  path::{Path, PathBuf},
+  path::Path,
 };
 
 use simd_json::{
@@ -80,10 +80,10 @@ impl Default for JSONCell {
 #[derive(Debug, Default)]
 pub struct PackageJson {
   /// Path to `package.json`. Contains the `package.json` filename.
-  pub path: PathBuf,
+  pub path: String,
 
   /// Realpath to `package.json`. Contains the `package.json` filename.
-  pub realpath: PathBuf,
+  pub realpath: String,
 
   /// The "name" field defines your package's name.
   /// The "name" field can be used in addition to the "exports" field to self-reference a package using its name.
@@ -135,7 +135,7 @@ impl From<SimdParseError> for ParseError {
 impl PackageJson {
   /// # Panics
   /// # Errors
-  pub(crate) fn parse(path: PathBuf, realpath: PathBuf, json: Vec<u8>) -> Result<Self, ParseError> {
+  pub(crate) fn parse(path: String, realpath: String, json: Vec<u8>) -> Result<Self, ParseError> {
     if json.starts_with(&BOM) {
       return Err(ParseError {
         message: "BOM character found".to_string(),
@@ -221,12 +221,13 @@ impl PackageJson {
   /// # Panics
   ///
   /// * When the package.json path is misconfigured.
-  pub fn directory(&self) -> &Path {
-    debug_assert!(self
-      .realpath
-      .file_name()
-      .is_some_and(|x| x == "package.json"));
-    self.realpath.parent().unwrap()
+  pub fn directory(&self) -> &str {
+    let realpath = Path::new(&self.realpath);
+    debug_assert!(realpath.file_name().is_some_and(|x| x == "package.json"));
+    realpath
+      .parent()
+      .and_then(|p| p.to_str())
+      .expect("package.json realpath should have a UTF-8 parent")
   }
 
   /// The "main" field defines the entry point of a package when imported by name via a node_modules lookup. Its value is a path.
@@ -308,7 +309,7 @@ impl PackageJson {
   /// * Returns [ResolveError::Ignored] for `"path": false` in `browser` field.
   pub(crate) fn resolve_browser_field<'a>(
     &'a self,
-    path: &Path,
+    path: &str,
     request: Option<&str>,
     alias_fields: &'a [Vec<String>],
   ) -> Result<Option<&'a str>, ResolveError> {
@@ -318,9 +319,12 @@ impl PackageJson {
           return Self::alias_value(path, value);
         }
       } else {
-        let dir = self.path.parent().unwrap();
+        let dir = Path::new(&self.path)
+          .parent()
+          .and_then(|p| p.to_str())
+          .expect("package.json path should have a UTF-8 parent");
         for (key, value) in object {
-          let joined = dir.normalize_with(key.to_string());
+          let joined = dir.normalize_with(key);
           if joined == path {
             return Self::alias_value(path, value);
           }
@@ -330,12 +334,12 @@ impl PackageJson {
     Ok(None)
   }
 
-  fn alias_value<'a>(key: &Path, value: &'a JSONValue) -> Result<Option<&'a str>, ResolveError> {
+  fn alias_value<'a>(key: &str, value: &'a JSONValue) -> Result<Option<&'a str>, ResolveError> {
     match value {
       JSONValue::String(value) => Ok(Some(value)),
       JSONValue::Static(sn) => {
         if matches!(sn.as_bool(), Some(false)) {
-          Err(ResolveError::Ignored(key.to_path_buf()))
+          Err(ResolveError::Ignored(key.to_string()))
         } else {
           Ok(None)
         }

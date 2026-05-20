@@ -1,7 +1,4 @@
-use std::{
-  fs, io,
-  path::{Path, PathBuf},
-};
+use std::{fs, io, path::Path};
 
 #[cfg(not(target_arch = "wasm32"))]
 use cfg_if::cfg_if;
@@ -18,29 +15,29 @@ pub trait FileSystem {
   /// # Errors
   ///
   /// See [std::fs::read]
-  async fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
+  async fn read(&self, path: &str) -> io::Result<Vec<u8>>;
   /// See [std::fs::read_to_string]
   ///
   /// # Errors
   ///
   /// * See [std::fs::read_to_string]
   /// ## Warning
-  /// Use `&Path` instead of a generic `P: AsRef<Path>` here,
+  /// Use `&str` instead of a generic `P: AsRef<str>` here,
   /// because object safety requirements, it is especially useful, when
   /// you want to store multiple `dyn FileSystem` in a `Vec` or use a `ResolverGeneric<Fs>` in
   /// napi env.
-  async fn read_to_string(&self, path: &Path) -> io::Result<String>;
+  async fn read_to_string(&self, path: &str) -> io::Result<String>;
 
   /// See [std::fs::metadata]
   ///
   /// # Errors
   /// See [std::fs::metadata]
   /// ## Warning
-  /// Use `&Path` instead of a generic `P: AsRef<Path>` here,
+  /// Use `&str` instead of a generic `P: AsRef<str>` here,
   /// because object safety requirements, it is especially useful, when
   /// you want to store multiple `dyn FileSystem` in a `Vec` or use a `ResolverGeneric<Fs>` in
   /// napi env.
-  async fn metadata(&self, path: &Path) -> io::Result<FileMetadata>;
+  async fn metadata(&self, path: &str) -> io::Result<FileMetadata>;
 
   /// See [std::fs::symlink_metadata]
   ///
@@ -48,11 +45,11 @@ pub trait FileSystem {
   ///
   /// See [std::fs::symlink_metadata]
   /// ## Warning
-  /// Use `&Path` instead of a generic `P: AsRef<Path>` here,
+  /// Use `&str` instead of a generic `P: AsRef<str>` here,
   /// because object safety requirements, it is especially useful, when
   /// you want to store multiple `dyn FileSystem` in a `Vec` or use a `ResolverGeneric<Fs>` in
   /// napi env.
-  async fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata>;
+  async fn symlink_metadata(&self, path: &str) -> io::Result<FileMetadata>;
 
   /// See [std::fs::canonicalize]
   ///
@@ -60,11 +57,11 @@ pub trait FileSystem {
   ///
   /// See [std::fs::read_link]
   /// ## Warning
-  /// Use `&Path` instead of a generic `P: AsRef<Path>` here,
+  /// Use `&str` instead of a generic `P: AsRef<str>` here,
   /// because object safety requirements, it is especially useful, when
   /// you want to store multiple `dyn FileSystem` in a `Vec` or use a `ResolverGeneric<Fs>` in
   /// napi env.
-  async fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
+  async fn canonicalize(&self, path: &str) -> io::Result<String>;
 }
 
 /// Metadata information about a file
@@ -144,10 +141,23 @@ impl FileSystemOs {
   }
 }
 
+/// UTF-8 wrapper around [`dunce::canonicalize`].
+#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
+fn canonicalize_to_string<P: AsRef<Path>>(path: P) -> io::Result<String> {
+  let canonical = dunce::canonicalize(path)?;
+  canonical.into_os_string().into_string().map_err(|_| {
+    io::Error::new(
+      io::ErrorKind::InvalidData,
+      "canonicalized path is not UTF-8",
+    )
+  })
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait::async_trait]
 impl FileSystem for FileSystemOs {
-  async fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
+  async fn read(&self, path: &str) -> io::Result<Vec<u8>> {
+    let path = Path::new(path);
     cfg_if! {
       if #[cfg(feature = "yarn_pnp")] {
         if self.options.enable_pnp {
@@ -162,7 +172,8 @@ impl FileSystem for FileSystemOs {
     tokio::fs::read(path).await
   }
 
-  async fn read_to_string(&self, path: &Path) -> io::Result<String> {
+  async fn read_to_string(&self, path: &str) -> io::Result<String> {
+    let path = Path::new(path);
     cfg_if! {
     if #[cfg(feature = "yarn_pnp")] {
         if self.options.enable_pnp {
@@ -177,7 +188,8 @@ impl FileSystem for FileSystemOs {
     tokio::fs::read_to_string(path).await
   }
 
-  async fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
+  async fn metadata(&self, path: &str) -> io::Result<FileMetadata> {
+    let path = Path::new(path);
     cfg_if! {
         if #[cfg(feature = "yarn_pnp")] {
             if self.options.enable_pnp {
@@ -200,61 +212,67 @@ impl FileSystem for FileSystemOs {
     tokio::fs::metadata(path).await.map(FileMetadata::from)
   }
 
-  async fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    tokio::fs::symlink_metadata(path)
+  async fn symlink_metadata(&self, path: &str) -> io::Result<FileMetadata> {
+    tokio::fs::symlink_metadata(Path::new(path))
       .await
       .map(FileMetadata::from)
   }
 
-  async fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+  async fn canonicalize(&self, path: &str) -> io::Result<String> {
+    let path = Path::new(path);
     cfg_if! {
         if #[cfg(feature = "yarn_pnp")] {
             if self.options.enable_pnp {
                 return match VPath::from(path)? {
                     VPath::Zip(info) => {
-                        dunce::canonicalize(info.physical_base_path().join(info.zip_path))
+                        canonicalize_to_string(info.physical_base_path().join(info.zip_path))
                     }
-                    VPath::Virtual(info) => dunce::canonicalize(info.physical_base_path()),
-                    VPath::Native(path) => dunce::canonicalize(path),
+                    VPath::Virtual(info) => canonicalize_to_string(info.physical_base_path()),
+                    VPath::Native(path) => canonicalize_to_string(path),
                 }
             }
         }
     }
 
-    dunce::canonicalize(path)
+    canonicalize_to_string(path)
   }
 }
 
 #[cfg(target_arch = "wasm32")]
 #[async_trait::async_trait]
 impl FileSystem for FileSystemOs {
-  async fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
-    std::fs::read(path)
+  async fn read(&self, path: &str) -> io::Result<Vec<u8>> {
+    std::fs::read(Path::new(path))
   }
 
-  async fn read_to_string(&self, path: &Path) -> io::Result<String> {
-    std::fs::read_to_string(path)
+  async fn read_to_string(&self, path: &str) -> io::Result<String> {
+    std::fs::read_to_string(Path::new(path))
   }
 
-  async fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
+  async fn metadata(&self, path: &str) -> io::Result<FileMetadata> {
+    let path = Path::new(path);
     // This implementation is verbose because there might be something wrong node wasm runtime.
     // I will investigate it in the future.
     if let Ok(m) = std::fs::metadata(path).map(FileMetadata::from) {
       return Ok(m);
     }
 
-    self.symlink_metadata(path).await?;
-    let path = self.canonicalize(path).await?;
-    std::fs::metadata(path).map(FileMetadata::from)
+    self
+      .symlink_metadata(path.to_str().expect("path should be UTF-8"))
+      .await?;
+    let resolved = self
+      .canonicalize(path.to_str().expect("path should be UTF-8"))
+      .await?;
+    std::fs::metadata(Path::new(&resolved)).map(FileMetadata::from)
   }
 
-  async fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    std::fs::symlink_metadata(path).map(FileMetadata::from)
+  async fn symlink_metadata(&self, path: &str) -> io::Result<FileMetadata> {
+    std::fs::symlink_metadata(Path::new(path)).map(FileMetadata::from)
   }
 
-  async fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
-    use std::path::Component;
-    let mut path_buf = path.to_path_buf();
+  async fn canonicalize(&self, path: &str) -> io::Result<String> {
+    use std::path::{Component, PathBuf};
+    let mut path_buf = PathBuf::from(path);
     let link = fs::read_link(&path_buf)?;
     path_buf.pop();
     for component in link.components() {
@@ -278,11 +296,18 @@ impl FileSystem for FileSystemOs {
 
       // This is not performant, we may optimize it with cache in the future
       if fs::symlink_metadata(&path_buf).is_ok_and(|m| m.is_symlink()) {
-        let dir = self.canonicalize(&path_buf).await?;
-        path_buf = dir;
+        let dir = self
+          .canonicalize(path_buf.to_str().expect("path should be UTF-8"))
+          .await?;
+        path_buf = PathBuf::from(dir);
       }
     }
-    Ok(path_buf)
+    path_buf.into_os_string().into_string().map_err(|_| {
+      io::Error::new(
+        io::ErrorKind::InvalidData,
+        "canonicalized path is not UTF-8",
+      )
+    })
   }
 }
 

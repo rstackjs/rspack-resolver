@@ -1,15 +1,11 @@
-use std::{
-  fmt,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{fmt, sync::Arc};
 
 use crate::package_json::PackageJson;
 
 /// The final path resolution with optional `?query` and `#fragment`
 #[derive(Clone)]
 pub struct Resolution {
-  pub(crate) path: PathBuf,
+  pub(crate) path: String,
 
   /// path query `?query`, contains `?`.
   pub(crate) query: Option<String>,
@@ -40,12 +36,12 @@ impl Eq for Resolution {}
 
 impl Resolution {
   /// Returns the path without query and fragment
-  pub fn path(&self) -> &Path {
+  pub fn path(&self) -> &str {
     &self.path
   }
 
   /// Returns the path without query and fragment
-  pub fn into_path_buf(self) -> PathBuf {
+  pub fn into_path(self) -> String {
     self.path
   }
 
@@ -65,29 +61,29 @@ impl Resolution {
   }
 
   /// Returns the full path with query and fragment
-  pub fn full_path(&self) -> PathBuf {
-    let mut path = self.path.clone().into_os_string();
+  pub fn full_path(&self) -> String {
+    let mut path = self.path.clone();
     if let Some(query) = &self.query {
-      path.push(query);
+      path.push_str(query);
     }
     if let Some(fragment) = &self.fragment {
-      path.push(fragment);
+      path.push_str(fragment);
     }
-    PathBuf::from(path)
+    path
   }
 }
 
 #[tokio::test]
 async fn test() {
   let resolution = Resolution {
-    path: PathBuf::from("foo"),
+    path: "foo".to_string(),
     query: Some("?query".to_string()),
     fragment: Some("#fragment".to_string()),
     package_json: None,
   };
-  assert_eq!(resolution.path(), Path::new("foo"));
+  assert_eq!(resolution.path(), "foo");
   assert_eq!(resolution.query(), Some("?query"));
   assert_eq!(resolution.fragment(), Some("#fragment"));
-  assert_eq!(resolution.full_path(), PathBuf::from("foo?query#fragment"));
-  assert_eq!(resolution.into_path_buf(), PathBuf::from("foo"));
+  assert_eq!(resolution.full_path(), "foo?query#fragment");
+  assert_eq!(resolution.into_path(), "foo");
 }

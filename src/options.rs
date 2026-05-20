@@ -1,8 +1,4 @@
-use std::{
-  fmt,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{fmt, sync::Arc};
 
 /// Module Resolution Options
 ///
@@ -148,7 +144,7 @@ pub struct ResolveOptions {
   /// On non-Windows systems these requests are resolved as an absolute path first.
   ///
   /// Default `[]`
-  pub roots: Vec<PathBuf>,
+  pub roots: Vec<String>,
 
   /// Whether to resolve symlinks to their symlinked location.
   /// When enabled, symlinked resources are resolved to their real path, not their symlinked location.
@@ -209,16 +205,14 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_root("foo");
-  /// assert_eq!(options.roots, vec![PathBuf::from("foo")])
+  /// assert_eq!(options.roots, vec!["foo".to_string()])
   /// ```
   #[must_use]
-  pub fn with_root<P: AsRef<Path>>(mut self, root: P) -> Self {
-    self.roots.push(root.as_ref().to_path_buf());
+  pub fn with_root<S: Into<String>>(mut self, root: S) -> Self {
+    self.roots.push(root.into());
     self
   }
 
@@ -227,8 +221,6 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_extension("jsonc");
@@ -245,8 +237,6 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_main_field("something");
@@ -263,8 +253,6 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
   /// use rspack_resolver::{EnforceExtension, ResolveOptions};
   ///
   /// let options = ResolveOptions::default().with_force_extension(EnforceExtension::Enabled);
@@ -281,8 +269,6 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_fully_specified(true);
@@ -298,8 +284,6 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_prefer_relative(true);
@@ -315,8 +299,6 @@ impl ResolveOptions {
   /// ## Examples
   ///
   /// ```
-  /// use std::path::{Path, PathBuf};
-  ///
   /// use rspack_resolver::ResolveOptions;
   ///
   /// let options = ResolveOptions::default().with_prefer_absolute(true);
@@ -445,8 +427,8 @@ where
 /// Value for [ResolveOptions::restrictions]
 #[derive(Clone)]
 pub enum Restriction {
-  Path(PathBuf),
-  Fn(Arc<dyn Fn(&Path) -> bool + Sync + Send>),
+  Path(String),
+  Fn(Arc<dyn Fn(&str) -> bool + Sync + Send>),
 }
 
 impl std::fmt::Debug for Restriction {
@@ -467,7 +449,7 @@ pub struct TsconfigOptions {
   /// You may provide
   /// * a relative path to the configuration file. It will be resolved relative to cwd.
   /// * an absolute path to the configuration file.
-  pub config_file: PathBuf,
+  pub config_file: String,
 
   /// Support for Typescript Project References.
   pub references: TsconfigReferences,
@@ -480,7 +462,7 @@ pub enum TsconfigReferences {
   /// Use the `references` field from tsconfig of `config_file`.
   Auto,
   /// Manually provided relative or absolute path.
-  Paths(Vec<PathBuf>),
+  Paths(Vec<String>),
 }
 
 impl Default for ResolveOptions {
@@ -590,8 +572,6 @@ impl fmt::Display for ResolveOptions {
 
 #[cfg(test)]
 mod test {
-  use std::path::PathBuf;
-
   use super::{
     AliasValue, EnforceExtension, ResolveOptions, Restriction, TsconfigOptions, TsconfigReferences,
   };
@@ -615,7 +595,7 @@ mod test {
   fn display() {
     let options = ResolveOptions {
       tsconfig: Some(TsconfigOptions {
-        config_file: PathBuf::from("tsconfig.json"),
+        config_file: "tsconfig.json".to_string(),
         references: TsconfigReferences::Auto,
       }),
       alias: vec![("a".into(), vec![AliasValue::Ignore])],
@@ -630,8 +610,8 @@ mod test {
       resolve_to_context: true,
       prefer_relative: true,
       prefer_absolute: true,
-      restrictions: vec![Restriction::Path(PathBuf::from("restrictions"))],
-      roots: vec![PathBuf::from("roots")],
+      restrictions: vec![Restriction::Path("restrictions".to_string())],
+      roots: vec!["roots".to_string()],
       builtin_modules: true,
       ..ResolveOptions::default()
     };

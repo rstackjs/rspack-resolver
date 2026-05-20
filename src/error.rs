@@ -1,4 +1,4 @@
-use std::{io, path::PathBuf, sync::Arc};
+use std::{io, sync::Arc};
 
 use thiserror::Error;
 
@@ -20,7 +20,7 @@ pub enum ResolveError {
   /// ```
   /// See <https://github.com/defunctzombie/package-browser-field-spec#ignore-a-module>
   #[error("Path is ignored {0}")]
-  Ignored(PathBuf),
+  Ignored(String),
 
   /// Module not found
   #[error("Cannot find module '{0}'")]
@@ -32,11 +32,11 @@ pub enum ResolveError {
 
   /// Tsconfig not found
   #[error("Tsconfig not found {0}")]
-  TsconfigNotFound(PathBuf),
+  TsconfigNotFound(String),
 
   /// Tsconfig's project reference path points to it self
   #[error("Tsconfig's project reference path points to this tsconfig {0}")]
-  TsconfigSelfReference(PathBuf),
+  TsconfigSelfReference(String),
 
   #[error("{0}")]
   IOError(IOError),
@@ -55,7 +55,7 @@ pub enum ResolveError {
   ExtensionAlias(
     /* File name */ String,
     /* Tried file names */ String,
-    /* Path to dir */ PathBuf,
+    /* Path to dir */ String,
   ),
 
   /// The provided path specifier cannot be parsed
@@ -69,25 +69,25 @@ pub enum ResolveError {
   #[error(
     r#"Invalid module "{0}" specifier is not a valid subpath for the "exports" resolution of {1}"#
   )]
-  InvalidModuleSpecifier(String, PathBuf),
+  InvalidModuleSpecifier(String, String),
 
   #[error(r#"Invalid "exports" target "{0}" defined for '{1}' in the package config {2}"#)]
-  InvalidPackageTarget(String, String, PathBuf),
+  InvalidPackageTarget(String, String, String),
 
   #[error(r#"Package subpath '{0}' is not defined by "exports" in {1}"#)]
-  PackagePathNotExported(String, PathBuf),
+  PackagePathNotExported(String, String),
 
   #[error(r#"Invalid package config "{0}", "exports" cannot contain some keys starting with '.' and some not. The exports object must either be an object of package subpath keys or an object of main entry condition name keys only."#)]
-  InvalidPackageConfig(PathBuf),
+  InvalidPackageConfig(String),
 
   #[error(r#"Default condition should be last one in "{0}""#)]
-  InvalidPackageConfigDefault(PathBuf),
+  InvalidPackageConfigDefault(String),
 
   #[error(r#"Expecting folder to folder mapping. "{0}" should end with "/"#)]
-  InvalidPackageConfigDirectory(PathBuf),
+  InvalidPackageConfigDirectory(String),
 
   #[error(r#"Package import specifier "{0}" is not defined in package {1}"#)]
-  PackageImportNotDefined(String, PathBuf),
+  PackageImportNotDefined(String, String),
 
   #[error("{0} is unimplemented")]
   Unimplemented(&'static str),
@@ -103,7 +103,7 @@ impl ResolveError {
   }
 
   pub(crate) fn from_serde_json_error(
-    path: PathBuf,
+    path: String,
     error: &serde_json::Error,
     content: Option<String>,
   ) -> Self {
@@ -127,7 +127,7 @@ pub enum SpecifierError {
 /// JSON error from [serde_json::Error]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct JSONError {
-  pub path: PathBuf,
+  pub path: String,
   pub message: String,
   pub line: usize,
   pub column: usize,

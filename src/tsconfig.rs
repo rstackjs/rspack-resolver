@@ -1,14 +1,10 @@
-use std::{
-  hash::BuildHasherDefault,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{hash::BuildHasherDefault, path::Path, sync::Arc};
 
 use indexmap::IndexMap;
 use rustc_hash::FxHasher;
 use serde::Deserialize;
 
-use crate::path::{path_to_str, PathUtil};
+use crate::path::PathUtil;
 
 pub type CompilerOptionsPathsMap = IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>;
 
@@ -31,10 +27,10 @@ pub struct TsConfig {
 
   /// Path to `tsconfig.json`. Contains the `tsconfig.json` filename.
   #[serde(skip)]
-  pub(crate) path: PathBuf,
+  pub(crate) path: String,
 
   #[serde(skip)]
-  pub(crate) file_dependencies: Vec<PathBuf>,
+  pub(crate) file_dependencies: Vec<String>,
 
   #[serde(default)]
   pub extends: Option<ExtendsField>,
@@ -53,14 +49,14 @@ pub struct TsConfig {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CompilerOptions {
-  base_url: Option<PathBuf>,
+  base_url: Option<String>,
 
   /// Path aliases
   paths: Option<CompilerOptionsPathsMap>,
 
   /// The actual base for where path aliases are resolved from.
   #[serde(skip)]
-  paths_base: PathBuf,
+  paths_base: String,
 }
 
 /// Project Reference
@@ -70,7 +66,7 @@ pub struct CompilerOptions {
 pub struct ProjectReference {
   /// The path property of each reference can point to a directory containing a tsconfig.json file,
   /// or to the config file itself (which may have any name).
-  pub path: PathBuf,
+  pub path: String,
 
   /// Reference to the resolved tsconfig
   #[serde(skip)]
@@ -78,21 +74,21 @@ pub struct ProjectReference {
 }
 
 impl TsConfig {
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(path))))]
-  pub fn parse(root: bool, path: &Path, json: &mut str) -> Result<Self, serde_json::Error> {
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path)))]
+  pub fn parse(root: bool, path: &str, json: &mut str) -> Result<Self, serde_json::Error> {
     _ = json_strip_comments::strip(json);
     if json.trim().is_empty() {
       let mut tsconfig: Self = serde_json::from_str("{}")?;
       tsconfig.root = root;
-      tsconfig.path = path.to_path_buf();
-      tsconfig.file_dependencies.push(path.to_path_buf());
+      tsconfig.path = path.to_string();
+      tsconfig.file_dependencies.push(path.to_string());
       return Ok(tsconfig);
     }
     let mut tsconfig: Self = serde_json::from_str(json)?;
     tsconfig.root = root;
-    tsconfig.path = path.to_path_buf();
-    tsconfig.file_dependencies.push(path.to_path_buf());
-    let directory = tsconfig.directory().to_path_buf();
+    tsconfig.path = path.to_string();
+    tsconfig.file_dependencies.push(path.to_string());
+    let directory = tsconfig.directory().to_string();
     if let Some(base_url) = &tsconfig.compiler_options.base_url {
       // keep the `${configDir}` template variable in the baseUrl
       if !base_url.starts_with(TEMPLATE_VARIABLE) {
@@ -111,7 +107,7 @@ impl TsConfig {
 
   pub fn build(mut self) -> Self {
     if self.root {
-      let dir = self.directory().to_path_buf();
+      let dir = self.directory().to_string();
       // Substitute template variable in `tsconfig.compilerOptions.paths`
       if let Some(paths) = &mut self.compiler_options.paths {
         for paths in paths.values_mut() {
@@ -121,14 +117,12 @@ impl TsConfig {
         }
       }
 
-      let mut p = path_to_str(&self.compiler_options.paths_base).to_string();
+      let mut p = self.compiler_options.paths_base.clone();
       Self::substitute_template_variable(&dir, &mut p);
-      self.compiler_options.paths_base = p.into();
+      self.compiler_options.paths_base = p;
 
       if let Some(base_url) = self.compiler_options.base_url.as_mut() {
-        let mut p = path_to_str(base_url).to_string();
-        Self::substitute_template_variable(&dir, &mut p);
-        *base_url = p.into();
+        Self::substitute_template_variable(&dir, base_url);
       }
     }
     self
@@ -139,9 +133,12 @@ impl TsConfig {
   /// # Panics
   ///
   /// * When the `tsconfig.json` path is misconfigured.
-  pub fn directory(&self) -> &Path {
-    debug_assert!(self.path.file_name().is_some());
-    self.path.parent().unwrap()
+  pub fn directory(&self) -> &str {
+    debug_assert!(Path::new(&self.path).file_name().is_some());
+    Path::new(&self.path)
+      .parent()
+      .and_then(|p| p.to_str())
+      .expect("tsconfig path should have a UTF-8 parent")
   }
 
   pub fn extend_tsconfig(&mut self, other_config: &Self) {
@@ -165,7 +162,7 @@ impl TsConfig {
       .extend(other_config.file_dependencies.iter().cloned());
   }
 
-  pub fn resolve(&self, path: &Path, specifier: &str) -> Vec<PathBuf> {
+  pub fn resolve(&self, path: &str, specifier: &str) -> Vec<String> {
     if let Some(matched) = self.find_reference_paths(path, specifier) {
       return matched;
     }
@@ -177,7 +174,7 @@ impl TsConfig {
   // (A → B → C): a file inside C should resolve via C's own `paths` even
   // when the entry tsconfig is A and only B is listed directly in A's
   // references. Matches `tsc`'s "nearest tsconfig wins" semantics.
-  fn find_reference_paths(&self, path: &Path, specifier: &str) -> Option<Vec<PathBuf>> {
+  fn find_reference_paths(&self, path: &str, specifier: &str) -> Option<Vec<String>> {
     for tsconfig in self
       .references
       .iter()
@@ -186,7 +183,9 @@ impl TsConfig {
       if let Some(nested) = tsconfig.find_reference_paths(path, specifier) {
         return Some(nested);
       }
-      if path.starts_with(tsconfig.base_path()) {
+      // Use Path-based comparison so the prefix check is component-aware,
+      // avoiding false positives like "/foo/barbaz" starting with "/foo/bar".
+      if Path::new(path).starts_with(Path::new(tsconfig.base_path())) {
         return Some(tsconfig.resolve_path_alias(specifier));
       }
     }
@@ -195,7 +194,7 @@ impl TsConfig {
 
   // Copied from parcel
   // <https://github.com/parcel-bundler/parcel/blob/b6224fd519f95e68d8b93ba90376fd94c8b76e69/packages/utils/node-resolver-rs/src/tsconfig.rs#L93>
-  pub fn resolve_path_alias(&self, specifier: &str) -> Vec<PathBuf> {
+  pub fn resolve_path_alias(&self, specifier: &str) -> Vec<String> {
     if specifier.starts_with(['/', '.']) {
       return vec![];
     }
@@ -251,17 +250,17 @@ impl TsConfig {
 
     paths
       .into_iter()
-      .map(|p| self.compiler_options.paths_base.normalize_with(p))
+      .map(|p| self.compiler_options.paths_base.normalize_with(&p))
       .chain(base_url_iter)
       .collect()
   }
 
-  fn base_path(&self) -> &Path {
+  fn base_path(&self) -> &str {
     self
       .compiler_options
       .base_url
-      .as_ref()
-      .map_or_else(|| self.directory(), |path| path.as_ref())
+      .as_deref()
+      .unwrap_or_else(|| self.directory())
   }
 
   /// Template variable `${configDir}` for substitution of config files directory path
@@ -269,13 +268,10 @@ impl TsConfig {
   /// NOTE: All tests cases are just a head replacement of `${configDir}`, so we are constrained as such.
   ///
   /// See <https://github.com/microsoft/TypeScript/pull/58042>
-  fn substitute_template_variable(directory: &Path, path: &mut String) {
+  fn substitute_template_variable(directory: &str, path: &mut String) {
     if let Some(stripped_path) = path.strip_prefix(TEMPLATE_VARIABLE) {
-      if let Some(unleashed_path) = stripped_path.strip_prefix("/") {
-        *path = path_to_str(&directory.join(unleashed_path)).to_string();
-      } else {
-        *path = path_to_str(&directory.join(stripped_path)).to_string();
-      }
+      let stripped_path = stripped_path.strip_prefix('/').unwrap_or(stripped_path);
+      *path = directory.normalize_with(stripped_path);
     }
   }
 }

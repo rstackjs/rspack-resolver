@@ -5,7 +5,7 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
-  path::{Path, PathBuf},
+  path::Path,
   sync::Arc,
 };
 
@@ -25,7 +25,7 @@ use crate::{
 pub struct Cache<Fs> {
   pub(crate) fs: Fs,
   paths: DashSet<CachedPath, BuildHasherDefault<IdentityHasher>>,
-  tsconfigs: DashMap<PathBuf, Arc<TsConfig>, BuildHasherDefault<FxHasher>>,
+  tsconfigs: DashMap<String, Arc<TsConfig>, BuildHasherDefault<FxHasher>>,
 }
 
 impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
@@ -42,7 +42,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     self.tsconfigs.clear();
   }
 
-  pub fn value(&self, path: &Path) -> CachedPath {
+  pub fn value(&self, path: &str) -> CachedPath {
     let hash = {
       let mut hasher = FxHasher::default();
       path.hash(&mut hasher);
@@ -51,10 +51,13 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
-    let parent = path.parent().map(|p| self.value(p));
+    let parent = Path::new(path)
+      .parent()
+      .and_then(|p| p.to_str())
+      .map(|p| self.value(p));
     let data = CachedPath(Arc::new(CachedPathImpl::new(
       hash,
-      path.to_path_buf().into_boxed_path(),
+      path.to_string().into_boxed_str(),
       parent,
     )));
     self.paths.insert(data.clone());
@@ -64,7 +67,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   pub async fn tsconfig<F, Fut>(
     &self,
     root: bool,
-    path: &Path,
+    path: &str,
     callback: F, // callback for modifying tsconfig with `extends`
   ) -> Result<Arc<TsConfig>, ResolveError>
   where
@@ -75,24 +78,22 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
       return Ok(Arc::clone(tsconfig_ref.value()));
     }
     let meta = self.fs.metadata(path).await.ok();
-    let tsconfig_path = if meta.is_some_and(|m| m.is_file) {
+    let tsconfig_path: Cow<str> = if meta.is_some_and(|m| m.is_file) {
       Cow::Borrowed(path)
     } else if meta.is_some_and(|m| m.is_dir) {
-      Cow::Owned(path.join("tsconfig.json"))
+      Cow::Owned(path.normalize_with("tsconfig.json"))
     } else {
-      let mut os_string = path.to_path_buf().into_os_string();
-      os_string.push(".json");
-      Cow::Owned(PathBuf::from(os_string))
+      Cow::Owned(format!("{path}.json"))
     };
     let mut tsconfig_string = self
       .fs
       .read_to_string(&tsconfig_path)
       .await
-      .map_err(|_| ResolveError::TsconfigNotFound(path.to_path_buf()))?;
+      .map_err(|_| ResolveError::TsconfigNotFound(path.to_string()))?;
     let mut tsconfig =
       TsConfig::parse(root, &tsconfig_path, &mut tsconfig_string).map_err(|error| {
         ResolveError::from_serde_json_error(
-          tsconfig_path.to_path_buf(),
+          tsconfig_path.to_string(),
           &error,
           Some(tsconfig_string),
         )
@@ -101,7 +102,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     let tsconfig = Arc::new(tsconfig.build());
     self
       .tsconfigs
-      .insert(path.to_path_buf(), Arc::clone(&tsconfig));
+      .insert(path.to_string(), Arc::clone(&tsconfig));
     Ok(tsconfig)
   }
 }
@@ -143,23 +144,23 @@ impl AsRef<CachedPathImpl> for CachedPath {
 }
 
 impl CacheKey for CachedPath {
-  fn tuple(&self) -> (u64, &Path) {
+  fn tuple(&self) -> (u64, &str) {
     (self.hash, &self.path)
   }
 }
 
 pub struct CachedPathImpl {
   hash: u64,
-  path: Box<Path>,
+  path: Box<str>,
   parent: Option<CachedPath>,
   meta: OnceLock<Option<FileMetadata>>,
-  canonicalized: OnceLock<Option<PathBuf>>,
+  canonicalized: OnceLock<Option<String>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
 }
 
 impl CachedPathImpl {
-  fn new(hash: u64, path: Box<Path>, parent: Option<CachedPath>) -> Self {
+  fn new(hash: u64, path: Box<str>, parent: Option<CachedPath>) -> Self {
     Self {
       hash,
       path,
@@ -171,12 +172,8 @@ impl CachedPathImpl {
     }
   }
 
-  pub fn path(&self) -> &Path {
+  pub fn path(&self) -> &str {
     &self.path
-  }
-
-  pub fn to_path_buf(&self) -> PathBuf {
-    self.path.to_path_buf()
   }
 
   pub fn parent(&self) -> Option<&CachedPath> {
@@ -218,16 +215,12 @@ impl CachedPathImpl {
   pub fn realpath<'a, Fs: FileSystem + Send + Sync>(
     &'a self,
     fs: &'a Fs,
-  ) -> BoxFuture<'a, io::Result<PathBuf>> {
+  ) -> BoxFuture<'a, io::Result<String>> {
     let fut = async move {
       // Cache hit: return immediately and avoid the recursive parent walk +
       // `Box::pin` per call on the hot path.
       if let Some(cached) = self.canonicalized.get() {
-        return Ok(
-          cached
-            .clone()
-            .unwrap_or_else(|| self.path.clone().to_path_buf()),
-        );
+        return Ok(cached.clone().unwrap_or_else(|| self.path.to_string()));
       }
       self
         .canonicalized
@@ -241,15 +234,20 @@ impl CachedPathImpl {
           }
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
-            return Ok(Some(
-              parent_path.normalize_with(self.path.strip_prefix(&parent.path).unwrap()),
-            ));
+            let suffix = self
+              .path
+              .strip_prefix(parent.path.as_ref())
+              .unwrap_or(&self.path);
+            // Strip leading separator so `normalize_with` doesn't treat the
+            // suffix as absolute and overwrite the parent prefix.
+            let suffix = suffix.trim_start_matches(['/', '\\']);
+            return Ok(Some(parent_path.normalize_with(suffix)));
           }
           Ok(None)
         })
         .await
         .cloned()
-        .map(|r| r.unwrap_or_else(|| self.path.clone().to_path_buf()))
+        .map(|r| r.unwrap_or_else(|| self.path.to_string()))
     };
     Box::pin(fut)
   }
@@ -260,7 +258,7 @@ impl CachedPathImpl {
     cache: &Cache<Fs>,
     ctx: &mut Ctx,
   ) -> Option<CachedPath> {
-    let cached_path = cache.value(&self.path.join(module_name));
+    let cached_path = cache.value(&self.path.normalize_with(module_name));
     cached_path
       .is_dir(&cache.fs, ctx)
       .await
@@ -287,7 +285,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path.display())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = self.path.as_ref())))]
   pub async fn find_package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -318,7 +316,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path.display())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = self.path.as_ref())))]
   pub async fn package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -331,7 +329,7 @@ impl CachedPathImpl {
         Some(package_json) => ctx.add_file_dependency(&package_json.path),
         None => {
           if let Some(deps) = &mut ctx.missing_dependencies {
-            deps.push(self.path.join("package.json"));
+            deps.push(self.path.normalize_with("package.json"));
           }
         }
       }
@@ -341,19 +339,19 @@ impl CachedPathImpl {
     let result = self
       .package_json
       .get_or_try_init(|| async {
-        let package_json_path = self.path.join("package.json");
+        let package_json_path = self.path.normalize_with("package.json");
         let Ok(package_json_string) = fs.read(&package_json_path).await else {
           return Ok(None);
         };
         let real_path = if options.symlinks {
-          self.realpath(fs).await?.join("package.json")
+          self.realpath(fs).await?.normalize_with("package.json")
         } else {
           package_json_path.clone()
         };
         match PackageJson::parse(package_json_path.clone(), real_path, package_json_string) {
           Ok(v) => Ok(Some(Arc::new(v))),
           Err(parse_err) => {
-            let package_json_path = self.path.join("package.json");
+            let package_json_path = self.path.normalize_with("package.json");
             let package_json_string = match fs.read_to_string(&package_json_path).await {
               Ok(c) => c,
               Err(io_err) => {
@@ -393,12 +391,12 @@ impl CachedPathImpl {
       Ok(None) => {
         // Avoid an allocation by making this lazy
         if let Some(deps) = &mut ctx.missing_dependencies {
-          deps.push(self.path.join("package.json"));
+          deps.push(self.path.normalize_with("package.json"));
         }
       }
       Err(_) => {
         if let Some(deps) = &mut ctx.file_dependencies {
-          deps.push(self.path.join("package.json"));
+          deps.push(self.path.normalize_with("package.json"));
         }
       }
     }
@@ -408,7 +406,7 @@ impl CachedPathImpl {
 
 /// Memoized cache key, code adapted from <https://stackoverflow.com/a/50478038>.
 trait CacheKey {
-  fn tuple(&self) -> (u64, &Path);
+  fn tuple(&self) -> (u64, &str);
 }
 
 impl Hash for dyn CacheKey + '_ {
@@ -425,13 +423,13 @@ impl PartialEq for dyn CacheKey + '_ {
 
 impl Eq for dyn CacheKey + '_ {}
 
-impl CacheKey for (u64, &Path) {
-  fn tuple(&self) -> (u64, &Path) {
+impl CacheKey for (u64, &str) {
+  fn tuple(&self) -> (u64, &str) {
     (self.0, self.1)
   }
 }
 
-impl<'a> Borrow<dyn CacheKey + 'a> for (u64, &'a Path) {
+impl<'a> Borrow<dyn CacheKey + 'a> for (u64, &'a str) {
   fn borrow(&self) -> &(dyn CacheKey + 'a) {
     self
   }

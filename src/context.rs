@@ -1,7 +1,4 @@
-use std::{
-  ops::{Deref, DerefMut},
-  path::{Path, PathBuf},
-};
+use std::ops::{Deref, DerefMut};
 
 use crate::error::ResolveError;
 
@@ -17,10 +14,10 @@ pub struct ResolveContextImpl {
   pub fragment: Option<String>,
 
   /// Files that was found on file system
-  pub file_dependencies: Option<Vec<PathBuf>>,
+  pub file_dependencies: Option<Vec<String>>,
 
   /// Files that was found on file system
-  pub missing_dependencies: Option<Vec<PathBuf>>,
+  pub missing_dependencies: Option<Vec<String>>,
 
   /// The current resolving alias for bailing recursion alias.
   pub resolving_alias: Option<String>,
@@ -62,15 +59,15 @@ impl ResolveContext {
     self.missing_dependencies.replace(vec![]);
   }
 
-  pub fn add_file_dependency(&mut self, dep: &Path) {
+  pub fn add_file_dependency(&mut self, dep: &str) {
     if let Some(deps) = &mut self.file_dependencies {
-      deps.push(dep.to_path_buf());
+      deps.push(dep.to_string());
     }
   }
 
-  pub fn add_missing_dependency(&mut self, dep: &Path) {
+  pub fn add_missing_dependency(&mut self, dep: &str) {
     if let Some(deps) = &mut self.missing_dependencies {
-      deps.push(dep.to_path_buf());
+      deps.push(dep.to_string());
     }
   }
 

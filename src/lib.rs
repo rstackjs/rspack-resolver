@@ -65,9 +65,8 @@ mod tests;
 use std::{
   borrow::Cow,
   cmp::Ordering,
-  ffi::OsStr,
   fmt,
-  path::{Component, Path, PathBuf},
+  path::{Component, Path},
   sync::{Arc, OnceLock},
 };
 
@@ -90,7 +89,7 @@ use crate::{
   cache::{Cache, CachedPath},
   context::ResolveContext as Ctx,
   package_json::JSONMap,
-  path::{path_to_str, PathUtil, SLASH_START},
+  path::{PathUtil, SLASH_START},
   specifier::Specifier,
   tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
@@ -101,10 +100,10 @@ type ResolveResult = Result<Option<CachedPath>, ResolveError>;
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
   /// Files that was found on file system
-  pub file_dependencies: FxHashSet<PathBuf>,
+  pub file_dependencies: FxHashSet<String>,
 
   /// Dependencies that was not found on file system
-  pub missing_dependencies: FxHashSet<PathBuf>,
+  pub missing_dependencies: FxHashSet<String>,
 }
 
 /// Resolver with the current operating system as the file system
@@ -115,12 +114,12 @@ pub struct ResolverGeneric<Fs> {
   options: ResolveOptions,
   cache: Arc<Cache<Fs>>,
   #[cfg(feature = "yarn_pnp")]
-  pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
+  pnp_manifest: Arc<arc_swap::ArcSwapOption<(String, pnp::Manifest)>>,
   /// Paths that have been searched and confirmed to have no `.pnp.cjs` reachable by filesystem walk.
   #[cfg(feature = "yarn_pnp")]
   pnp_no_manifest_cache: Arc<DashSet<CachedPath>>,
   /// Lazily parsed directories from `NODE_PATH` env var.
-  node_path_dirs: OnceLock<Vec<PathBuf>>,
+  node_path_dirs: OnceLock<Vec<String>>,
 }
 
 impl<Fs> fmt::Debug for ResolverGeneric<Fs> {
@@ -202,9 +201,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// # Errors
   ///
   /// * See [ResolveError]
-  pub async fn resolve<P: Send + AsRef<Path>>(
+  pub async fn resolve<S: Send + AsRef<str>>(
     &self,
-    directory: P,
+    directory: S,
     specifier: &str,
   ) -> Result<Resolution, ResolveError> {
     let mut ctx = Ctx::default();
@@ -218,9 +217,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// # Errors
   ///
   /// * See [ResolveError]
-  pub async fn resolve_with_context<P: Send + AsRef<Path>>(
+  pub async fn resolve_with_context<S: Send + AsRef<str>>(
     &self,
-    directory: P,
+    directory: S,
     specifier: &str,
     resolve_context: &mut ResolveContext,
   ) -> Result<Resolution, ResolveError> {
@@ -239,14 +238,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// Wrap `resolve_impl` with `tracing` information
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(directory), specifier = specifier)))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = directory, specifier = specifier)))]
   async fn resolve_tracing(
     &self,
-    directory: &Path,
+    directory: &str,
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<Resolution, ResolveError> {
-    let span = tracing::debug_span!("resolve", path = ?directory, specifier = specifier);
+    let span = tracing::debug_span!("resolve", path = directory, specifier = specifier);
     let _enter = span.enter();
     let r = self.resolve_impl(directory, specifier, ctx).await;
     match &r {
@@ -262,7 +261,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
   async fn resolve_impl(
     &self,
-    path: &Path,
+    path: &str,
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<Resolution, ResolveError> {
@@ -276,7 +275,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .await?;
     if let Some(package_json) = &package_json {
       // path must be inside the package.
-      debug_assert!(path.starts_with(package_json.directory()));
+      debug_assert!(Path::new(&path).starts_with(package_json.directory()));
     }
     Ok(Resolution {
       path,
@@ -418,13 +417,16 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
     // 2. If X begins with '/'
     //   a. set Y to be the file system root
-    let path = self.cache.value(
-      //
+    let path = self.cache.value({
       #[cfg(windows)]
-      &Path::new(specifier).normalize(),
+      {
+        &specifier.normalize()
+      }
       #[cfg(not(windows))]
-      Path::new(specifier),
-    );
+      {
+        specifier
+      }
+    });
 
     if let Some(path) = self
       .load_as_file_or_directory(&path, specifier, ctx)
@@ -436,7 +438,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   // 3. If X begins with './' or '/' or '../'
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = cached_path.path())))]
   async fn require_relative(
     &self,
     cached_path: &CachedPath,
@@ -536,7 +538,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok((parsed, None))
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = cached_path.path())))]
   async fn load_package_self_or_node_modules(
     &self,
     cached_path: &CachedPath,
@@ -590,7 +592,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = cached_path.path())))]
   async fn load_as_file(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     // enhanced-resolve feature: extension_alias
     if let Some(path) = self.load_extension_alias(cached_path, ctx).await? {
@@ -653,7 +655,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     self.load_index(cached_path, ctx).await
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = cached_path.path())))]
   async fn load_as_file_or_directory(
     &self,
     cached_path: &CachedPath,
@@ -681,7 +683,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path.path())))]
   async fn load_extensions(
     &self,
     path: &CachedPath,
@@ -691,7 +693,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if ctx.fully_specified {
       return Ok(None);
     }
-    let path = path_to_str(path.path());
+    let path = path.path();
     // 8 is wild guess for max extension length
     let mut path_with_extension_buffer = String::with_capacity(path.len() + 8);
     path_with_extension_buffer.push_str(path);
@@ -700,7 +702,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     for extension in extensions {
       path_with_extension_buffer.truncate(base_len);
       path_with_extension_buffer.push_str(extension);
-      let cached_path = self.cache.value(Path::new(&path_with_extension_buffer));
+      let cached_path = self.cache.value(&path_with_extension_buffer);
       if let Some(path) = self.load_alias_or_file(&cached_path, ctx).await? {
         return Ok(Some(path));
       }
@@ -708,12 +710,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = cached_path.path())))]
   async fn load_realpath(
     &self,
     cached_path: &CachedPath,
     ctx: &mut Ctx,
-  ) -> Result<PathBuf, ResolveError> {
+  ) -> Result<String, ResolveError> {
     if self.options.symlinks {
       cached_path
         .realpath(&self.cache.fs)
@@ -724,21 +726,23 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         })
         .map_err(ResolveError::from)
     } else {
-      Ok(cached_path.to_path_buf())
+      Ok(cached_path.path().to_string())
     }
   }
 
-  fn check_restrictions(&self, path: &Path) -> bool {
+  fn check_restrictions(&self, path: &str) -> bool {
     // https://github.com/webpack/enhanced-resolve/blob/a998c7d218b7a9ec2461fc4fddd1ad5dd7687485/lib/RestrictionsPlugin.js#L19-L24
-    fn is_inside(path: &Path, parent: &Path) -> bool {
-      if !path.starts_with(parent) {
+    fn is_inside(path: &str, parent: &str) -> bool {
+      let path_p = Path::new(path);
+      let parent_p = Path::new(parent);
+      if !path_p.starts_with(parent_p) {
         return false;
       }
-      if path.as_os_str().len() == parent.as_os_str().len() {
+      if path.len() == parent.len() {
         return true;
       }
-      path
-        .strip_prefix(parent)
+      path_p
+        .strip_prefix(parent_p)
         .is_ok_and(|p| p == Path::new("./"))
     }
     for restriction in &self.options.restrictions {
@@ -758,7 +762,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     true
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = cached_path.path())))]
   async fn load_index(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
     for main_file in &self.options.main_files {
       let main_path = cached_path.path().normalize_with(main_file);
@@ -798,7 +802,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
     }
     // enhanced-resolve: try file as alias
-    let alias_specifier = path_to_str(cached_path.path());
+    let alias_specifier = cached_path.path();
     if let Some(path) = self
       .load_alias(cached_path, alias_specifier, &self.options.alias, ctx)
       .await?
@@ -812,7 +816,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = cached_path.path())))]
   async fn load_node_modules(
     &self,
     cached_path: &CachedPath,
@@ -907,18 +911,19 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// Parse `NODE_PATH` env var into directory list. Uses `;` on Windows, `:` on POSIX.
-  fn parse_node_path_env() -> Vec<PathBuf> {
+  fn parse_node_path_env() -> Vec<String> {
     std::env::var_os("NODE_PATH")
       .map(|path| {
         std::env::split_paths(&path)
           .filter(|paths| paths.is_absolute())
-          .collect::<Vec<PathBuf>>()
+          .filter_map(|p| p.into_os_string().into_string().ok())
+          .collect::<Vec<String>>()
       })
       .unwrap_or_default()
   }
 
   /// Lazily get NODE_PATH directories. Parsed once on first access.
-  fn node_path_dirs(&self) -> &[PathBuf] {
+  fn node_path_dirs(&self) -> &[String] {
     if !self.options.node_path {
       return &[];
     }
@@ -926,7 +931,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(all(test, not(target_os = "windows")))]
-  fn with_node_path_dirs(self, dirs: Vec<PathBuf>) -> Self {
+  fn with_node_path_dirs(self, dirs: Vec<String>) -> Self {
     let _ = self.node_path_dirs.set(dirs);
     self
   }
@@ -956,8 +961,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(cached_path.path()))))]
-  fn find_pnp_manifest(&self, cached_path: &CachedPath) -> Option<Arc<(PathBuf, pnp::Manifest)>> {
+  #[cfg_attr(feature = "enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = cached_path.path())))]
+  fn find_pnp_manifest(&self, cached_path: &CachedPath) -> Option<Arc<(String, pnp::Manifest)>> {
     // 1. Already have a manifest → return it (covers global cache paths too)
     if let Some(manifest) = self.pnp_manifest.load_full() {
       return Some(manifest);
@@ -969,12 +974,13 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
 
     // 3. Search for `.pnp.cjs` by walking up from this path
-    let base_path = cached_path.to_path_buf();
-    let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(&base_path) else {
+    let base_path = Path::new(cached_path.path());
+    let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(base_path) else {
       self.pnp_no_manifest_cache.insert(cached_path.clone());
 
       for p in base_path.ancestors() {
-        let p_cached = self.cache.value(p);
+        let Some(p_str) = p.to_str() else { break };
+        let p_cached = self.cache.value(p_str);
         if self.pnp_no_manifest_cache.contains(&p_cached) {
           break;
         }
@@ -986,6 +992,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     tracing::debug!("use manifest path: {:?}", manifest_path);
 
     let manifest = pnp::load_pnp_manifest(&manifest_path).ok()?;
+    let manifest_path = manifest_path.into_os_string().into_string().ok()?;
     let manifest = Arc::new((manifest_path, manifest));
 
     let previous = self
@@ -1000,7 +1007,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   #[cfg(feature = "yarn_pnp")]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = cached_path.path())))]
   async fn load_pnp(
     &self,
     cached_path: &CachedPath,
@@ -1013,7 +1020,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let (manifest_path, manifest) = pnp_data.as_ref();
     ctx.add_file_dependency(manifest_path);
 
-    let mut path = cached_path.to_path_buf();
+    let mut path = std::path::PathBuf::from(cached_path.path());
     path.push("");
     let resolution = pnp::resolve_to_unqualified_via_manifest(manifest, specifier, &path);
 
@@ -1021,6 +1028,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
     match resolution {
       Ok(pnp::Resolution::Resolved(path, subpath)) => {
+        let path = path
+          .into_os_string()
+          .into_string()
+          .map_err(|_| ResolveError::NotFound(specifier.to_string()))?;
         let cached_path = self.cache.value(&path);
 
         let export_resolution = self.load_package_self(&cached_path, specifier, ctx).await?;
@@ -1065,8 +1076,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> Option<CachedPath> {
     if module_name == "node_modules" {
       cached_path.cached_node_modules(&self.cache, ctx).await
-    } else if cached_path.path().components().next_back()
-      == Some(Component::Normal(OsStr::new(module_name)))
+    } else if Path::new(cached_path.path())
+      .file_name()
+      .and_then(|n| n.to_str())
+      == Some(module_name)
     {
       Some(cached_path.clone())
     } else {
@@ -1108,7 +1121,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = cached_path.path())))]
   async fn load_package_self(
     &self,
     cached_path: &CachedPath,
@@ -1152,7 +1165,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// RESOLVE_ESM_MATCH(MATCH)
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = specifier, path = cached_path.path())))]
   async fn resolve_esm_match(
     &self,
     specifier: &str,
@@ -1167,7 +1180,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(Some(path));
     }
 
-    let mut path_str = cached_path.path().to_str();
+    let mut path_str: Option<&str> = Some(cached_path.path());
 
     // 3. If the RESOLVED_PATH contains `?``, it could be a path with query
     //    so try to resolve it as a file or directory without the query,
@@ -1175,7 +1188,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     while let Some(s) = path_str {
       if let Some((before, _)) = s.rsplit_once('?') {
         if (self
-          .load_as_file_or_directory(&self.cache.value(Path::new(before)), "", ctx)
+          .load_as_file_or_directory(&self.cache.value(before), "", ctx)
           .await?)
           .is_some()
         {
@@ -1192,7 +1205,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   }
 
   /// enhanced-resolve: AliasFieldPlugin for [ResolveOptions::alias_fields]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = module_specifier, path = path_to_str(cached_path.path()))))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(specifier = module_specifier, path = cached_path.path())))]
   async fn load_browser_field(
     &self,
     cached_path: &CachedPath,
@@ -1218,7 +1231,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       // Complete when resolving to self `{"./a.js": "./a.js"}`
       if new_specifier
         .strip_prefix("./")
-        .filter(|s| path.ends_with(Path::new(s)))
+        .filter(|s| Path::new(path).ends_with(Path::new(s)))
         .is_some()
       {
         return if cached_path.is_file(&self.cache.fs, ctx).await {
@@ -1319,7 +1332,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       let new_specifier = if tail.is_empty() {
         Cow::Borrowed(alias_value)
       } else {
-        let alias_path = Path::new(alias_value).normalize();
+        let alias_path = alias_value.normalize();
         // Must not append anything to alias_value if it is a file.
         let alias_value_cached_path = self.cache.value(&alias_path);
         if alias_value_cached_path.is_file(&self.cache.fs, ctx).await {
@@ -1331,8 +1344,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         if tail.is_empty() {
           Cow::Borrowed(alias_value)
         } else {
-          let normalized = alias_path.normalize_with(tail);
-          Cow::Owned(path_to_str(&normalized).to_string())
+          Cow::Owned(alias_path.normalize_with(tail))
         }
       };
 
@@ -1359,29 +1371,33 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if self.options.extension_alias.is_empty() {
       return Ok(None);
     }
-    let Some(path_extension) = cached_path.path().extension() else {
+    let path_str = cached_path.path();
+    let path_p = Path::new(path_str);
+    let Some(path_extension) = path_p.extension().and_then(|e| e.to_str()) else {
       return Ok(None);
     };
     let Some((_, extensions)) = self
       .options
       .extension_alias
       .iter()
-      .find(|(ext, _)| OsStr::new(ext.trim_start_matches('.')) == path_extension)
+      .find(|(ext, _)| ext.trim_start_matches('.') == path_extension)
     else {
       return Ok(None);
     };
-    let path = cached_path.path();
-    let Some(filename) = path.file_name() else {
+    let Some(filename) = path_p.file_name().and_then(|f| f.to_str()) else {
       return Ok(None);
     };
-    let path_without_extension = path.with_extension("");
+    // Strip the trailing `.ext` segment to build the extension-less base.
+    let path_without_extension =
+      &path_str[..path_str.len() - path_extension.len() - 1 /* the dot */];
 
     ctx.with_fully_specified(true);
     for extension in extensions {
-      let mut path_with_extension = path_without_extension.clone().into_os_string();
-      path_with_extension.reserve_exact(extension.len());
-      path_with_extension.push(extension);
-      let cached_path = self.cache.value(Path::new(&path_with_extension));
+      let mut path_with_extension =
+        String::with_capacity(path_without_extension.len() + extension.len());
+      path_with_extension.push_str(path_without_extension);
+      path_with_extension.push_str(extension);
+      let cached_path = self.cache.value(&path_with_extension);
       if let Some(path) = self.load_alias_or_file(&cached_path, ctx).await? {
         ctx.with_fully_specified(false);
         return Ok(Some(path));
@@ -1395,16 +1411,19 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(None);
     }
     // Create a meaningful error message.
-    let dir = path.parent().unwrap().to_path_buf();
-    let filename_without_extension = Path::new(filename).with_extension("");
-    let filename_without_extension = path_to_str(&filename_without_extension);
+    let dir = path_p
+      .parent()
+      .and_then(|p| p.to_str())
+      .unwrap_or("")
+      .to_string();
+    let filename_without_extension = filename.rsplit_once('.').map_or(filename, |(stem, _)| stem);
     let files = extensions
       .iter()
       .map(|ext| format!("{filename_without_extension}{ext}"))
       .collect::<Vec<_>>()
       .join(",");
     Err(ResolveError::ExtensionAlias(
-      filename.to_str().expect("path should be UTF-8").to_string(),
+      filename.to_string(),
       files,
       dir,
     ))
@@ -1460,11 +1479,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip(self), fields(path = path.display().to_string())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip(self), fields(path = path)))]
   fn load_tsconfig<'a>(
     &'a self,
     root: bool,
-    path: &'a Path,
+    path: &'a str,
     references: &'a TsconfigReferences,
   ) -> BoxFuture<'a, Result<Arc<TsConfig>, ResolveError>> {
     let fut = async move {
@@ -1517,13 +1536,13 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   fn load_references<'a>(
     &'a self,
     tsconfig: &'a mut TsConfig,
-    visited: &'a mut FxHashSet<PathBuf>,
+    visited: &'a mut FxHashSet<String>,
   ) -> BoxFuture<'a, Result<(), ResolveError>> {
     Box::pin(async move {
       if tsconfig.references.is_empty() {
         return Ok(());
       }
-      let directory = tsconfig.directory().to_path_buf();
+      let directory = tsconfig.directory().to_string();
       let current_path = tsconfig.path.clone();
       visited.insert(current_path.clone());
       for reference in &mut tsconfig.references {
@@ -1531,7 +1550,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         // Reborrow so the closure below can capture `&mut FxHashSet` across
         // multiple iterations of this loop. Without the reborrow, the first
         // iteration would consume the original `&mut visited` binding.
-        let visited: &mut FxHashSet<PathBuf> = &mut *visited;
+        let visited: &mut FxHashSet<String> = &mut *visited;
         let reference_tsconfig = self
           .cache
           .tsconfig(
@@ -1617,12 +1636,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     directory: &CachedPath,
     tsconfig: &TsConfig,
     specifier: &str,
-  ) -> Result<PathBuf, ResolveError> {
+  ) -> Result<String, ResolveError> {
     match specifier.as_bytes().first() {
       None => Err(ResolveError::Specifier(SpecifierError::Empty(
         specifier.to_string(),
       ))),
-      Some(b'/') => Ok(PathBuf::from(specifier)),
+      Some(b'/') => Ok(specifier.to_string()),
       Some(b'.') => Ok(tsconfig.directory().normalize_with(specifier)),
       _ => self
         .clone_with_options(ResolveOptions {
@@ -1633,9 +1652,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         })
         .load_package_self_or_node_modules(directory, specifier, &mut Ctx::default())
         .await
-        .map(|p| p.to_path_buf())
+        .map(|p| p.path().to_string())
         .map_err(|err| match err {
-          ResolveError::NotFound(_) => ResolveError::TsconfigNotFound(PathBuf::from(specifier)),
+          ResolveError::NotFound(_) => ResolveError::TsconfigNotFound(specifier.to_string()),
           _ => err,
         }),
     }
@@ -1735,7 +1754,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// PACKAGE_EXPORTS_RESOLVE(packageURL, subpath, exports, conditions)
   fn package_exports_resolve<'a>(
     &'a self,
-    package_url: &'a Path,
+    package_url: &'a str,
     subpath: &'a str,
     exports: &'a JSONValue,
     ctx: &'a mut Ctx,
@@ -1752,7 +1771,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           without_dot = without_dot || !starts_with_dot_or_hash;
           if has_dot && without_dot {
             return Err(ResolveError::InvalidPackageConfig(
-              package_url.join("package.json"),
+              package_url.normalize_with("package.json"),
             ));
           }
         }
@@ -1768,7 +1787,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           let fragment = ctx.fragment.clone().unwrap_or_default();
           return Err(ResolveError::PackagePathNotExported(
             format!("./{}{query}{fragment}", subpath.trim_start_matches('.')),
-            package_url.join("package.json"),
+            package_url.normalize_with("package.json"),
           ));
         }
         // 1. Let mainExport be undefined.
@@ -1841,7 +1860,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       // 4. Throw a Package Path Not Exported error.
       Err(ResolveError::PackagePathNotExported(
         subpath.to_string(),
-        package_url.join("package.json"),
+        package_url.normalize_with("package.json"),
       ))
     };
     Box::pin(fut)
@@ -1909,7 +1928,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     &self,
     match_key: &str,
     match_obj: &JSONMap<'_>,
-    package_url: &Path,
+    package_url: &str,
     is_imports: bool,
     conditions: &[String],
     ctx: &mut Ctx,
@@ -1996,7 +2015,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   #[allow(clippy::too_many_arguments)]
   fn package_target_resolve<'a>(
     &'a self,
-    package_url: &'a Path,
+    package_url: &'a str,
     target_key: &'a str,
     target: &'a JSONValue,
     pattern_match: Option<&'a str>,
@@ -2009,7 +2028,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         target_key: &'a str,
         target: &'a str,
         pattern_match: Option<&'a str>,
-        package_url: &Path,
+        package_url: &str,
       ) -> Result<Cow<'a, str>, ResolveError> {
         let target = if let Some(pattern_match) = pattern_match {
           if !target_key.contains('*') && !target.contains('*') {
@@ -2019,7 +2038,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
               Cow::Owned(format!("{target}{pattern_match}"))
             } else {
               return Err(ResolveError::InvalidPackageConfigDirectory(
-                package_url.join("package.json"),
+                package_url.normalize_with("package.json"),
               ));
             }
           } else {
@@ -2042,7 +2061,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
               return Err(ResolveError::InvalidPackageTarget(
                 target.to_string(),
                 target_key.to_string(),
-                package_url.join("package.json"),
+                package_url.normalize_with("package.json"),
               ));
             }
             // 2. If patternMatch is a String, then
@@ -2058,11 +2077,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           // 4. Assert: resolvedTarget is contained in packageURL.
           // 5. If patternMatch is null, then
           let target = normalize_string_target(target_key, target, pattern_match, package_url)?;
-          if Path::new(target.as_ref()).is_invalid_exports_target() {
+          if target.as_ref().is_invalid_exports_target() {
             return Err(ResolveError::InvalidPackageTarget(
               target.to_string(),
               target_key.to_string(),
-              package_url.join("package.json"),
+              package_url.normalize_with("package.json"),
             ));
           }
           let resolved_target = package_url.normalize_with(target.as_ref());
@@ -2109,7 +2128,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             // Note: return PackagePathNotExported has the same effect as return because there are no matches.
             return Err(ResolveError::PackagePathNotExported(
               pattern_match.unwrap_or(".").to_string(),
-              package_url.join("package.json"),
+              package_url.normalize_with("package.json"),
             ));
           }
           // 2. For each item targetValue in target, do
