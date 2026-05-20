@@ -35,7 +35,7 @@ jobs:
           cache-save-if: ${{ github.ref_name == 'main' }}
           components: llvm-tools-preview
 
-      - uses: taiki-e/install-action@055f5df8c3f65ea01cd41e9dc855becd88953486 # v2.75.18
+      - uses: taiki-e/install-action@e1c4cd42111751368541a7cb5db3522bd1f846a4 # v2.78.0
         with:
           tool: cargo-llvm-cov
 
