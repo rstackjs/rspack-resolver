@@ -381,19 +381,26 @@ fn bench_resolver(c: &mut Criterion) {
       // `pnp::load_pnp_manifest` — which reads and regex-compiles a ~250KB
       // `.pnp.cjs` — dominated the inner loop and made the resolver's own
       // cost ~28% of the sample, drowning small resolver-level deltas.
+      //
+      // The FS metadata cache is still cleared per-iteration via
+      // `clear_fs_cache` so each measurement reflects real resolver work,
+      // not a fully-hot run.
       runner.block_on(async {
-        for i in data.clone() {
-          let _ =
-            rspack_resolver.resolve(pnp_workspace.join(format!("{i}")), "preact").await;
-        }
+        let _ = rspack_resolver.resolve(pnp_workspace.join("1"), "preact").await;
       });
 
-      b.to_async(runner).iter(|| async {
-        for i in data.clone() {
-          let _ =
-            rspack_resolver.resolve(pnp_workspace.join(format!("{i}")), "preact").await;
-        }
-      });
+      b.to_async(runner).iter_with_setup(
+        || {
+          rspack_resolver.clear_fs_cache();
+        },
+        |_| async {
+          for i in data.clone() {
+            let _ = rspack_resolver
+              .resolve(pnp_workspace.join(format!("{i}")), "preact")
+              .await;
+          }
+        },
+      );
     },
   );
 }
