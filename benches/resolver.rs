@@ -375,22 +375,29 @@ fn bench_resolver(c: &mut Criterion) {
     &root_range,
     |b, data| {
       let runner = runtime::Runtime::new().expect("failed to create tokio runtime");
-      let setup_runner = runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .expect("failed to create setup tokio runtime");
       let rspack_resolver = Arc::new(rspack_resolver(true));
 
       b.to_async(runner).iter_with_setup(
         || {
-          // Drop all caches, then resolve once so the PnP manifest is loaded
-          // and parsed before the timed body starts. Without this, the inner
-          // resolve re-runs `pnp::load_pnp_manifest` (a ~250KB regex compile)
-          // every iteration and drowns out resolver-level deltas.
+          // Drop all caches, then reload the PnP manifest before the timed
+          // body runs. The manifest re-parse (~250KB regex compile) is
+          // one-time work in real usage; keeping it out of the timed loop
+          // lets resolver-level deltas surface.
+          //
+          // `iter_with_setup`'s setup runs inside the outer
+          // `runner.block_on`, so a nested `block_on` would panic. Spawn the
+          // warmup onto the same multi-thread runtime and sync-wait on a
+          // channel; another worker drives the future while this thread
+          // blocks on `recv`.
           rspack_resolver.clear_cache();
-          setup_runner.block_on(async {
-            let _ = rspack_resolver.resolve(pnp_workspace.join("1"), "preact").await;
+          let resolver = Arc::clone(&rspack_resolver);
+          let workspace = pnp_workspace.clone();
+          let (tx, rx) = std::sync::mpsc::channel();
+          tokio::runtime::Handle::current().spawn(async move {
+            let _ = resolver.resolve(workspace.join("1"), "preact").await;
+            let _ = tx.send(());
           });
+          rx.recv().expect("pnp manifest warmup failed");
         },
         |_| async {
           for i in data.clone() {
