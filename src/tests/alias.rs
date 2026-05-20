@@ -336,19 +336,22 @@ async fn alias_try_fragment_as_path() {
 
 // Regression for the alias prefix-byte accelerator.
 // enhanced-resolve treats an alias key of "" as a wildcard that matches any
-// absolute specifier (`strip_prefix("")` succeeds and the tail starts with
-// `/`). The prefix index must keep this path open instead of short-circuiting.
+// specifier whose tail starts with `/` or `\` (see `path::SLASH_START`). The
+// prefix index must keep this path open instead of short-circuiting.
+//
+// We use a synthesised slash-prefixed specifier instead of the fixture's real
+// absolute path because Windows drive-letter paths (e.g. `D:\...`) don't
+// satisfy `strip_package_name`'s SLASH_START filter on `main` — the alias
+// match would skip there regardless of the prefix index.
 #[tokio::test]
 async fn empty_alias_key_matches_absolute_specifier() {
-  let f = super::fixture();
   let resolver = Resolver::new(ResolveOptions {
     alias: vec![(String::new(), vec![AliasValue::Ignore])],
     ..ResolveOptions::default()
   });
-  let absolute = f.join("a.js").to_str().unwrap().to_string();
-  let resolution = resolver.resolve(&f, &absolute).await;
+  let resolution = resolver.resolve(super::fixture(), "/foo").await;
   assert!(
     matches!(resolution, Err(ResolveError::Ignored(_))),
-    "empty alias key must match an absolute specifier, got {resolution:?}"
+    "empty alias key must match a slash-prefixed specifier, got {resolution:?}"
   );
 }
