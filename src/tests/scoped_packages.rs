@@ -1,10 +1,11 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/scoped-packages.test.js>
 
+use super::JoinExt;
 use crate::{ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn scoped_packages() {
-  let f = super::fixture().join("scoped");
+  let f = super::fixture().path_join("scoped");
 
   let resolver = Resolver::new(ResolveOptions {
     alias_fields: vec![vec!["browser".into()]],
@@ -13,9 +14,9 @@ async fn scoped_packages() {
 
   #[rustfmt::skip]
     let pass = [
-        ("main field should work", f.clone(), "@scope/pack1", f.join("./node_modules/@scope/pack1/main.js")),
-        ("browser field should work", f.clone(), "@scope/pack2", f.join("./node_modules/@scope/pack2/main.js")),
-        ("folder request should work", f.clone(), "@scope/pack2/lib", f.join("./node_modules/@scope/pack2/lib/index.js"))
+        ("main field should work", f.clone(), "@scope/pack1", f.path_join("./node_modules/@scope/pack1/main.js")),
+        ("browser field should work", f.clone(), "@scope/pack2", f.path_join("./node_modules/@scope/pack2/main.js")),
+        ("folder request should work", f.clone(), "@scope/pack2/lib", f.path_join("./node_modules/@scope/pack2/lib/index.js"))
     ];
 
   for (comment, path, request, expected) in pass {

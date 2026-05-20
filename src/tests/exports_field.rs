@@ -2,19 +2,18 @@
 //!
 //! The huge exports field test cases are at the bottom of this file.
 
-use std::path::Path;
-
 use simd_json::json;
 
+use super::JoinExt;
 use crate::{package_json, Ctx, PathUtil, ResolveError, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn test_simple() {
-  let f = super::fixture().join("exports-field");
-  let f2 = super::fixture().join("exports-field2");
-  let f4 = super::fixture().join("exports-field-error");
-  let f5 = super::fixture().join("imports-exports-wildcard");
-  let f6 = super::fixture().join("export-query");
+  let f = super::fixture().path_join("exports-field");
+  let f2 = super::fixture().path_join("exports-field2");
+  let f4 = super::fixture().path_join("exports-field-error");
+  let f5 = super::fixture().path_join("imports-exports-wildcard");
+  let f6 = super::fixture().path_join("export-query");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
@@ -25,31 +24,31 @@ async fn test_simple() {
 
   #[rustfmt::skip]
     let pass = [
-        ("resolve root using exports field, not a main field", f.clone(), "exports-field", f.join("node_modules/exports-field/x.js")),
-        ("resolver should respect condition names", f.clone(), "exports-field/dist/main.js", f.join("node_modules/exports-field/lib/lib2/main.js")),
+        ("resolve root using exports field, not a main field", f.clone(), "exports-field", f.path_join("node_modules/exports-field/x.js")),
+        ("resolver should respect condition names", f.clone(), "exports-field/dist/main.js", f.path_join("node_modules/exports-field/lib/lib2/main.js")),
         // enhanced_resolve behaves differently to node.js. enhanced_resolve fallbacks when an
         // array item is unresolved, where as node.js fallbacks when an array has an
         // InvalidPackageTarget error.
-        // ("resolver should respect fallback", f2.clone(), "exports-field/dist/browser.js", f2.join("node_modules/exports-field/lib/browser.js")),
+        // ("resolver should respect fallback", f2.clone(), "exports-field/dist/browser.js", f2.path_join("node_modules/exports-field/lib/browser.js")),
         // The following two tests require fallback from array values, the path is changed here to
         // only test query and fragment.
-        ("resolver should respect query parameters #1", f2.clone(), "exports-field/dist/main.js?foo", f2.join("node_modules/exports-field/lib/lib2/main.js?foo")),
-        ("resolver should respect fragment parameters #1", f2.clone(), "exports-field/dist/main.js#foo", f2.join("node_modules/exports-field/lib/lib2/main.js#foo")),
-        ("relative path should work, if relative path as request is used", f.clone(), "./node_modules/exports-field/lib/main.js", f.join("node_modules/exports-field/lib/main.js")),
-        ("self-resolving root", f.clone(), "@exports-field/core", f.join("a.js")),
-        ("should resolve with wildcard pattern #1", f5.clone(), "m/features/f.js", f5.join("node_modules/m/src/features/f.js")),
-        ("should resolve with wildcard pattern #2", f5.clone(), "m/features/y/y.js", f5.join("node_modules/m/src/features/y/y.js")),
-        ("should resolve with wildcard pattern #3", f5.clone(), "m/features-no-ext/y/y.js", f5.join("node_modules/m/src/features/y/y.js")),
-        ("should resolve with wildcard pattern #4", f5.clone(), "m/middle/nested/f.js", f5.join("node_modules/m/src/middle/nested/f.js")),
-        ("should resolve with wildcard pattern #5", f5.clone(), "m/middle-1/nested/f.js", f5.join("node_modules/m/src/middle-1/nested/f.js")),
-        ("should resolve with wildcard pattern #6", f5.clone(), "m/middle-2/nested/f.js", f5.join("node_modules/m/src/middle-2/nested/f.js")),
-        ("should resolve with wildcard pattern #7", f5.clone(), "m/middle-3/nested/f", f5.join("node_modules/m/src/middle-3/nested/f/nested/f.js")),
-        ("should resolve with wildcard pattern #8", f5.clone(), "m/middle-4/f/nested", f5.join("node_modules/m/src/middle-4/f/f.js")),
-        ("should resolve with wildcard pattern #9", f5.clone(), "m/middle-5/f$/$", f5.join("node_modules/m/src/middle-5/f$/$.js")),
-        ("should resolve with query string #10", f6.clone(), "export-query/add", f6.join("add.js?query1?query2")),
+        ("resolver should respect query parameters #1", f2.clone(), "exports-field/dist/main.js?foo", f2.path_join("node_modules/exports-field/lib/lib2/main.js?foo")),
+        ("resolver should respect fragment parameters #1", f2.clone(), "exports-field/dist/main.js#foo", f2.path_join("node_modules/exports-field/lib/lib2/main.js#foo")),
+        ("relative path should work, if relative path as request is used", f.clone(), "./node_modules/exports-field/lib/main.js", f.path_join("node_modules/exports-field/lib/main.js")),
+        ("self-resolving root", f.clone(), "@exports-field/core", f.path_join("a.js")),
+        ("should resolve with wildcard pattern #1", f5.clone(), "m/features/f.js", f5.path_join("node_modules/m/src/features/f.js")),
+        ("should resolve with wildcard pattern #2", f5.clone(), "m/features/y/y.js", f5.path_join("node_modules/m/src/features/y/y.js")),
+        ("should resolve with wildcard pattern #3", f5.clone(), "m/features-no-ext/y/y.js", f5.path_join("node_modules/m/src/features/y/y.js")),
+        ("should resolve with wildcard pattern #4", f5.clone(), "m/middle/nested/f.js", f5.path_join("node_modules/m/src/middle/nested/f.js")),
+        ("should resolve with wildcard pattern #5", f5.clone(), "m/middle-1/nested/f.js", f5.path_join("node_modules/m/src/middle-1/nested/f.js")),
+        ("should resolve with wildcard pattern #6", f5.clone(), "m/middle-2/nested/f.js", f5.path_join("node_modules/m/src/middle-2/nested/f.js")),
+        ("should resolve with wildcard pattern #7", f5.clone(), "m/middle-3/nested/f", f5.path_join("node_modules/m/src/middle-3/nested/f/nested/f.js")),
+        ("should resolve with wildcard pattern #8", f5.clone(), "m/middle-4/f/nested", f5.path_join("node_modules/m/src/middle-4/f/f.js")),
+        ("should resolve with wildcard pattern #9", f5.clone(), "m/middle-5/f$/$", f5.path_join("node_modules/m/src/middle-5/f$/$.js")),
+        ("should resolve with query string #10", f6.clone(), "export-query/add", f6.path_join("add.js?query1?query2")),
         // Sadly we can not use real `minus.js?query` and `equal.js?query` file due to Windows: invalid path
-        ("should resolve with query string #10", f6.clone(), "export-query/minus", f6.join("minus.js?query?extra")),
-        ("should resolve with query string #10", f6.clone(), "export-query/equal", f6.join("equal.js?query")),
+        ("should resolve with query string #10", f6.clone(), "export-query/minus", f6.path_join("minus.js?query?extra")),
+        ("should resolve with query string #10", f6.clone(), "export-query/equal", f6.path_join("equal.js?query")),
     ];
 
   // Not needed or snapshot:
@@ -63,14 +62,14 @@ async fn test_simple() {
     assert_eq!(resolved_path, Ok(expected), "{comment} {path:?} {request}");
   }
 
-  let p = f.join("node_modules/exports-field/package.json");
-  let p2 = f2.join("node_modules/exports-field/package.json");
-  let p4 = f4.join("node_modules/exports-field/package.json");
-  let p5 = f5.join("node_modules/m/package.json");
+  let p = f.path_join("node_modules/exports-field/package.json");
+  let p2 = f2.path_join("node_modules/exports-field/package.json");
+  let p4 = f4.path_join("node_modules/exports-field/package.json");
+  let p5 = f5.path_join("node_modules/m/package.json");
 
   #[rustfmt::skip]
     let fail = [
-        // ("throw error if extension not provided", f2.clone(), "exports-field/dist/main", ResolveError::NotFound(f2.join("node_modules/exports-field/lib/lib2/main"))),
+        // ("throw error if extension not provided", f2.clone(), "exports-field/dist/main", ResolveError::NotFound(f2.path_join("node_modules/exports-field/lib/lib2/main"))),
         ("resolver should respect query parameters #2. Direct matching", f2.clone(), "exports-field?foo", ResolveError::PackagePathNotExported("./?foo".into(), p2.clone())),
         ("resolver should respect fragment parameters #2. Direct matching", f2, "exports-field#foo", ResolveError::PackagePathNotExported("./#foo".into(), p2)),
         ("relative path should not work with exports field", f.clone(), "./node_modules/exports-field/dist/main.js", ResolveError::NotFound("./node_modules/exports-field/dist/main.js".into())),
@@ -81,7 +80,7 @@ async fn test_simple() {
         ("request ending with slash #2", f.clone(), "exports-field/dist/", ResolveError::PackagePathNotExported("./dist/".to_string(), p.clone())),
         ("request ending with slash #3", f.clone(), "exports-field/lib/", ResolveError::PackagePathNotExported("./lib/".to_string(), p)),
         ("should throw error if target is invalid", f4, "exports-field", ResolveError::InvalidPackageTarget("./a/../b/../../pack1/index.js".to_string(), ".".to_string(), p4)),
-        ("throw error if exports field is invalid", f.clone(), "invalid-exports-field", ResolveError::InvalidPackageConfig(f.join("node_modules/invalid-exports-field/package.json"))),
+        ("throw error if exports field is invalid", f.clone(), "invalid-exports-field", ResolveError::InvalidPackageConfig(f.path_join("node_modules/invalid-exports-field/package.json"))),
         ("should throw error if target is 'null'", f5, "m/features/internal/file.js", ResolveError::PackagePathNotExported("./features/internal/file.js".to_string(), p5)),
     ];
 
@@ -94,7 +93,7 @@ async fn test_simple() {
 // resolve using exports field, not a browser field #1
 #[tokio::test]
 async fn exports_not_browser_field1() {
-  let f = super::fixture().join("exports-field");
+  let f = super::fixture().path_join("exports-field");
 
   let resolver = Resolver::new(ResolveOptions {
     alias_fields: vec![vec!["browser".into()]],
@@ -109,14 +108,14 @@ async fn exports_not_browser_field1() {
     .map(|r| r.full_path());
   assert_eq!(
     resolved_path,
-    Ok(f.join("node_modules/exports-field/lib/lib2/main.js"))
+    Ok(f.path_join("node_modules/exports-field/lib/lib2/main.js"))
   );
 }
 
 // resolve using exports field and a browser alias field #2
 #[tokio::test]
 async fn exports_not_browser_field2() {
-  let f2 = super::fixture().join("exports-field2");
+  let f2 = super::fixture().path_join("exports-field2");
 
   let resolver = Resolver::new(ResolveOptions {
     alias_fields: vec![vec!["browser".into()]],
@@ -131,14 +130,14 @@ async fn exports_not_browser_field2() {
     .map(|r| r.full_path());
   assert_eq!(
     resolved_path,
-    Ok(f2.join("node_modules/exports-field/lib/browser.js"))
+    Ok(f2.path_join("node_modules/exports-field/lib/browser.js"))
   );
 }
 
 // should resolve extension without fullySpecified
 #[tokio::test]
 async fn extension_without_fully_specified() {
-  let f2 = super::fixture().join("exports-field2");
+  let f2 = super::fixture().path_join("exports-field2");
 
   let commonjs_resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
@@ -152,14 +151,14 @@ async fn extension_without_fully_specified() {
     .map(|r| r.full_path());
   assert_eq!(
     resolved_path,
-    Ok(f2.join("node_modules/exports-field/lib/lib2/main.js"))
+    Ok(f2.path_join("node_modules/exports-field/lib/lib2/main.js"))
   );
 }
 
 #[tokio::test]
 async fn field_name_path() {
-  let f2 = super::fixture().join("exports-field2");
-  let f3 = super::fixture().join("exports-field3");
+  let f2 = super::fixture().path_join("exports-field2");
+  let f3 = super::fixture().path_join("exports-field3");
 
   // field name path #1 #2 #3
   let exports_fields = [
@@ -187,7 +186,7 @@ async fn field_name_path() {
       .map(|r| r.full_path());
     assert_eq!(
       resolved_path,
-      Ok(f3.join("node_modules/exports-field/main.js"))
+      Ok(f3.path_join("node_modules/exports-field/main.js"))
     );
   }
 
@@ -204,7 +203,7 @@ async fn field_name_path() {
     .map(|r| r.full_path());
   assert_eq!(
     resolved_path,
-    Ok(f2.join("node_modules/exports-field/index.js"))
+    Ok(f2.path_join("node_modules/exports-field/index.js"))
   );
 
   // field name path #5
@@ -223,7 +222,7 @@ async fn field_name_path() {
     .map(|r| r.full_path());
   assert_eq!(
     resolved_path,
-    Ok(f3.join("node_modules/exports-field/index"))
+    Ok(f3.path_join("node_modules/exports-field/index"))
   );
 
   // non-compliant export targeting a directory
@@ -238,13 +237,13 @@ async fn field_name_path() {
     .map(|r| r.full_path());
   assert_eq!(
     resolved_path,
-    Ok(f3.join("node_modules/exports-field/src/index.js"))
+    Ok(f3.path_join("node_modules/exports-field/src/index.js"))
   );
 }
 
 #[tokio::test]
 async fn shared_resolvers() {
-  let f3 = super::fixture().join("exports-field3");
+  let f3 = super::fixture().path_join("exports-field3");
 
   let resolver1 = Resolver::new(ResolveOptions {
     exports_fields: vec![vec!["exportsField".into(), "exports".into()]],
@@ -257,7 +256,7 @@ async fn shared_resolvers() {
     .map(|r| r.full_path());
   assert_eq!(
     resolved_path,
-    Ok(f3.join("node_modules/exports-field/main.js"))
+    Ok(f3.path_join("node_modules/exports-field/main.js"))
   );
 
   let resolver2 = resolver1.clone_with_options(ResolveOptions {
@@ -271,13 +270,13 @@ async fn shared_resolvers() {
     .map(|r| r.full_path());
   assert_eq!(
     resolved_path,
-    Ok(f3.join("node_modules/exports-field/index"))
+    Ok(f3.path_join("node_modules/exports-field/index"))
   );
 }
 
 #[tokio::test]
 async fn extension_alias_1_2() {
-  let f = super::fixture().join("exports-field-and-extension-alias");
+  let f = super::fixture().path_join("exports-field-and-extension-alias");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
@@ -289,8 +288,8 @@ async fn extension_alias_1_2() {
 
   #[rustfmt::skip]
     let pass = [
-        ("should resolve with the `extensionAlias` option", f.clone(), "@org/pkg/string.js", f.join("node_modules/@org/pkg/dist/string.js")),
-        ("should resolve with the `extensionAlias` option #2", f.clone(), "pkg/string.js", f.join("node_modules/pkg/dist/string.js")),
+        ("should resolve with the `extensionAlias` option", f.clone(), "@org/pkg/string.js", f.path_join("node_modules/@org/pkg/dist/string.js")),
+        ("should resolve with the `extensionAlias` option #2", f.clone(), "pkg/string.js", f.path_join("node_modules/pkg/dist/string.js")),
     ];
 
   for (comment, path, request, expected) in pass {
@@ -304,7 +303,7 @@ async fn extension_alias_1_2() {
 
 #[tokio::test]
 async fn extension_alias_3() {
-  let f = super::fixture().join("exports-field-and-extension-alias");
+  let f = super::fixture().path_join("exports-field-and-extension-alias");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
@@ -325,7 +324,7 @@ async fn extension_alias_3() {
 
   #[rustfmt::skip]
     let pass = [
-        ("should resolve with the `extensionAlias` option #3", f.clone(), "pkg/string.js", f.join("node_modules/pkg/dist/string.js")),
+        ("should resolve with the `extensionAlias` option #3", f.clone(), "pkg/string.js", f.path_join("node_modules/pkg/dist/string.js")),
     ];
 
   for (comment, path, request, expected) in pass {
@@ -339,7 +338,7 @@ async fn extension_alias_3() {
 
 #[tokio::test]
 async fn extension_alias_throw_error() {
-  let f = super::fixture().join("exports-field-and-extension-alias");
+  let f = super::fixture().path_join("exports-field-and-extension-alias");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
@@ -353,7 +352,7 @@ async fn extension_alias_throw_error() {
     let fail = [
         // enhanced-resolve has two test cases that are exactly the same here
         // https://github.com/webpack/enhanced-resolve/blob/a998c7d218b7a9ec2461fc4fddd1ad5dd7687485/test/exportsField.test.js#L2976-L3024
-        ("should throw error with the `extensionAlias` option", f.clone(), "pkg/string.js", ResolveError::ExtensionAlias("string.js".into(), "string.ts".into(), f.join("node_modules/pkg/dist"))),
+        ("should throw error with the `extensionAlias` option", f.clone(), "pkg/string.js", ResolveError::ExtensionAlias("string.js".into(), "string.ts".into(), f.path_join("node_modules/pkg/dist"))),
         // TODO: The error is PackagePathNotExported in enhanced-resolve
         // ("should throw error with the `extensionAlias` option", f.clone(), "pkg/string.js", ResolveError::PackagePathNotExported("node_modules/pkg/dist/string.ts".to_string())),
     ];
@@ -2603,14 +2602,9 @@ async fn test_cases() {
         .collect::<Vec<_>>(),
       ..ResolveOptions::default()
     })
-    .package_exports_resolve(
-      Path::new(""),
-      case.request,
-      &case.exports_field,
-      &mut Ctx::default(),
-    )
+    .package_exports_resolve("", case.request, &case.exports_field, &mut Ctx::default())
     .await
-    .map(|p| p.map(|p| p.to_path_buf()));
+    .map(|p| p.map(|p| p.path().to_string()));
     if let Some(expect) = case.expect {
       if expect.is_empty() {
         assert!(
@@ -2621,12 +2615,7 @@ async fn test_cases() {
         );
       } else {
         for expect in expect {
-          assert_eq!(
-            resolved,
-            Ok(Some(Path::new(expect).normalize())),
-            "{}",
-            &case.name
-          );
+          assert_eq!(resolved, Ok(Some(expect.normalize())), "{}", &case.name);
         }
       }
     } else {

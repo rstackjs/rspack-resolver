@@ -2,8 +2,6 @@
 
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 mod windows {
-  use std::path::PathBuf;
-
   use rustc_hash::FxHashSet;
 
   use super::super::memory_fs::MemoryFS;
@@ -98,15 +96,14 @@ mod windows {
 
     for (name, context, request, result, file_dependencies, missing_dependencies) in data {
       let mut ctx = ResolveContext::default();
-      let path = PathBuf::from(context);
       let resolved = resolver
-        .resolve_with_context(path, request, &mut ctx)
+        .resolve_with_context(context, request, &mut ctx)
         .await
         .map(|r| r.full_path());
-      assert_eq!(resolved, Ok(PathBuf::from(result)));
-      let file_dependencies = FxHashSet::from_iter(file_dependencies.iter().map(PathBuf::from));
+      assert_eq!(resolved, Ok(result.to_string()));
+      let file_dependencies = FxHashSet::from_iter(file_dependencies.iter().map(|s| s.to_string()));
       let missing_dependencies =
-        FxHashSet::from_iter(missing_dependencies.iter().map(PathBuf::from));
+        FxHashSet::from_iter(missing_dependencies.iter().map(|s| s.to_string()));
       assert_eq!(ctx.file_dependencies, file_dependencies, "{name}");
       assert_eq!(ctx.missing_dependencies, missing_dependencies, "{name}");
     }

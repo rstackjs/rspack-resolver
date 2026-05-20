@@ -1,8 +1,9 @@
 //! https://github.com/webpack/enhanced-resolve/blob/main/test/missing.test.js
 
-use normalize_path::NormalizePath;
+use std::path::Path;
 
-use crate::{AliasValue, ResolveContext, ResolveOptions, Resolver};
+use super::JoinExt;
+use crate::{path::PathUtil, AliasValue, ResolveContext, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn test() {
@@ -12,44 +13,44 @@ async fn test() {
     (
       "./missing-file",
       vec![
-        f.join("missing-file"),
-        f.join("missing-file.js"),
-        f.join("missing-file.node"),
+        f.path_join("missing-file"),
+        f.path_join("missing-file.js"),
+        f.path_join("missing-file.node"),
       ],
     ),
     (
       "missing-module",
       vec![
-        f.join("node_modules/missing-module"),
-        f.parent().unwrap().join("node_modules"), // enhanced-resolve is "node_modules/missing-module"
+        f.path_join("node_modules/missing-module"),
+        Path::new(&f).parent().unwrap().path_join("node_modules"), // enhanced-resolve is "node_modules/missing-module"
       ],
     ),
     (
       "missing-module/missing-file",
       vec![
-        f.join("node_modules/missing-module"),
-        // f.parent().unwrap().join("node_modules/missing-module"), // we don't report this
+        f.path_join("node_modules/missing-module"),
+        // f.parent().unwrap().path_join("node_modules/missing-module"), // we don't report this
       ],
     ),
     (
       "m1/missing-file",
       vec![
-        f.join("node_modules/m1/missing-file"),
-        f.join("node_modules/m1/missing-file.js"),
-        f.join("node_modules/m1/missing-file.node"),
-        // f.parent().unwrap().join("node_modules/m1"), // we don't report this
+        f.path_join("node_modules/m1/missing-file"),
+        f.path_join("node_modules/m1/missing-file.js"),
+        f.path_join("node_modules/m1/missing-file.node"),
+        // f.parent().unwrap().path_join("node_modules/m1"), // we don't report this
       ],
     ),
     (
       "m1/",
       vec![
-        f.join("node_modules/m1/index"),
-        f.join("node_modules/m1/index.js"),
-        f.join("node_modules/m1/index.json"),
-        f.join("node_modules/m1/index.node"),
+        f.path_join("node_modules/m1/index"),
+        f.path_join("node_modules/m1/index.js"),
+        f.path_join("node_modules/m1/index.json"),
+        f.path_join("node_modules/m1/index.node"),
       ],
     ),
-    ("m1/a", vec![f.join("node_modules/m1/a")]),
+    ("m1/a", vec![f.path_join("node_modules/m1/a")]),
   ];
 
   let resolver = Resolver::default();
@@ -58,8 +59,8 @@ async fn test() {
     let mut ctx = ResolveContext::default();
     let _ = resolver.resolve_with_context(&f, specifier, &mut ctx).await;
 
-    for path in ctx.file_dependencies {
-      assert_eq!(path, path.normalize(), "{path:?}");
+    for path in &ctx.file_dependencies {
+      assert_eq!(*path, path.normalize(), "{path:?}");
     }
 
     for path in missing_dependencies {
@@ -81,21 +82,11 @@ async fn alias_and_extensions() {
     alias: vec![
       (
         "@scope-js/package-name/dir$".into(),
-        vec![AliasValue::Path(
-          f.join("foo/index.js")
-            .to_str()
-            .expect("path should be UTF-8")
-            .to_string(),
-        )],
+        vec![AliasValue::Path(f.path_join("foo/index.js"))],
       ),
       (
         "react-dom".into(),
-        vec![AliasValue::Path(
-          f.join("foo/index.js")
-            .to_str()
-            .expect("path should be UTF-8")
-            .to_string(),
-        )],
+        vec![AliasValue::Path(f.path_join("foo/index.js"))],
       ),
     ],
     extensions: vec![".server.ts".into()],
@@ -107,14 +98,14 @@ async fn alias_and_extensions() {
   let _ = resolver.resolve_with_context(&f, "@scope-js/package-name/dir/router", &mut ctx);
   let _ = resolver.resolve_with_context(&f, "react-dom/client", &mut ctx);
 
-  for path in ctx.file_dependencies {
-    assert_eq!(path, path.normalize(), "{path:?}");
+  for path in &ctx.file_dependencies {
+    assert_eq!(*path, path.normalize(), "{path:?}");
   }
 
-  for path in ctx.missing_dependencies {
-    assert_eq!(path, path.normalize(), "{path:?}");
-    if let Some(path) = path.parent() {
-      assert!(!path.is_file(), "{path:?} must not be a file");
+  for path in &ctx.missing_dependencies {
+    assert_eq!(*path, path.normalize(), "{path:?}");
+    if let Some(parent) = Path::new(path).parent() {
+      assert!(!parent.is_file(), "{parent:?} must not be a file");
     }
   }
 }

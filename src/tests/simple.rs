@@ -2,27 +2,28 @@
 
 use std::env;
 
+use super::JoinExt;
 use crate::Resolver;
 
 #[tokio::test]
 async fn resolve_abs_main() {
   let resolver = Resolver::default();
-  let dirname = env::current_dir().unwrap().join("fixtures");
-  let f = dirname.join("invalid/main.js");
+  let dirname = env::current_dir().unwrap().path_join("fixtures");
+  let f = dirname.path_join("invalid/main.js");
   // a's main field id `/dist/index.js`
   let resolution = resolver.resolve(&f, "a").await.unwrap();
 
   assert_eq!(
     resolution.path(),
-    dirname.join("invalid/node_modules/a/dist/index.js")
+    dirname.path_join("invalid/node_modules/a/dist/index.js")
   );
 }
 
 #[tokio::test]
 async fn simple() {
   // mimic `enhanced-resolve/test/simple.test.js`
-  let dirname = env::current_dir().unwrap().join("fixtures");
-  let f = dirname.join("enhanced_resolve/test");
+  let dirname = env::current_dir().unwrap().path_join("fixtures");
+  let f = dirname.path_join("enhanced_resolve/test");
 
   let resolver = Resolver::default();
 
@@ -37,7 +38,7 @@ async fn simple() {
       .resolve(&path, request)
       .await
       .map(|f| f.full_path());
-    let expected = dirname.join("enhanced_resolve/lib/index.js");
+    let expected = dirname.path_join("enhanced_resolve/lib/index.js");
     assert_eq!(resolved_path, Ok(expected), "{comment} {path:?} {request}");
   }
 }
@@ -49,31 +50,31 @@ async fn dashed_name() {
   let resolver = Resolver::default();
 
   let data = [
-    (f.clone(), "dash", f.join("node_modules/dash/index.js")),
+    (f.clone(), "dash", f.path_join("node_modules/dash/index.js")),
     (
       f.clone(),
       "dash-name",
-      f.join("node_modules/dash-name/index.js"),
+      f.path_join("node_modules/dash-name/index.js"),
     ),
     (
-      f.join("node_modules/dash"),
+      f.path_join("node_modules/dash"),
       "dash",
-      f.join("node_modules/dash/index.js"),
+      f.path_join("node_modules/dash/index.js"),
     ),
     (
-      f.join("node_modules/dash"),
+      f.path_join("node_modules/dash"),
       "dash-name",
-      f.join("node_modules/dash-name/index.js"),
+      f.path_join("node_modules/dash-name/index.js"),
     ),
     (
-      f.join("node_modules/dash-name"),
+      f.path_join("node_modules/dash-name"),
       "dash",
-      f.join("node_modules/dash/index.js"),
+      f.path_join("node_modules/dash/index.js"),
     ),
     (
-      f.join("node_modules/dash-name"),
+      f.path_join("node_modules/dash-name"),
       "dash-name",
-      f.join("node_modules/dash-name/index.js"),
+      f.path_join("node_modules/dash-name/index.js"),
     ),
   ];
 
@@ -93,10 +94,8 @@ mod windows {
 
   #[tokio::test]
   async fn no_package() {
-    use std::path::Path;
-
     use crate::ResolverGeneric;
-    let f = Path::new("/");
+    let f = "/";
     let file_system = MemoryFS::new(&[]);
     let resolver =
       ResolverGeneric::<MemoryFS>::new_with_file_system(file_system, ResolveOptions::default());

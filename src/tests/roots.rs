@@ -1,11 +1,12 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/roots.test.js>
 
-use std::path::PathBuf;
-
+use super::JoinExt;
 use crate::{AliasValue, ResolveError, ResolveOptions, Resolver};
 
-fn dirname() -> PathBuf {
-  super::fixture_root().join("enhanced_resolve").join("test")
+fn dirname() -> String {
+  super::fixture_root()
+    .path_join("enhanced_resolve")
+    .path_join("test")
 }
 
 #[tokio::test]
@@ -21,11 +22,11 @@ async fn roots() {
 
   #[rustfmt::skip]
     let pass = [
-        ("should respect roots option", "/fixtures/b.js", f.join("b.js")),
-        ("should try another root option, if it exists", "/b.js", f.join("b.js")),
-        ("should respect extension", "/fixtures/b", f.join("b.js")),
-        ("should resolve in directory", "/fixtures/extensions/dir", f.join("extensions/dir/index.js")),
-        ("should respect aliases", "foo/b", f.join("b.js")),
+        ("should respect roots option", "/fixtures/b.js", f.path_join("b.js")),
+        ("should try another root option, if it exists", "/b.js", f.path_join("b.js")),
+        ("should respect extension", "/fixtures/b", f.path_join("b.js")),
+        ("should resolve in directory", "/fixtures/extensions/dir", f.path_join("extensions/dir/index.js")),
+        ("should respect aliases", "foo/b", f.path_join("b.js")),
     ];
 
   for (comment, request, expected) in pass {
@@ -56,7 +57,7 @@ async fn resolve_to_context() {
     .resolve(&f, "/fixtures/lib")
     .await
     .map(|r| r.full_path());
-  let expected = f.join("lib");
+  let expected = f.path_join("lib");
   assert_eq!(resolved_path, Ok(expected));
 }
 
@@ -73,7 +74,7 @@ async fn prefer_absolute() {
 
   #[rustfmt::skip]
     let pass = [
-        ("should resolve an absolute path (prefer absolute)", f.join("b.js").to_str().expect("path should be UTF-8").to_string(), f.join("b.js")),
+        ("should resolve an absolute path (prefer absolute)", f.path_join("b.js"), f.path_join("b.js")),
     ];
 
   for (comment, request, expected) in pass {
@@ -85,13 +86,12 @@ async fn prefer_absolute() {
 #[tokio::test]
 async fn roots_fall_through() {
   let f = super::fixture();
-  let absolute_path = f.join("roots_fall_through/index.js");
-  let specifier = absolute_path.to_str().expect("path should be UTF-8");
+  let absolute_path = f.path_join("roots_fall_through/index.js");
   let resolution = Resolver::new(ResolveOptions::default().with_root(&f))
-    .resolve(&f, &specifier)
+    .resolve(&f, &absolute_path)
     .await;
   assert_eq!(
-    resolution.map(super::super::resolution::Resolution::into_path_buf),
+    resolution.map(crate::Resolution::into_path),
     Ok(absolute_path)
   );
 }

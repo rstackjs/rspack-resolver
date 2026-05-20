@@ -1,11 +1,7 @@
 mod options;
 mod tracing;
 
-use std::{
-  path::{Path, PathBuf},
-  sync::Arc,
-  vec,
-};
+use std::sync::Arc;
 
 use napi::tokio::runtime;
 use napi_derive::napi;
@@ -23,16 +19,10 @@ pub struct ResolveResult {
   pub module_type: Option<String>,
 }
 
-async fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResult {
+async fn resolve(resolver: &Resolver, path: &str, request: &str) -> ResolveResult {
   match resolver.resolve(path, request).await {
     Ok(resolution) => ResolveResult {
-      path: Some(
-        resolution
-          .full_path()
-          .to_str()
-          .expect("path should be UTF-8")
-          .to_string(),
-      ),
+      path: Some(resolution.full_path()),
       error: None,
       module_type: resolution
         .package_json()
@@ -49,7 +39,6 @@ async fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResu
 
 #[napi]
 pub fn sync(path: String, request: String) -> ResolveResult {
-  let path = PathBuf::from(path);
   let resolver = Resolver::new(ResolveOptions::default());
   napi::bindgen_prelude::within_runtime_if_available(|| {
     runtime::Handle::current().block_on(resolve(&resolver, &path, &request))
@@ -58,7 +47,6 @@ pub fn sync(path: String, request: String) -> ResolveResult {
 
 #[napi(js_name = "async")]
 pub async fn async_(path: String, request: String) -> ResolveResult {
-  let path = PathBuf::from(path);
   let resolver = Resolver::new(ResolveOptions::default());
   resolve(&resolver, &path, &request).await
 }
@@ -110,9 +98,8 @@ impl ResolverFactory {
   #[allow(clippy::needless_pass_by_value)]
   #[napi]
   pub fn sync(&self, directory: String, request: String) -> ResolveResult {
-    let path = PathBuf::from(directory);
     napi::bindgen_prelude::within_runtime_if_available(|| {
-      runtime::Handle::current().block_on(resolve(&self.resolver, &path, &request))
+      runtime::Handle::current().block_on(resolve(&self.resolver, &directory, &request))
     })
   }
 
@@ -120,9 +107,8 @@ impl ResolverFactory {
   #[allow(clippy::needless_pass_by_value)]
   #[napi(js_name = "async")]
   pub async fn resolve_async(&self, directory: String, request: String) -> ResolveResult {
-    let path = PathBuf::from(directory);
     let resolver = self.resolver.clone();
-    resolve(&resolver, &path, &request).await
+    resolve(&resolver, &directory, &request).await
   }
 
   fn normalize_options(op: NapiResolveOptions) -> ResolveOptions {
@@ -214,10 +200,7 @@ impl ResolverFactory {
             .collect::<Vec<_>>()
         })
         .unwrap_or(default.restrictions),
-      roots: op
-        .roots
-        .map(|roots| roots.into_iter().map(PathBuf::from).collect::<Vec<_>>())
-        .unwrap_or(default.roots),
+      roots: op.roots.unwrap_or(default.roots),
       symlinks: op.symlinks.unwrap_or(default.symlinks),
       builtin_modules: op.builtin_modules.unwrap_or(default.builtin_modules),
       enable_pnp: op.enable_pnp.unwrap_or_default(),

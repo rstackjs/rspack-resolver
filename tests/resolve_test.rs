@@ -1,9 +1,25 @@
-use std::{env, path::PathBuf};
+use std::{env, path::Path};
 
 use rspack_resolver::{ResolveError, ResolveOptions, Resolver};
 
-fn dir() -> PathBuf {
-  env::current_dir().unwrap()
+fn dir() -> String {
+  env::current_dir().unwrap().to_str().unwrap().to_string()
+}
+
+trait JoinExt {
+  fn path_join(&self, sub: &str) -> String;
+}
+
+impl JoinExt for str {
+  fn path_join(&self, sub: &str) -> String {
+    Path::new(self).join(sub).to_str().unwrap().to_string()
+  }
+}
+
+impl JoinExt for String {
+  fn path_join(&self, sub: &str) -> String {
+    self.as_str().path_join(sub)
+  }
 }
 
 #[tokio::test]
@@ -14,16 +30,16 @@ async fn chinese() {
     .resolve(&dir, specifier)
     .await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path_buf),
-    Ok(dir.join("fixtures/misc/中文/中文.js"))
+    resolution.map(rspack_resolver::Resolution::into_path),
+    Ok(dir.path_join("fixtures/misc/中文/中文.js"))
   );
 }
 
 #[tokio::test]
 async fn styled_components() {
   let dir = dir();
-  let path = dir.join("fixtures/pnpm");
-  let module_path = dir.join("fixtures/pnpm/node_modules/styled-components");
+  let path = dir.path_join("fixtures/pnpm");
+  let module_path = dir.path_join("fixtures/pnpm/node_modules/styled-components");
   let specifier = "styled-components";
 
   // cjs
@@ -34,8 +50,8 @@ async fn styled_components() {
   };
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path_buf),
-    Ok(module_path.join("dist/styled-components.browser.cjs.js"))
+    resolution.map(rspack_resolver::Resolution::into_path),
+    Ok(module_path.path_join("dist/styled-components.browser.cjs.js"))
   );
 
   // esm
@@ -47,24 +63,24 @@ async fn styled_components() {
   };
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path_buf),
-    Ok(module_path.join("dist/styled-components.browser.esm.js"))
+    resolution.map(rspack_resolver::Resolution::into_path),
+    Ok(module_path.path_join("dist/styled-components.browser.esm.js"))
   );
 }
 
 #[tokio::test]
 async fn axios() {
   let dir = dir();
-  let path = dir.join("fixtures/pnpm");
-  let module_path = dir.join("node_modules/.pnpm/axios@1.6.2/node_modules/axios");
+  let path = dir.path_join("fixtures/pnpm");
+  let module_path = dir.path_join("node_modules/.pnpm/axios@1.6.2/node_modules/axios");
   let specifier = "axios";
 
   // default
   let options = ResolveOptions::default();
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path_buf),
-    Ok(module_path.join("index.js"))
+    resolution.map(rspack_resolver::Resolution::into_path),
+    Ok(module_path.path_join("index.js"))
   );
 
   // browser
@@ -74,8 +90,8 @@ async fn axios() {
   };
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path_buf),
-    Ok(module_path.join("dist/browser/axios.cjs"))
+    resolution.map(rspack_resolver::Resolution::into_path),
+    Ok(module_path.path_join("dist/browser/axios.cjs"))
   );
 
   // cjs
@@ -85,16 +101,16 @@ async fn axios() {
   };
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path_buf),
-    Ok(module_path.join("dist/node/axios.cjs"))
+    resolution.map(rspack_resolver::Resolution::into_path),
+    Ok(module_path.path_join("dist/node/axios.cjs"))
   );
 }
 
 #[tokio::test]
 async fn postcss() {
   let dir = dir();
-  let path = dir.join("fixtures/pnpm");
-  let module_path = path.join("node_modules/postcss");
+  let path = dir.path_join("fixtures/pnpm");
+  let module_path = path.path_join("node_modules/postcss");
   let resolver = Resolver::new(ResolveOptions {
     alias_fields: vec![vec!["browser".into()]],
     ..ResolveOptions::default()
@@ -111,7 +127,7 @@ async fn postcss() {
   assert_eq!(
     resolution,
     Err(ResolveError::Ignored(
-      module_path.join("lib/terminal-highlight")
+      module_path.path_join("lib/terminal-highlight")
     ))
   );
 }
@@ -119,9 +135,9 @@ async fn postcss() {
 #[tokio::test]
 async fn ipaddr_js() {
   let dir = dir();
-  let path = dir.join("fixtures/pnpm");
+  let path = dir.path_join("fixtures/pnpm");
   let module_path =
-    dir.join("node_modules/.pnpm/ipaddr.js@2.2.0/node_modules/ipaddr.js/lib/ipaddr.js");
+    dir.path_join("node_modules/.pnpm/ipaddr.js@2.2.0/node_modules/ipaddr.js/lib/ipaddr.js");
 
   let resolvers = [
     // with `extension_alias`
@@ -153,9 +169,9 @@ async fn ipaddr_js() {
 #[tokio::test]
 async fn decimal_js() {
   let dir = dir();
-  let path = dir.join("fixtures/pnpm");
+  let path = dir.path_join("fixtures/pnpm");
   let module_path =
-    dir.join("node_modules/.pnpm/decimal.js@10.4.3/node_modules/decimal.js/decimal.mjs");
+    dir.path_join("node_modules/.pnpm/decimal.js@10.4.3/node_modules/decimal.js/decimal.mjs");
 
   let resolvers = [
     // with `extension_alias`
@@ -186,9 +202,9 @@ async fn decimal_js() {
 #[tokio::test]
 async fn decimal_js_from_mathjs() {
   let dir = dir();
-  let path = dir.join("node_modules/.pnpm/mathjs@13.2.0/node_modules/mathjs/lib/esm");
+  let path = dir.path_join("node_modules/.pnpm/mathjs@13.2.0/node_modules/mathjs/lib/esm");
   let module_path =
-    dir.join("node_modules/.pnpm/decimal.js@10.4.3/node_modules/decimal.js/decimal.mjs");
+    dir.path_join("node_modules/.pnpm/decimal.js@10.4.3/node_modules/decimal.js/decimal.mjs");
 
   let resolvers = [
     // with `extension_alias`

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use napi::bindgen_prelude::{Either, Either3};
 use napi_derive::napi;
@@ -223,11 +223,9 @@ impl From<Restriction> for rspack_resolver::Restriction {
       }
       (None, Some(regex)) => {
         let re = Regex::new(&regex).unwrap_or_else(|_| panic!("Invalid regex pattern: {regex}"));
-        Self::Fn(Arc::new(move |path| {
-          re.is_match(path.to_str().unwrap_or_default())
-        }))
+        Self::Fn(Arc::new(move |path| re.is_match(path)))
       }
-      (Some(path), None) => Self::Path(PathBuf::from(path)),
+      (Some(path), None) => Self::Path(path),
       (Some(_), Some(_)) => {
         panic!("Restriction can't be path and regex at the same time")
       }
@@ -248,7 +246,7 @@ impl From<EnforceExtension> for rspack_resolver::EnforceExtension {
 impl From<TsconfigOptions> for rspack_resolver::TsconfigOptions {
   fn from(options: TsconfigOptions) -> Self {
     Self {
-      config_file: PathBuf::from(options.config_file),
+      config_file: options.config_file,
       references: match options.references {
         Some(Either::A(string)) if string.as_str() == "auto" => {
           rspack_resolver::TsconfigReferences::Auto
@@ -256,9 +254,7 @@ impl From<TsconfigOptions> for rspack_resolver::TsconfigOptions {
         Some(Either::A(opt)) => {
           panic!("`{opt}` is not a valid option for tsconfig references")
         }
-        Some(Either::B(paths)) => rspack_resolver::TsconfigReferences::Paths(
-          paths.into_iter().map(PathBuf::from).collect::<Vec<_>>(),
-        ),
+        Some(Either::B(paths)) => rspack_resolver::TsconfigReferences::Paths(paths),
         None => rspack_resolver::TsconfigReferences::Disabled,
       },
     }

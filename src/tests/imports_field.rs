@@ -2,16 +2,15 @@
 //!
 //! The huge imports field test cases are at the bottom of this file.
 
-use std::path::Path;
-
 use simd_json::{json, prelude::*};
 
+use super::JoinExt;
 use crate::{package_json::JSONValue, Ctx, PathUtil, ResolveError, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn test_simple() {
-  let f = super::fixture().join("imports-field");
-  let f2 = super::fixture().join("imports-exports-wildcard/node_modules/m/");
+  let f = super::fixture().path_join("imports-field");
+  let f2 = super::fixture().path_join("imports-exports-wildcard/node_modules/m/");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
@@ -22,15 +21,15 @@ async fn test_simple() {
 
   #[rustfmt::skip]
     let pass = [
-        ("should resolve using imports field instead of self-referencing", f.clone(), "#imports-field", f.join("b.js")),
-        ("should resolve using imports field instead of self-referencing for a subpath", f.join("dir"), "#imports-field", f.join("b.js")),
-        ("should resolve package #1", f.clone(), "#a/dist/main.js", f.join("node_modules/a/lib/lib2/main.js")),
-        ("should resolve package #3", f.clone(), "#ccc/index.js", f.join("node_modules/c/index.js")),
-        ("should resolve package #4", f.clone(), "#c", f.join("node_modules/c/index.js")),
-        ("should resolve with wildcard pattern", f2.clone(), "#internal/i.js", f2.join("src/internal/i.js")),
+        ("should resolve using imports field instead of self-referencing", f.clone(), "#imports-field", f.path_join("b.js")),
+        ("should resolve using imports field instead of self-referencing for a subpath", f.path_join("dir"), "#imports-field", f.path_join("b.js")),
+        ("should resolve package #1", f.clone(), "#a/dist/main.js", f.path_join("node_modules/a/lib/lib2/main.js")),
+        ("should resolve package #3", f.clone(), "#ccc/index.js", f.path_join("node_modules/c/index.js")),
+        ("should resolve package #4", f.clone(), "#c", f.path_join("node_modules/c/index.js")),
+        ("should resolve with wildcard pattern", f2.clone(), "#internal/i.js", f2.path_join("src/internal/i.js")),
         // https://github.com/web-infra-dev/rspack/issues/13508
         // https://github.com/nodejs/node/pull/60864
-        ("should resolve #/ wildcard imports", f.clone(), "#/foo", f.join("src/foo.js")),
+        ("should resolve #/ wildcard imports", f.clone(), "#/foo", f.path_join("src/foo.js")),
     ];
 
   for (comment, path, request, expected) in pass {
@@ -47,8 +46,8 @@ async fn test_simple() {
 
   #[rustfmt::skip]
     let fail = [
-        ("should disallow resolve out of package scope", f.clone(), "#b", ResolveError::InvalidPackageTarget("../b.js".to_string(), "#b".to_string(), f.join("package.json"))),
-        ("should resolve package #2", f.clone(), "#a", ResolveError::PackageImportNotDefined("#a".to_string(), f.join("package.json"))),
+        ("should disallow resolve out of package scope", f.clone(), "#b", ResolveError::InvalidPackageTarget("../b.js".to_string(), "#b".to_string(), f.path_join("package.json"))),
+        ("should resolve package #2", f.clone(), "#a", ResolveError::PackageImportNotDefined("#a".to_string(), f.path_join("package.json"))),
     ];
 
   for (comment, path, request, error) in fail {
@@ -59,7 +58,7 @@ async fn test_simple() {
 
 #[tokio::test]
 async fn shared_resolvers() {
-  let f = super::fixture().join("imports-field");
+  let f = super::fixture().path_join("imports-field");
 
   // field name #1
   let resolver1 = Resolver::new(ResolveOptions {
@@ -74,7 +73,7 @@ async fn shared_resolvers() {
     .resolve(&f, "#imports-field")
     .await
     .map(|r| r.full_path());
-  assert_eq!(resolved_path, Ok(f.join("b.js")));
+  assert_eq!(resolved_path, Ok(f.path_join("b.js")));
 
   // field name #2
   let resolver2 = resolver1.clone_with_options(ResolveOptions {
@@ -83,7 +82,7 @@ async fn shared_resolvers() {
   });
 
   let resolved_path = resolver2.resolve(&f, "#b").await.map(|r| r.full_path());
-  assert_eq!(resolved_path, Ok(f.join("a.js")));
+  assert_eq!(resolved_path, Ok(f.path_join("a.js")));
 }
 
 // Small script for generating the test cases from enhanced_resolve
@@ -1308,7 +1307,7 @@ async fn test_cases() {
       .package_imports_exports_resolve(
         case.request,
         case.imports_field.as_object().unwrap(),
-        Path::new(""),
+        "",
         true,
         &case
           .condition_names
@@ -1318,7 +1317,7 @@ async fn test_cases() {
         &mut Ctx::default(),
       )
       .await
-      .map(|p| p.map(|p| p.to_path_buf()));
+      .map(|p| p.map(|p| p.path().to_string()));
     if let Some(expect) = case.expect {
       if expect.is_empty() {
         assert!(
@@ -1329,12 +1328,7 @@ async fn test_cases() {
         );
       } else {
         for expect in expect {
-          assert_eq!(
-            resolved,
-            Ok(Some(Path::new(expect).normalize())),
-            "{}",
-            &case.name
-          );
+          assert_eq!(resolved, Ok(Some(expect.normalize())), "{}", &case.name);
         }
       }
     } else {

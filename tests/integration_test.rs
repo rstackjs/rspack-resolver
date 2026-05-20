@@ -1,13 +1,13 @@
 //! Test public APIs
 
-use std::{env, path::PathBuf};
+use std::env;
 
 use rspack_resolver::{
   EnforceExtension, ModuleType, Resolution, ResolveContext, ResolveOptions, Resolver,
 };
 
-fn dir() -> PathBuf {
-  env::current_dir().unwrap()
+fn dir() -> String {
+  env::current_dir().unwrap().to_str().unwrap().to_string()
 }
 
 async fn resolve(specifier: &str) -> Resolution {
@@ -101,6 +101,6 @@ async fn options_api() {
     .with_module("module")
     .with_prefer_absolute(true)
     .with_prefer_relative(true)
-    .with_root(PathBuf::new())
+    .with_root("")
     .with_symbolic_link(true);
 }

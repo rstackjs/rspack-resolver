@@ -1,14 +1,14 @@
 //! https://github.com/webpack/enhanced-resolve/blob/main/test/fallback.test.js
 
+use super::JoinExt;
+
 #[tokio::test]
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 async fn fallback() {
-  use std::path::{Path, PathBuf};
-
   use super::memory_fs::MemoryFS;
   use crate::{AliasValue, ResolveError, ResolveOptions, ResolverGeneric};
 
-  let f = Path::new("/");
+  let f = "/";
 
   let file_system = MemoryFS::new(&[
     ("/a/index", ""),
@@ -93,15 +93,15 @@ async fn fallback() {
     let resolved_path = resolver.resolve(f, request).await.map(|r| r.full_path());
     assert_eq!(
       resolved_path,
-      Ok(PathBuf::from(expected)),
+      Ok(expected.to_string()),
       "{comment} {request}"
     );
   }
 
   #[rustfmt::skip]
     let ignore = [
-        ("should resolve an ignore module", "ignored", ResolveError::Ignored(f.join("ignored"))),
-        ("should resolve node: builtin module", "node:path", ResolveError::Ignored(PathBuf::from("/node:path"))),
+        ("should resolve an ignore module", "ignored", ResolveError::Ignored(f.path_join("ignored"))),
+        ("should resolve node: builtin module", "node:path", ResolveError::Ignored("/node:path".to_string())),
     ];
 
   for (comment, request, expected) in ignore {

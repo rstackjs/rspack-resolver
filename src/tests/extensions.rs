@@ -2,11 +2,12 @@
 
 use rustc_hash::FxHashSet;
 
+use super::JoinExt;
 use crate::{EnforceExtension, Resolution, ResolveContext, ResolveError, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn extensions() {
-  let f = super::fixture().join("extensions");
+  let f = super::fixture().path_join("extensions");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".ts".into(), ".js".into()],
@@ -25,7 +26,7 @@ async fn extensions() {
 
   for (comment, request, expected_path) in pass {
     let resolved_path = resolver.resolve(&f, request).await.map(|r| r.full_path());
-    let expected = f.join(expected_path);
+    let expected = f.path_join(expected_path);
     assert_eq!(
       resolved_path,
       Ok(expected),
@@ -48,7 +49,7 @@ async fn extensions() {
 // should default enforceExtension to true when extensions includes an empty string
 #[tokio::test]
 async fn default_enforce_extension() {
-  let f = super::fixture().join("extensions");
+  let f = super::fixture().path_join("extensions");
 
   let mut ctx = ResolveContext::default();
   let resolved = Resolver::new(ResolveOptions {
@@ -59,12 +60,12 @@ async fn default_enforce_extension() {
   .await;
 
   assert_eq!(
-    resolved.map(Resolution::into_path_buf),
-    Ok(f.join("foo.ts"))
+    resolved.map(Resolution::into_path),
+    Ok(f.path_join("foo.ts"))
   );
   assert_eq!(
     ctx.file_dependencies,
-    FxHashSet::from_iter([f.join("foo.ts"), f.join("package.json")])
+    FxHashSet::from_iter([f.path_join("foo.ts"), f.path_join("package.json")])
   );
   assert!(ctx.missing_dependencies.is_empty());
 }
@@ -72,7 +73,7 @@ async fn default_enforce_extension() {
 // should respect enforceExtension when extensions includes an empty string
 #[tokio::test]
 async fn respect_enforce_extension() {
-  let f = super::fixture().join("extensions");
+  let f = super::fixture().path_join("extensions");
 
   let mut ctx = ResolveContext::default();
   let resolved = Resolver::new(ResolveOptions {
@@ -84,22 +85,22 @@ async fn respect_enforce_extension() {
   .await;
 
   assert_eq!(
-    resolved.map(Resolution::into_path_buf),
-    Ok(f.join("foo.ts"))
+    resolved.map(Resolution::into_path),
+    Ok(f.path_join("foo.ts"))
   );
   assert_eq!(
     ctx.file_dependencies,
-    FxHashSet::from_iter([f.join("foo.ts"), f.join("package.json")])
+    FxHashSet::from_iter([f.path_join("foo.ts"), f.path_join("package.json")])
   );
   assert_eq!(
     ctx.missing_dependencies,
-    FxHashSet::from_iter([f.join("foo")])
+    FxHashSet::from_iter([f.path_join("foo")])
   );
 }
 
 #[tokio::test]
 async fn multi_dot_extension() {
-  let f = super::fixture().join("extensions");
+  let f = super::fixture().path_join("extensions");
 
   let resolver = Resolver::new(ResolveOptions {
     // Test for `.d.ts`, not part of enhanced-resolve.
@@ -115,7 +116,7 @@ async fn multi_dot_extension() {
 
   for (comment, request, expected_path) in pass {
     let resolved_path = resolver.resolve(&f, request).await.map(|r| r.full_path());
-    let expected = f.join(expected_path);
+    let expected = f.path_join(expected_path);
     assert_eq!(
       resolved_path,
       Ok(expected),

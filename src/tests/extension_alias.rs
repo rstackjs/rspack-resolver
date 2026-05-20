@@ -1,10 +1,11 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/extension-alias.test.js>
 
+use super::JoinExt;
 use crate::{ResolveError, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn extension_alias() {
-  let f = super::fixture().join("extension-alias");
+  let f = super::fixture().path_join("extension-alias");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
@@ -18,10 +19,10 @@ async fn extension_alias() {
 
   #[rustfmt::skip]
     let pass = [
-        ("should alias fully specified file", f.clone(), "./index.js", f.join("index.ts")),
-        ("should alias fully specified file when there are two alternatives", f.clone(), "./dir/index.js", f.join("dir/index.ts")),
-        ("should also allow the second alternative", f.clone(), "./dir2/index.js", f.join("dir2/index.js")),
-        ("should support alias option without an array", f.clone(), "./dir2/index.mjs", f.join("dir2/index.mts")),
+        ("should alias fully specified file", f.clone(), "./index.js", f.path_join("index.ts")),
+        ("should alias fully specified file when there are two alternatives", f.clone(), "./dir/index.js", f.path_join("dir/index.ts")),
+        ("should also allow the second alternative", f.clone(), "./dir2/index.js", f.path_join("dir2/index.js")),
+        ("should support alias option without an array", f.clone(), "./dir2/index.mjs", f.path_join("dir2/index.mts")),
     ];
 
   for (comment, path, request, expected) in pass {
@@ -41,7 +42,7 @@ async fn extension_alias() {
 // should not apply extension alias to extensions or mainFiles field
 #[tokio::test]
 async fn not_apply_to_extension_nor_main_files() {
-  let f = super::fixture().join("extension-alias");
+  let f = super::fixture().path_join("extension-alias");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".js".into()],
@@ -61,7 +62,7 @@ async fn not_apply_to_extension_nor_main_files() {
       .resolve(&path, request)
       .await
       .map(|r| r.full_path());
-    let expected = f.join(expected);
+    let expected = f.path_join(expected);
     assert_eq!(resolved_path, Ok(expected), "{comment} {path:?} {request}");
   }
 }

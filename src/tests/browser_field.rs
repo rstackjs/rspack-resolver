@@ -1,10 +1,11 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/browserField.test.js>
 
+use super::JoinExt;
 use crate::{AliasValue, ResolveError, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn ignore() {
-  let f = super::fixture().join("browser-module");
+  let f = super::fixture().path_join("browser-module");
 
   let resolver = Resolver::new(ResolveOptions {
     alias_fields: vec![
@@ -18,10 +19,10 @@ async fn ignore() {
 
   #[rustfmt::skip]
     let data = [
-        (f.clone(), "./lib/ignore", f.join("lib/ignore.js")),
-        (f.clone(), "./lib/ignore.js", f.join("lib/ignore.js")),
-        (f.join("lib"), "./ignore", f.join("lib/ignore.js")),
-        (f.join("lib"), "./ignore.js", f.join("lib/ignore.js")),
+        (f.clone(), "./lib/ignore", f.path_join("lib/ignore.js")),
+        (f.clone(), "./lib/ignore.js", f.path_join("lib/ignore.js")),
+        (f.path_join("lib"), "./ignore", f.path_join("lib/ignore.js")),
+        (f.path_join("lib"), "./ignore.js", f.path_join("lib/ignore.js")),
     ];
 
   for (path, request, expected) in data {
@@ -33,7 +34,7 @@ async fn ignore() {
 
 #[tokio::test]
 async fn shared_resolvers() {
-  let f = super::fixture().join("browser-module");
+  let f = super::fixture().path_join("browser-module");
 
   let resolver1 = Resolver::new(ResolveOptions {
     alias_fields: vec![vec![
@@ -47,7 +48,7 @@ async fn shared_resolvers() {
     .resolve(&f, "./lib/main1.js")
     .await
     .map(|r| r.full_path());
-  assert_eq!(resolved_path, Ok(f.join("lib/main.js")));
+  assert_eq!(resolved_path, Ok(f.path_join("lib/main.js")));
 
   let resolver2 = resolver1.clone_with_options(ResolveOptions {
     alias_fields: vec![vec!["innerBrowser2".into(), "browser".into()]],
@@ -57,12 +58,12 @@ async fn shared_resolvers() {
     .resolve(&f, "./lib/main2.js")
     .await
     .map(|r| r.full_path());
-  assert_eq!(resolved_path, Ok(f.join("./lib/replaced.js")));
+  assert_eq!(resolved_path, Ok(f.path_join("./lib/replaced.js")));
 }
 
 #[tokio::test]
 async fn replace_file() {
-  let f = super::fixture().join("browser-module");
+  let f = super::fixture().path_join("browser-module");
 
   let resolver = Resolver::new(ResolveOptions {
     alias_fields: vec![
@@ -78,21 +79,21 @@ async fn replace_file() {
 
   #[rustfmt::skip]
     let data = [
-        ("should replace a file 1", f.clone(), "./lib/replaced", f.join("lib/browser.js")),
-        ("should replace a file 2", f.clone(), "./lib/replaced.js", f.join("lib/browser.js")),
-        ("should replace a file 3", f.join("lib"), "./replaced", f.join("lib/browser.js")),
-        ("should replace a file 4", f.join("lib"), "./replaced.js", f.join("lib/browser.js")),
-        ("should replace a module with a file 1", f.clone(), "module-a", f.join("browser/module-a.js")),
-        ("should replace a module with a file 2", f.join("lib"), "module-a", f.join("browser/module-a.js")),
-        ("should replace a module with a module 1", f.clone(), "module-b", f.join("node_modules/module-c.js")),
-        ("should replace a module with a module 2", f.join("lib"), "module-b", f.join("node_modules/module-c.js")),
-        ("should resolve in nested property 1", f.clone(), "./lib/main1.js", f.join("lib/main.js")),
-        ("should resolve in nested property 2", f.clone(), "./lib/main2.js", f.join("lib/browser.js")),
-        ("should check only alias field properties", f.clone(), "./toString", f.join("lib/toString.js")),
+        ("should replace a file 1", f.clone(), "./lib/replaced", f.path_join("lib/browser.js")),
+        ("should replace a file 2", f.clone(), "./lib/replaced.js", f.path_join("lib/browser.js")),
+        ("should replace a file 3", f.path_join("lib"), "./replaced", f.path_join("lib/browser.js")),
+        ("should replace a file 4", f.path_join("lib"), "./replaced.js", f.path_join("lib/browser.js")),
+        ("should replace a module with a file 1", f.clone(), "module-a", f.path_join("browser/module-a.js")),
+        ("should replace a module with a file 2", f.path_join("lib"), "module-a", f.path_join("browser/module-a.js")),
+        ("should replace a module with a module 1", f.clone(), "module-b", f.path_join("node_modules/module-c.js")),
+        ("should replace a module with a module 2", f.path_join("lib"), "module-b", f.path_join("node_modules/module-c.js")),
+        ("should resolve in nested property 1", f.clone(), "./lib/main1.js", f.path_join("lib/main.js")),
+        ("should resolve in nested property 2", f.clone(), "./lib/main2.js", f.path_join("lib/browser.js")),
+        ("should check only alias field properties", f.clone(), "./toString", f.path_join("lib/toString.js")),
         // not part of enhanced-resolve
-        ("recursion", f.clone(), "module-c", f.join("node_modules/module-c.js")),
-        ("resolve self 1", f.clone(), "./lib/main.js", f.join("lib/main.js")),
-        ("resolve self 2", f.clone(), "./main.js", f.join("lib/main.js")),
+        ("recursion", f.clone(), "module-c", f.path_join("node_modules/module-c.js")),
+        ("resolve self 1", f.clone(), "./lib/main.js", f.path_join("lib/main.js")),
+        ("resolve self 2", f.clone(), "./main.js", f.path_join("lib/main.js")),
     ];
 
   for (comment, path, request, expected) in data {
@@ -141,8 +142,8 @@ async fn broken() {
   #[rustfmt::skip]
     let data = [
         // The browser field string value should be ignored
-        (f.clone(), "browser-module-broken", Ok(f.join("node_modules/browser-module-broken/main.js"))),
-        (f.join("browser-module"), "./number", Err(ResolveError::NotFound("./number".into()))),
+        (f.clone(), "browser-module-broken", Ok(f.path_join("node_modules/browser-module-broken/main.js"))),
+        (f.path_join("browser-module"), "./number", Err(ResolveError::NotFound("./number".into()))),
     ];
 
   for (path, request, expected) in data {
@@ -162,27 +163,25 @@ async fn crypto_js() {
     alias_fields: vec![vec!["browser".into()]],
     fallback: vec![(
       "crypto".into(),
-      vec![AliasValue::from(
-        f.join("lib.js").to_str().expect("path should be UTF-8"),
-      )],
+      vec![AliasValue::from(f.path_join("lib.js").as_str())],
     )],
     ..ResolveOptions::default()
   });
 
   let resolved_path = resolver
-    .resolve(f.join("crypto-js"), "crypto")
+    .resolve(f.path_join("crypto-js"), "crypto")
     .await
     .map(|r| r.full_path());
   assert_eq!(
     resolved_path,
-    Err(ResolveError::Ignored(f.join("crypto-js")))
+    Err(ResolveError::Ignored(f.path_join("crypto-js")))
   );
 }
 
 // https://github.com/webpack/webpack/blob/87660921808566ef3b8796f8df61bd79fc026108/test/cases/resolving/browser-field/index.js#L40-L43
 #[tokio::test]
 async fn recursive() {
-  let f = super::fixture().join("browser-module");
+  let f = super::fixture().path_join("browser-module");
 
   let resolver = Resolver::new(ResolveOptions {
     alias_fields: vec![vec!["browser".into()]],
@@ -220,7 +219,7 @@ async fn recursive() {
 
 #[tokio::test]
 async fn with_query() {
-  let f = super::fixture().join("browser-module");
+  let f = super::fixture().path_join("browser-module");
 
   let resolver = Resolver::new(ResolveOptions {
     alias_fields: vec![vec!["browser".into()]],
@@ -228,5 +227,8 @@ async fn with_query() {
   });
 
   let resolved_path = resolver.resolve(&f, "./foo").await.map(|r| r.full_path());
-  assert_eq!(resolved_path, Ok(f.join("lib").join("browser.js?query")));
+  assert_eq!(
+    resolved_path,
+    Ok(f.path_join("lib").path_join("browser.js?query"))
+  );
 }

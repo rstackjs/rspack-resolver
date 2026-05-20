@@ -2,8 +2,7 @@
 //!
 //! Fixtures copied from <https://github.com/parcel-bundler/parcel/tree/v2/packages/utils/node-resolver-core/test/fixture/tsconfig>.
 
-use std::path::{Path, PathBuf};
-
+use super::JoinExt;
 use crate::{
   JSONError, ResolveError, ResolveOptions, Resolver, TsConfig, TsconfigOptions, TsconfigReferences,
 };
@@ -11,31 +10,31 @@ use crate::{
 // <https://github.com/parcel-bundler/parcel/blob/b6224fd519f95e68d8b93ba90376fd94c8b76e69/packages/utils/node-resolver-rs/src/lib.rs#L2303>
 #[tokio::test]
 async fn tsconfig() {
-  let f = super::fixture_root().join("tsconfig");
+  let f = super::fixture_root().path_join("tsconfig");
 
   #[rustfmt::skip]
     let pass = [
-        (f.clone(), None, "ts-path", f.join("foo.js")),
-        (f.join("nested"), None, "ts-path", f.join("nested/test.js")),
-        (f.join("cases/index"), None, "foo", f.join("node_modules/tsconfig-index/foo.js")),
+        (f.clone(), None, "ts-path", f.path_join("foo.js")),
+        (f.path_join("nested"), None, "ts-path", f.path_join("nested/test.js")),
+        (f.path_join("cases/index"), None, "foo", f.path_join("node_modules/tsconfig-index/foo.js")),
         // This requires reading package.json.tsconfig field
-        // (f.join("cases/field"), "foo", f.join("node_modules/tsconfig-field/foo.js"))
-        (f.join("cases/exports"), None, "foo", f.join("node_modules/tsconfig-exports/foo.js")),
-        (f.join("cases/extends-extension"), None, "foo", f.join("cases/extends-extension/foo.js")),
-        (f.join("cases/extends-extensionless"), None, "foo", f.join("node_modules/tsconfig-field/foo.js")),
-        (f.join("cases/extends-paths"), Some("src"), "@/index", f.join("cases/extends-paths/src/index.js")),
-        (f.join("cases/extends-multiple"), None, "foo", f.join("cases/extends-multiple/foo.js")),
+        // (f.path_join("cases/field"), "foo", f.path_join("node_modules/tsconfig-field/foo.js"))
+        (f.path_join("cases/exports"), None, "foo", f.path_join("node_modules/tsconfig-exports/foo.js")),
+        (f.path_join("cases/extends-extension"), None, "foo", f.path_join("cases/extends-extension/foo.js")),
+        (f.path_join("cases/extends-extensionless"), None, "foo", f.path_join("node_modules/tsconfig-field/foo.js")),
+        (f.path_join("cases/extends-paths"), Some("src"), "@/index", f.path_join("cases/extends-paths/src/index.js")),
+        (f.path_join("cases/extends-multiple"), None, "foo", f.path_join("cases/extends-multiple/foo.js")),
     ];
 
   for (dir, subdir, request, expected) in pass {
     let resolver = Resolver::new(ResolveOptions {
       tsconfig: Some(TsconfigOptions {
-        config_file: dir.join("tsconfig.json"),
+        config_file: dir.path_join("tsconfig.json"),
         references: TsconfigReferences::Auto,
       }),
       ..ResolveOptions::default()
     });
-    let path = subdir.map_or(dir.clone(), |subdir| dir.join(subdir));
+    let path = subdir.map_or(dir.clone(), |subdir| dir.path_join(subdir));
     let resolved_path = resolver
       .resolve(&path, request)
       .await
@@ -45,12 +44,12 @@ async fn tsconfig() {
 
   #[rustfmt::skip]
     let data = [
-        (f.join("node_modules/tsconfig-not-used"), "ts-path", Ok(f.join("foo.js"))),
+        (f.path_join("node_modules/tsconfig-not-used"), "ts-path", Ok(f.path_join("foo.js"))),
     ];
 
   let resolver = Resolver::new(ResolveOptions {
     tsconfig: Some(TsconfigOptions {
-      config_file: f.join("tsconfig.json"),
+      config_file: f.path_join("tsconfig.json"),
       references: TsconfigReferences::Auto,
     }),
     ..ResolveOptions::default()
@@ -66,11 +65,11 @@ async fn tsconfig() {
 
 #[tokio::test]
 async fn tsconfig_fallthrough() {
-  let f = super::fixture_root().join("tsconfig");
+  let f = super::fixture_root().path_join("tsconfig");
 
   let resolver = Resolver::new(ResolveOptions {
     tsconfig: Some(TsconfigOptions {
-      config_file: f.join("tsconfig.json"),
+      config_file: f.path_join("tsconfig.json"),
       references: TsconfigReferences::Auto,
     }),
     ..ResolveOptions::default()
@@ -82,27 +81,27 @@ async fn tsconfig_fallthrough() {
 
 #[tokio::test]
 async fn json_with_comments() {
-  let f = super::fixture_root().join("tsconfig/cases/trailing-comma");
+  let f = super::fixture_root().path_join("tsconfig/cases/trailing-comma");
 
   let resolver = Resolver::new(ResolveOptions {
     tsconfig: Some(TsconfigOptions {
-      config_file: f.join("tsconfig.json"),
+      config_file: f.path_join("tsconfig.json"),
       references: TsconfigReferences::Auto,
     }),
     ..ResolveOptions::default()
   });
 
   let resolved_path = resolver.resolve(&f, "foo").await.map(|f| f.full_path());
-  assert_eq!(resolved_path, Ok(f.join("bar.js")));
+  assert_eq!(resolved_path, Ok(f.path_join("bar.js")));
 }
 
 #[tokio::test]
 async fn broken() {
-  let f = super::fixture_root().join("tsconfig");
+  let f = super::fixture_root().path_join("tsconfig");
 
   let resolver = Resolver::new(ResolveOptions {
     tsconfig: Some(TsconfigOptions {
-      config_file: f.join("tsconfig_broken.json"),
+      config_file: f.path_join("tsconfig_broken.json"),
       references: TsconfigReferences::Auto,
     }),
     ..ResolveOptions::default()
@@ -110,7 +109,7 @@ async fn broken() {
 
   let resolved_path = resolver.resolve(&f, "/").await;
   let _error = ResolveError::JSON(JSONError {
-    path: f.join("tsconfig_broken.json"),
+    path: f.path_join("tsconfig_broken.json"),
     message: String::from("EOF while parsing an object at line 2 column 0"),
     line: 2,
     column: 0,
@@ -121,24 +120,24 @@ async fn broken() {
 
 #[tokio::test]
 async fn empty() {
-  let f = super::fixture_root().join("tsconfig/cases/empty");
+  let f = super::fixture_root().path_join("tsconfig/cases/empty");
 
   let resolver = Resolver::new(ResolveOptions {
     tsconfig: Some(TsconfigOptions {
-      config_file: f.join("tsconfig.json"),
+      config_file: f.path_join("tsconfig.json"),
       references: TsconfigReferences::Auto,
     }),
     ..ResolveOptions::default()
   });
 
   let resolved_path = resolver.resolve(&f, "./index").await.map(|f| f.full_path());
-  assert_eq!(resolved_path, Ok(f.join("index.js")));
+  assert_eq!(resolved_path, Ok(f.path_join("index.js")));
 }
 
 // <https://github.com/parcel-bundler/parcel/blob/c8f5c97a01f643b4d5c333c02d019ef2618b44a5/packages/utils/node-resolver-rs/src/tsconfig.rs#L193C12-L193C12>
 #[tokio::test]
 async fn test_paths() {
-  let path = Path::new("/foo/tsconfig.json");
+  let path = "/foo/tsconfig.json";
   let mut tsconfig_json = serde_json::json!({
       "compilerOptions": {
           "paths": {
@@ -167,7 +166,7 @@ async fn test_paths() {
 
   for (specifier, expected) in data {
     let paths = tsconfig.resolve_path_alias(specifier);
-    let expected = expected.into_iter().map(PathBuf::from).collect::<Vec<_>>();
+    let expected = expected.into_iter().map(String::from).collect::<Vec<_>>();
     assert_eq!(paths, expected, "{specifier}");
   }
 }
@@ -175,7 +174,7 @@ async fn test_paths() {
 // <https://github.com/parcel-bundler/parcel/blob/c8f5c97a01f643b4d5c333c02d019ef2618b44a5/packages/utils/node-resolver-rs/src/tsconfig.rs#L233C6-L233C19>
 #[tokio::test]
 async fn test_base_url() {
-  let path = Path::new("/foo/tsconfig.json");
+  let path = "/foo/tsconfig.json";
   let mut tsconfig_json = serde_json::json!({
       "compilerOptions": {
           "baseUrl": "./src"
@@ -192,7 +191,7 @@ async fn test_base_url() {
 
   for (specifier, expected) in data {
     let paths = tsconfig.resolve_path_alias(specifier);
-    let expected = expected.into_iter().map(PathBuf::from).collect::<Vec<_>>();
+    let expected = expected.into_iter().map(String::from).collect::<Vec<_>>();
     assert_eq!(paths, expected, "{specifier}");
   }
 }
@@ -200,7 +199,7 @@ async fn test_base_url() {
 // <https://github.com/parcel-bundler/parcel/blob/c8f5c97a01f643b4d5c333c02d019ef2618b44a5/packages/utils/node-resolver-rs/src/tsconfig.rs#L252>
 #[tokio::test]
 async fn test_paths_and_base_url() {
-  let path = Path::new("/foo/tsconfig.json");
+  let path = "/foo/tsconfig.json";
   let mut tsconfig_json = serde_json::json!({
       "compilerOptions": {
           "baseUrl": "./src",
@@ -235,7 +234,7 @@ async fn test_paths_and_base_url() {
 
   for (specifier, expected) in data {
     let paths = tsconfig.resolve_path_alias(specifier);
-    let expected = expected.into_iter().map(PathBuf::from).collect::<Vec<_>>();
+    let expected = expected.into_iter().map(String::from).collect::<Vec<_>>();
     assert_eq!(paths, expected, "{specifier}");
   }
 }
@@ -244,22 +243,22 @@ async fn test_paths_and_base_url() {
 // https://github.com/microsoft/TypeScript/pull/58042
 #[tokio::test]
 async fn test_template_variable() {
-  let f = super::fixture_root().join("tsconfig");
-  let f2 = f.join("cases").join("paths_template_variable");
+  let f = super::fixture_root().path_join("tsconfig");
+  let f2 = f.path_join("cases").path_join("paths_template_variable");
 
   #[rustfmt::skip]
     let pass = [
-        (f2.clone(), "tsconfig1.json", "foo", f2.join("foo.js")),
-        (f2.clone(), "tsconfig2.json", "foo", f2.join("foo.js")),
-        (f2.clone(), "tsconfig3.json", "foo", f2.join("foo.js")),
-        (f.clone(), "tsconfig_template_variable.json", "foo", f.join("foo.js")),
-        (f.clone(), "tsconfig_template_variable_with_base_url.json", "foo", f.join("foo.js")),
+        (f2.clone(), "tsconfig1.json", "foo", f2.path_join("foo.js")),
+        (f2.clone(), "tsconfig2.json", "foo", f2.path_join("foo.js")),
+        (f2.clone(), "tsconfig3.json", "foo", f2.path_join("foo.js")),
+        (f.clone(), "tsconfig_template_variable.json", "foo", f.path_join("foo.js")),
+        (f.clone(), "tsconfig_template_variable_with_base_url.json", "foo", f.path_join("foo.js")),
     ];
 
   for (dir, tsconfig, request, expected) in pass {
     let resolver = Resolver::new(ResolveOptions {
       tsconfig: Some(TsconfigOptions {
-        config_file: dir.join(tsconfig),
+        config_file: dir.path_join(tsconfig),
         references: TsconfigReferences::Auto,
       }),
       ..ResolveOptions::default()
@@ -276,14 +275,14 @@ async fn test_template_variable() {
 // module resolution (node_modules), matching TypeScript's native behavior.
 #[tokio::test]
 async fn tsconfig_paths_scoped_pkg_fallthrough() {
-  let f = super::fixture_root().join("tsconfig/cases/scoped-pkg-fallthrough");
+  let f = super::fixture_root().path_join("tsconfig/cases/scoped-pkg-fallthrough");
 
   let resolver = Resolver::new(ResolveOptions {
     extensions: vec![".ts".into(), ".tsx".into(), ".js".into()],
     main_fields: vec!["main".into()],
     main_files: vec!["index".into()],
     tsconfig: Some(TsconfigOptions {
-      config_file: f.join("tsconfig.json"),
+      config_file: f.path_join("tsconfig.json"),
       references: TsconfigReferences::Auto,
     }),
     ..ResolveOptions::default()
@@ -291,7 +290,7 @@ async fn tsconfig_paths_scoped_pkg_fallthrough() {
 
   // "@helper" resolves via the "@*" mapping when the mapped path exists
   let resolved_path = resolver.resolve(&f, "@helper").await.map(|p| p.full_path());
-  assert_eq!(resolved_path, Ok(f.join("src/helper/index.ts")));
+  assert_eq!(resolved_path, Ok(f.path_join("src/helper/index.ts")));
 
   // "@sentry/react" falls through to node_modules when "@*" mapping does
   // not resolve to an existing file.
@@ -301,21 +300,19 @@ async fn tsconfig_paths_scoped_pkg_fallthrough() {
     .map(|p| p.full_path());
   assert_eq!(
     resolved_path,
-    Ok(f.join("node_modules/@sentry/react/index.js"))
+    Ok(f.path_join("node_modules/@sentry/react/index.js"))
   );
 }
 
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 mod windows_test {
-  use std::path::{Path, PathBuf};
-
-  use super::super::memory_fs::MemoryFS;
+  use super::super::{memory_fs::MemoryFS, JoinExt};
   use crate::{ResolveError, ResolveOptions, ResolverGeneric, TsconfigOptions, TsconfigReferences};
 
   struct OneTest {
     name: &'static str,
     tsconfig: String,
-    package_json: Option<(PathBuf, String)>,
+    package_json: Option<(String, String)>,
     main_fields: Option<Vec<String>>,
     existing_files: Vec<&'static str>,
     requested_module: &'static str,
@@ -352,21 +349,24 @@ mod windows_test {
   }
 
   impl OneTest {
-    fn resolver(&self, root: &Path) -> ResolverGeneric<MemoryFS> {
+    fn resolver(&self, root: &str) -> ResolverGeneric<MemoryFS> {
       let mut file_system = MemoryFS::default();
 
-      file_system.add_file(&root.join("tsconfig.json"), &self.tsconfig);
+      file_system.add_file(&root.path_join("tsconfig.json"), &self.tsconfig);
       if let Some((path, package_json)) = &self.package_json {
-        file_system.add_file(&root.join(path).join("package.json"), package_json);
+        file_system.add_file(
+          &root.path_join(path).path_join("package.json"),
+          package_json,
+        );
       }
       for path in &self.existing_files {
-        file_system.add_file(Path::new(path), "");
+        file_system.add_file(path, "");
       }
 
       let mut options = ResolveOptions {
         extensions: self.extensions.clone(),
         tsconfig: Some(TsconfigOptions {
-          config_file: root.join("tsconfig.json"),
+          config_file: root.path_join("tsconfig.json"),
           references: TsconfigReferences::Auto,
         }),
         ..ResolveOptions::default()
@@ -467,7 +467,7 @@ mod windows_test {
       OneTest {
         name: "should resolve from main field in package.json",
         package_json: Some((
-          PathBuf::from("/root/location/mylib"),
+          "/root/location/mylib".to_string(),
           serde_json::json!({
               "main": "./kalle.ts"
           })
@@ -481,7 +481,7 @@ mod windows_test {
       OneTest {
         name: "should resolve from main field in package.json (js)",
         package_json: Some((
-          PathBuf::from("/root/location/mylib.js"),
+          "/root/location/mylib.js".to_string(),
           serde_json::json!({
               "main": "./kalle.js"
           })
@@ -497,7 +497,7 @@ mod windows_test {
         name: "should resolve from list of fields by priority in package.json",
         main_fields: Some(vec!["missing".into(), "browser".into(), "main".into()]),
         package_json: Some((
-          PathBuf::from("/root/location/mylibjs"),
+          "/root/location/mylibjs".to_string(),
           serde_json::json!({
               "main": "./main.js",
               "browser": "./browser.js"
@@ -517,7 +517,7 @@ mod windows_test {
         name: "should ignore field mappings to missing files in package.json",
         main_fields: Some(vec!["browser".into(), "main".into()]),
         package_json: Some((
-          PathBuf::from("/root/location/mylibjs"),
+          "/root/location/mylibjs".to_string(),
           serde_json::json!({
               "main": "./kalle.js",
               "browser": "./nope.js"
@@ -553,7 +553,7 @@ mod windows_test {
       },
     ];
 
-    let root = PathBuf::from("/root");
+    let root = "/root".to_string();
 
     for test in pass {
       let resolved_path = test
@@ -563,7 +563,7 @@ mod windows_test {
         .map(|f| f.full_path());
       assert_eq!(
         resolved_path,
-        Ok(PathBuf::from(test.expected_path)),
+        Ok(test.expected_path.to_string()),
         "{}",
         test.name
       );

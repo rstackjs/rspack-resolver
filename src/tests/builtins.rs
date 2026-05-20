@@ -1,10 +1,9 @@
-use std::path::Path;
-
+use super::JoinExt;
 use crate::{ResolveError, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn builtins_off() {
-  let f = Path::new("/");
+  let f = "/";
   let resolver = Resolver::default();
   let resolved_path = resolver.resolve(f, "zlib").await.map(|r| r.full_path());
   assert_eq!(resolved_path, Err(ResolveError::NotFound("zlib".into())));
@@ -12,7 +11,7 @@ async fn builtins_off() {
 
 #[tokio::test]
 async fn builtins() {
-  let f = Path::new("/");
+  let f = "/";
 
   let resolver = Resolver::new(ResolveOptions::default().with_builtin_modules(true));
 
@@ -96,7 +95,7 @@ async fn builtins() {
 
 #[tokio::test]
 async fn fail() {
-  let f = Path::new("/");
+  let f = "/";
   let resolver = Resolver::new(ResolveOptions::default().with_builtin_modules(true));
   let request = "xxx";
   let resolved_path = resolver.resolve(f, request).await;
@@ -106,7 +105,7 @@ async fn fail() {
 
 #[tokio::test]
 async fn imports() {
-  let f = super::fixture().join("builtins");
+  let f = super::fixture().path_join("builtins");
   let resolver = Resolver::new(ResolveOptions {
     builtin_modules: true,
     condition_names: vec!["node".into()],

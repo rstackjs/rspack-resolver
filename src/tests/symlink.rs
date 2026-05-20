@@ -1,5 +1,6 @@
 use std::{fs, io, path::Path};
 
+use super::JoinExt;
 use crate::{ResolveOptions, Resolver};
 
 #[derive(Debug, Clone, Copy)]
@@ -87,7 +88,8 @@ fn cleanup_symlinks(temp_path: &Path) {
 
 #[tokio::test]
 async fn test() -> io::Result<()> {
-  let root = super::fixture_root().join("enhanced_resolve");
+  let root_str = super::fixture_root().path_join("enhanced_resolve");
+  let root = Path::new(&root_str);
   let dirname = root.join("test");
   let temp_path = dirname.join("temp");
   if !temp_path.exists() {
@@ -107,31 +109,37 @@ async fn test() -> io::Result<()> {
   });
   let resolver_with_symlinks = Resolver::default();
 
+  // Convert temp_path to its canonical string form so resolver calls operate on str.
+  let temp_path_str = temp_path
+    .to_str()
+    .expect("path should be UTF-8")
+    .to_string();
+
   #[rustfmt::skip]
     let pass = [
-        ("with a symlink to a file", temp_path.clone(), "./index.js"),
-        ("with a relative symlink to a file", temp_path.clone(), "./node.relative.js"),
-        ("with a relative symlink to a symlink to a file", temp_path.clone(), "./node.relative.sym.js"),
-        ("with a symlink to a directory 1", temp_path.clone(), "./lib/index.js"),
-        ("with a symlink to a directory 2", temp_path.clone(), "./this/lib/index.js"),
-        ("with multiple symlinks in the path 1", temp_path.clone(), "./this/test/temp/index.js"),
-        ("with multiple symlinks in the path 2", temp_path.clone(), "./this/test/temp/lib/index.js"),
-        ("with multiple symlinks in the path 3", temp_path.clone(), "./this/test/temp/this/lib/index.js"),
-        ("with a symlink to a directory 2 (chained)", temp_path.clone(), "./that/lib/index.js"),
-        ("with multiple symlinks in the path 1 (chained)", temp_path.clone(), "./that/test/temp/index.js"),
-        ("with multiple symlinks in the path 2 (chained)", temp_path.clone(), "./that/test/temp/lib/index.js"),
-        ("with multiple symlinks in the path 3 (chained)", temp_path.clone(), "./that/test/temp/that/lib/index.js"),
-        ("with symlinked directory as context 1", temp_path.join( "lib"), "./index.js"),
-        ("with symlinked directory as context 2", temp_path.join( "this"), "./lib/index.js"),
-        ("with symlinked directory as context and in path", temp_path.join( "this"), "./test/temp/lib/index.js"),
-        ("with symlinked directory in context path", temp_path.join( "this/lib"), "./index.js"),
-        ("with symlinked directory in context path and symlinked file", temp_path.join( "this/test"), "./temp/index.js"),
-        ("with symlinked directory in context path and symlinked directory", temp_path.join( "this/test"), "./temp/lib/index.js"),
-        ("with symlinked directory as context 2 (chained)", temp_path.join( "that"), "./lib/index.js"),
-        ("with symlinked directory as context and in path (chained)", temp_path.join( "that"), "./test/temp/lib/index.js"),
-        ("with symlinked directory in context path (chained)", temp_path.join( "that/lib"), "./index.js"),
-        ("with symlinked directory in context path and symlinked file (chained)", temp_path.join( "that/test"), "./temp/index.js"),
-        ("with symlinked directory in context path and symlinked directory (chained)", temp_path.join( "that/test"), "./temp/lib/index.js")
+        ("with a symlink to a file", temp_path_str.clone(), "./index.js"),
+        ("with a relative symlink to a file", temp_path_str.clone(), "./node.relative.js"),
+        ("with a relative symlink to a symlink to a file", temp_path_str.clone(), "./node.relative.sym.js"),
+        ("with a symlink to a directory 1", temp_path_str.clone(), "./lib/index.js"),
+        ("with a symlink to a directory 2", temp_path_str.clone(), "./this/lib/index.js"),
+        ("with multiple symlinks in the path 1", temp_path_str.clone(), "./this/test/temp/index.js"),
+        ("with multiple symlinks in the path 2", temp_path_str.clone(), "./this/test/temp/lib/index.js"),
+        ("with multiple symlinks in the path 3", temp_path_str.clone(), "./this/test/temp/this/lib/index.js"),
+        ("with a symlink to a directory 2 (chained)", temp_path_str.clone(), "./that/lib/index.js"),
+        ("with multiple symlinks in the path 1 (chained)", temp_path_str.clone(), "./that/test/temp/index.js"),
+        ("with multiple symlinks in the path 2 (chained)", temp_path_str.clone(), "./that/test/temp/lib/index.js"),
+        ("with multiple symlinks in the path 3 (chained)", temp_path_str.clone(), "./that/test/temp/that/lib/index.js"),
+        ("with symlinked directory as context 1", temp_path_str.path_join("lib"), "./index.js"),
+        ("with symlinked directory as context 2", temp_path_str.path_join("this"), "./lib/index.js"),
+        ("with symlinked directory as context and in path", temp_path_str.path_join("this"), "./test/temp/lib/index.js"),
+        ("with symlinked directory in context path", temp_path_str.path_join("this/lib"), "./index.js"),
+        ("with symlinked directory in context path and symlinked file", temp_path_str.path_join("this/test"), "./temp/index.js"),
+        ("with symlinked directory in context path and symlinked directory", temp_path_str.path_join("this/test"), "./temp/lib/index.js"),
+        ("with symlinked directory as context 2 (chained)", temp_path_str.path_join("that"), "./lib/index.js"),
+        ("with symlinked directory as context and in path (chained)", temp_path_str.path_join("that"), "./test/temp/lib/index.js"),
+        ("with symlinked directory in context path (chained)", temp_path_str.path_join("that/lib"), "./index.js"),
+        ("with symlinked directory in context path and symlinked file (chained)", temp_path_str.path_join("that/test"), "./temp/index.js"),
+        ("with symlinked directory in context path and symlinked directory (chained)", temp_path_str.path_join("that/test"), "./temp/lib/index.js")
     ];
 
   for (comment, path, request) in pass {
@@ -139,14 +147,14 @@ async fn test() -> io::Result<()> {
       .resolve(&path, request)
       .await
       .map(|r| r.full_path());
-    assert_eq!(filename, Ok(root.join("lib/index.js")), "{comment:?}");
+    assert_eq!(filename, Ok(root.path_join("lib/index.js")), "{comment:?}");
 
     let mut ctx = &mut Default::default();
     let resolved_path = resolver_without_symlinks
       .resolve_with_context(&path, request, &mut ctx)
       .await
       .map(|r| r.full_path());
-    assert_eq!(resolved_path, Ok(path.join(request)));
+    assert_eq!(resolved_path, Ok(path.path_join(request)));
     assert!(
       ctx.file_dependencies.contains(&resolved_path.unwrap()),
       "file dependencies should contain resolved path {comment:?}"

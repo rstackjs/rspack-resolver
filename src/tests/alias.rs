@@ -1,20 +1,15 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/alias.test.js>
 
-use std::path::Path;
-
-use normalize_path::NormalizePath;
-
+use super::JoinExt;
 use crate::{AliasValue, Resolution, ResolveContext, ResolveError, ResolveOptions, Resolver};
 
 #[tokio::test]
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 async fn alias() {
-  use std::path::{Path, PathBuf};
-
   use super::memory_fs::MemoryFS;
   use crate::ResolverGeneric;
 
-  let f = Path::new("/");
+  let f = "/";
 
   let file_system = MemoryFS::new(&[
     ("/a/index", ""),
@@ -120,14 +115,14 @@ async fn alias() {
     let resolved_path = resolver.resolve(f, request).await.map(|r| r.full_path());
     assert_eq!(
       resolved_path,
-      Ok(PathBuf::from(expected)),
+      Ok(expected.to_string()),
       "{comment} {request}"
     );
   }
 
   #[rustfmt::skip]
     let ignore = [
-        ("should resolve an ignore module", "ignored", ResolveError::Ignored(f.join("ignored")))
+        ("should resolve an ignore module", "ignored", ResolveError::Ignored(f.path_join("ignored")))
     ];
 
   for (comment, request, expected) in ignore {
@@ -151,17 +146,16 @@ async fn infinite_recursion() {
   assert_eq!(resolution, Err(ResolveError::Recursion));
 }
 
-fn check_slash(path: &Path) {
-  let s = path.to_str().expect("path should be UTF-8").to_string();
+fn check_slash(path: &str) {
   #[cfg(target_os = "windows")]
   {
-    assert!(!s.contains('/'), "{s}");
-    assert!(s.contains('\\'), "{s}");
+    assert!(!path.contains('/'), "{path}");
+    assert!(path.contains('\\'), "{path}");
   }
   #[cfg(not(target_os = "windows"))]
   {
-    assert!(s.contains('/'), "{s}");
-    assert!(!s.contains('\\'), "{s}");
+    assert!(path.contains('/'), "{path}");
+    assert!(!path.contains('\\'), "{path}");
   }
 }
 
@@ -169,15 +163,12 @@ fn check_slash(path: &Path) {
 async fn absolute_path() {
   let f = super::fixture();
   let resolver = Resolver::new(ResolveOptions {
-    alias: vec![(
-      f.join("foo").to_str().unwrap().to_string(),
-      vec![AliasValue::Ignore],
-    )],
-    modules: vec![f.clone().to_str().unwrap().to_string()],
+    alias: vec![(f.path_join("foo"), vec![AliasValue::Ignore])],
+    modules: vec![f.clone()],
     ..ResolveOptions::default()
   });
   let resolution = resolver.resolve(&f, "foo/index").await;
-  assert_eq!(resolution, Err(ResolveError::Ignored(f.join("foo"))));
+  assert_eq!(resolution, Err(ResolveError::Ignored(f.path_join("foo"))));
 }
 
 #[tokio::test]
@@ -186,9 +177,7 @@ async fn system_path() {
   let resolver = Resolver::new(ResolveOptions {
     alias: vec![(
       "@app".into(),
-      vec![AliasValue::from(
-        f.join("alias").to_str().expect("path should be UTF-8"),
-      )],
+      vec![AliasValue::from(f.path_join("alias").as_str())],
     )],
     ..ResolveOptions::default()
   });
@@ -199,21 +188,24 @@ async fn system_path() {
     let path = resolver
       .resolve(&f, specifier)
       .await
-      .map(Resolution::into_path_buf)
+      .map(Resolution::into_path)
       .unwrap();
-    assert_eq!(path, f.join("alias/files/a.js"));
+    assert_eq!(path, f.path_join("alias/files/a.js"));
     check_slash(&path);
   }
 }
 
 #[tokio::test]
 async fn alias_is_full_path() {
+  use std::path::Path;
+
+  use normalize_path::NormalizePath;
+
   let f = super::fixture();
-  let dir = f.join("foo");
-  let dir_str = dir.to_str().expect("path should be UTF-8").to_string();
+  let dir = f.path_join("foo");
 
   let resolver = Resolver::new(ResolveOptions {
-    alias: vec![("@".into(), vec![AliasValue::Path(dir_str.clone())])],
+    alias: vec![("@".into(), vec![AliasValue::Path(dir.clone())])],
     ..ResolveOptions::default()
   });
 
@@ -225,27 +217,29 @@ async fn alias_is_full_path() {
     // specifier has multiple `/` for reasons we'll never know
     "@////index".to_string(),
     // specifier is a full path
-    dir_str,
+    dir.clone(),
   ];
 
   for specifier in specifiers {
     let resolution = resolver.resolve_with_context(&f, &specifier, &mut ctx);
     assert_eq!(
       resolution.await.map(|r| r.full_path()),
-      Ok(dir.join("index.js"))
+      Ok(dir.path_join("index.js"))
     );
   }
 
   for path in ctx.file_dependencies {
-    assert_eq!(path, path.normalize(), "{path:?}");
+    let as_path = Path::new(&path);
+    assert_eq!(as_path, as_path.normalize(), "{path:?}");
     check_slash(&path);
   }
 
   for path in ctx.missing_dependencies {
-    assert_eq!(path, path.normalize(), "{path:?}");
+    let as_path = Path::new(&path);
+    assert_eq!(as_path, as_path.normalize(), "{path:?}");
     check_slash(&path);
-    if let Some(path) = path.parent() {
-      assert!(!path.is_file(), "{path:?} must not be a file");
+    if let Some(parent) = as_path.parent() {
+      assert!(!parent.is_file(), "{parent:?} must not be a file");
     }
   }
 }
@@ -258,11 +252,7 @@ async fn all_alias_values_are_not_found() {
     alias: vec![(
       "m1".to_string(),
       vec![AliasValue::Path(
-        f.join("node_modules")
-          .join("m2")
-          .to_str()
-          .expect("path should be UTF-8")
-          .to_string(),
+        f.path_join("node_modules").path_join("m2"),
       )],
     )],
     ..ResolveOptions::default()
@@ -288,17 +278,17 @@ async fn alias_fragment() {
     (
       "handle fragment edge case (no fragment)",
       "./no#fragment/#/#",
-      f.join("no#fragment/#/#.js"),
+      f.path_join("no#fragment/#/#.js"),
     ),
     (
       "handle fragment edge case (fragment)",
       "./no#fragment/#/",
-      f.join("no.js#fragment/#/"),
+      format!("{}/no.js#fragment/#/", f),
     ),
     (
       "handle fragment escaping",
       "./no\0#fragment/\0#/\0##fragment",
-      f.join("no#fragment/#/#.js#fragment"),
+      f.path_join("no#fragment/#/#.js#fragment"),
     ),
   ];
 
@@ -319,17 +309,9 @@ async fn alias_fragment() {
 async fn alias_try_fragment_as_path() {
   let f = super::fixture();
   let resolver = Resolver::new(ResolveOptions {
-    alias: vec![(
-      "#".to_string(),
-      vec![AliasValue::Path(
-        f.join("#")
-          .to_str()
-          .expect("path should be UTF-8")
-          .to_string(),
-      )],
-    )],
+    alias: vec![("#".to_string(), vec![AliasValue::Path(f.path_join("#"))])],
     ..ResolveOptions::default()
   });
   let resolution = resolver.resolve(&f, "#/a").await.map(|r| r.full_path());
-  assert_eq!(resolution, Ok(f.join("#").join("a.js")));
+  assert_eq!(resolution, Ok(f.path_join("#").path_join("a.js")));
 }

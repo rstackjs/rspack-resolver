@@ -5,13 +5,18 @@ use rspack_resolver::{AliasValue, ResolveOptions, Resolver};
 
 #[tokio::main]
 async fn main() {
-  let path = PathBuf::from(env::args().nth(1).expect("path"));
+  let path_buf = PathBuf::from(env::args().nth(1).expect("path"));
 
   assert!(
-    path.is_dir(),
-    "{path:?} must be a directory that will be resolved against."
+    path_buf.is_dir(),
+    "{path_buf:?} must be a directory that will be resolved against."
   );
-  assert!(path.is_absolute(), "{path:?} must be an absolute path.",);
+  assert!(
+    path_buf.is_absolute(),
+    "{path_buf:?} must be an absolute path.",
+  );
+
+  let path = path_buf.to_str().expect("path should be UTF-8").to_string();
 
   let specifier = env::args().nth(2).expect("specifier");
 

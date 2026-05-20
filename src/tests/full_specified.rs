@@ -2,8 +2,6 @@
 
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 mod windows {
-  use std::path::PathBuf;
-
   use super::super::memory_fs::MemoryFS;
   use crate::{AliasValue, ResolveOptions, ResolverGeneric};
 
@@ -93,11 +91,7 @@ mod windows {
 
     for (comment, request, expected) in successful_resolves {
       let resolution = resolver.resolve("/a", request).await.map(|r| r.full_path());
-      assert_eq!(
-        resolution,
-        Ok(PathBuf::from(expected)),
-        "{comment} {request}"
-      );
+      assert_eq!(resolution, Ok(expected.to_string()), "{comment} {request}");
     }
   }
 
@@ -145,11 +139,7 @@ mod windows {
 
     for (comment, request, expected) in successful_resolves {
       let resolution = resolver.resolve("/a", request).await.map(|r| r.full_path());
-      assert_eq!(
-        resolution,
-        Ok(PathBuf::from(expected)),
-        "{comment} {request}"
-      );
+      assert_eq!(resolution, Ok(expected.to_string()), "{comment} {request}");
     }
   }
 }

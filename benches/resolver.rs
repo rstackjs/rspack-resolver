@@ -6,7 +6,7 @@ use std::{
   fs::read_to_string,
   future::Future,
   io::{self, Write},
-  path::{Path, PathBuf},
+  path::Path,
   sync::Arc,
 };
 
@@ -66,7 +66,7 @@ fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<(
   }
 }
 
-fn create_symlinks() -> io::Result<PathBuf> {
+fn create_symlinks() -> io::Result<String> {
   let root = env::current_dir()?.join("fixtures/enhanced_resolve");
   let dirname = root.join("test");
   let temp_path = dirname.join("temp_symlinks");
@@ -89,7 +89,12 @@ fn create_symlinks() -> io::Result<PathBuf> {
       return Err(err);
     }
   }
-  Ok(temp_path)
+  Ok(
+    temp_path
+      .to_str()
+      .expect("path should be UTF-8")
+      .to_string(),
+  )
 }
 
 fn rspack_resolver(enable_pnp: bool) -> rspack_resolver::Resolver {
@@ -172,7 +177,7 @@ fn resolver_with_many_extensions() -> rspack_resolver::Resolver {
 
 fn create_async_resolve_task(
   rspack_resolver: Arc<rspack_resolver::Resolver>,
-  path: PathBuf,
+  path: String,
   request: String,
 ) -> impl Future<Output = ()> {
   async move {
@@ -181,7 +186,12 @@ fn create_async_resolve_task(
 }
 
 fn bench_resolver(c: &mut Criterion) {
-  let cwd = env::current_dir().unwrap().join("benches");
+  let cwd = env::current_dir()
+    .unwrap()
+    .join("benches")
+    .to_str()
+    .expect("path should be UTF-8")
+    .to_string();
 
   let pkg_content = read_to_string("./benches/package.json").unwrap();
   let pkg_json: Value = serde_json::from_str(&pkg_content).unwrap();
@@ -190,7 +200,7 @@ fn bench_resolver(c: &mut Criterion) {
     .as_object()
     .unwrap()
     .keys()
-    .map(|name| (&cwd, name))
+    .map(|name| (cwd.clone(), name.clone()))
     .collect::<Vec<_>>();
 
   // check validity
@@ -306,7 +316,7 @@ fn bench_resolver(c: &mut Criterion) {
             data.iter().for_each(|(path, request)| {
               join_set.spawn(create_async_resolve_task(
                 rspack_resolver.clone(),
-                path.to_path_buf(),
+                path.clone(),
                 request.to_string(),
               ));
             });
@@ -367,7 +377,12 @@ fn bench_resolver(c: &mut Criterion) {
     },
   );
 
-  let pnp_workspace = env::current_dir().unwrap().join("fixtures/pnp");
+  let pnp_workspace = env::current_dir()
+    .unwrap()
+    .join("fixtures/pnp")
+    .to_str()
+    .expect("path should be UTF-8")
+    .to_string();
   let root_range = 1..11;
 
   group.bench_with_input(
@@ -384,7 +399,7 @@ fn bench_resolver(c: &mut Criterion) {
         |_| async {
           for i in data.clone() {
             let _ = rspack_resolver
-              .resolve(pnp_workspace.join(format!("{i}")), "preact")
+              .resolve(format!("{pnp_workspace}/{i}"), "preact")
               .await;
           }
         },
