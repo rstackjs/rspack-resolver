@@ -377,18 +377,23 @@ fn bench_resolver(c: &mut Criterion) {
       let runner = runtime::Runtime::new().expect("failed to create tokio runtime");
       let rspack_resolver = Arc::new(rspack_resolver(true));
 
-      b.to_async(runner).iter_with_setup(
-        || {
-          rspack_resolver.clear_cache();
-        },
-        |_| async {
-          for i in data.clone() {
-            let _ = rspack_resolver
-              .resolve(pnp_workspace.join(format!("{i}")), "preact")
-              .await;
-          }
-        },
-      );
+      // Warm the PnP manifest (one-time work in real usage). Without this,
+      // `pnp::load_pnp_manifest` — which reads and regex-compiles a ~250KB
+      // `.pnp.cjs` — dominated the inner loop and made the resolver's own
+      // cost ~28% of the sample, drowning small resolver-level deltas.
+      runner.block_on(async {
+        for i in data.clone() {
+          let _ =
+            rspack_resolver.resolve(pnp_workspace.join(format!("{i}")), "preact").await;
+        }
+      });
+
+      b.to_async(runner).iter(|| async {
+        for i in data.clone() {
+          let _ =
+            rspack_resolver.resolve(pnp_workspace.join(format!("{i}")), "preact").await;
+        }
+      });
     },
   );
 }
