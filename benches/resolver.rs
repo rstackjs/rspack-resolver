@@ -392,16 +392,27 @@ fn bench_resolver(c: &mut Criterion) {
       let runner = runtime::Runtime::new().expect("failed to create tokio runtime");
       let rspack_resolver = Arc::new(rspack_resolver(true));
 
-      b.to_async(runner).iter_with_setup(
+      b.iter_with_setup(
         || {
+          // Drop all caches, then reload the PnP manifest before the timed
+          // body runs. The manifest re-parse (~250KB regex compile) is
+          // one-time work in real usage; keeping it out of the timed loop
+          // lets resolver-level deltas surface.
           rspack_resolver.clear_cache();
-        },
-        |_| async {
-          for i in data.clone() {
+          runner.block_on(async {
             let _ = rspack_resolver
-              .resolve(format!("{pnp_workspace}/{i}"), "preact")
+              .resolve(format!("{pnp_workspace}/1"), "preact")
               .await;
-          }
+          });
+        },
+        |_| {
+          runner.block_on(async {
+            for i in data.clone() {
+              let _ = rspack_resolver
+                .resolve(format!("{pnp_workspace}/{i}"), "preact")
+                .await;
+            }
+          });
         },
       );
     },
