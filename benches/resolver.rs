@@ -375,23 +375,22 @@ fn bench_resolver(c: &mut Criterion) {
     &root_range,
     |b, data| {
       let runner = runtime::Runtime::new().expect("failed to create tokio runtime");
+      let setup_runner = runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("failed to create setup tokio runtime");
       let rspack_resolver = Arc::new(rspack_resolver(true));
-
-      // Warm the PnP manifest (one-time work in real usage). Without this,
-      // `pnp::load_pnp_manifest` — which reads and regex-compiles a ~250KB
-      // `.pnp.cjs` — dominated the inner loop and made the resolver's own
-      // cost ~28% of the sample, drowning small resolver-level deltas.
-      //
-      // The FS metadata cache is still cleared per-iteration via
-      // `clear_fs_cache` so each measurement reflects real resolver work,
-      // not a fully-hot run.
-      runner.block_on(async {
-        let _ = rspack_resolver.resolve(pnp_workspace.join("1"), "preact").await;
-      });
 
       b.to_async(runner).iter_with_setup(
         || {
-          rspack_resolver.clear_fs_cache();
+          // Drop all caches, then resolve once so the PnP manifest is loaded
+          // and parsed before the timed body starts. Without this, the inner
+          // resolve re-runs `pnp::load_pnp_manifest` (a ~250KB regex compile)
+          // every iteration and drowns out resolver-level deltas.
+          rspack_resolver.clear_cache();
+          setup_runner.block_on(async {
+            let _ = rspack_resolver.resolve(pnp_workspace.join("1"), "preact").await;
+          });
         },
         |_| async {
           for i in data.clone() {

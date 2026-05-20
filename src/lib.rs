@@ -191,16 +191,6 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
   }
 
-  /// Clear only the filesystem metadata cache.
-  ///
-  /// Unlike [`Self::clear_cache`], any loaded PnP manifest is preserved. Used
-  /// by the `pnp resolve` benchmark to keep manifest bootstrap out of the
-  /// hot path while still measuring real FS-cold resolver work.
-  #[doc(hidden)]
-  pub fn clear_fs_cache(&self) {
-    self.cache.clear();
-  }
-
   /// Resolve `specifier` at an absolute path to a `directory`.
   ///
   /// A specifier is the string passed to require or import, i.e. `require("specifier")` or `import "specifier"`.
