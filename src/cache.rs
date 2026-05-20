@@ -1,3 +1,5 @@
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
 use std::{
   borrow::{Borrow, Cow},
   convert::AsRef,
@@ -45,6 +47,12 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   pub fn value(&self, path: &Path) -> CachedPath {
     let hash = {
       let mut hasher = FxHasher::default();
+      // On Unix, hash the raw path bytes in one bulk `Hasher::write`. The std
+      // `Path::hash` impl walks components (utf8 split + per-segment write)
+      // and dominated profile samples on this cache-lookup hot path.
+      #[cfg(unix)]
+      hasher.write(path.as_os_str().as_bytes());
+      #[cfg(not(unix))]
       path.hash(&mut hasher);
       hasher.finish()
     };
@@ -196,22 +204,44 @@ impl CachedPathImpl {
   }
 
   pub async fn is_file<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
-    if let Some(meta) = self.meta(fs).await {
-      ctx.add_file_dependency(self.path());
-      meta.is_file
+    // Skip building the `meta(fs)` future on OnceCell cache hit. This is
+    // hot via `find_package_json` and the resolve loops which call
+    // `is_file` per ancestor on already-warm caches.
+    if let Some(cached) = self.meta.get() {
+      return Self::is_file_from_meta(*cached, self.path(), ctx);
+    }
+    let cached = self.meta(fs).await;
+    Self::is_file_from_meta(cached, self.path(), ctx)
+  }
+
+  fn is_file_from_meta(meta: Option<FileMetadata>, path: &Path, ctx: &mut Ctx) -> bool {
+    if let Some(m) = meta {
+      ctx.add_file_dependency(path);
+      m.is_file
     } else {
-      ctx.add_missing_dependency(self.path());
+      ctx.add_missing_dependency(path);
       false
     }
   }
 
   pub async fn is_dir<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
-    self.meta(fs).await.map_or_else(
+    // Skip the `meta(fs)` future + state machine on OnceCell cache hit;
+    // `find_package_json` calls `is_dir` per ancestor and dominates the
+    // profile after a single bench iteration warms the cache.
+    if let Some(cached) = self.meta.get() {
+      return Self::is_dir_from_meta(*cached, self.path(), ctx);
+    }
+    let cached = self.meta(fs).await;
+    Self::is_dir_from_meta(cached, self.path(), ctx)
+  }
+
+  fn is_dir_from_meta(meta: Option<FileMetadata>, path: &Path, ctx: &mut Ctx) -> bool {
+    meta.map_or_else(
       || {
-        ctx.add_missing_dependency(self.path());
+        ctx.add_missing_dependency(path);
         false
       },
-      |meta| meta.is_dir,
+      |m| m.is_dir,
     )
   }
 
