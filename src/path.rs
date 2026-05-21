@@ -23,6 +23,38 @@ pub fn path_join_preallocated(base: &Path, sub: &str) -> PathBuf {
   buf
 }
 
+/// Byte-level [`Path::parent`] for unix targets.
+///
+/// `std::path::Path::parent` builds a `Components` iterator and walks one step
+/// back, which the bench shows costs ~2M Ir per `resolver/single-thread`
+/// iteration (one call per cache miss in [`crate::cache::Cache::value`]).
+/// Operating on raw bytes — like the existing `Cache::value` hash and the
+/// `CachedPath` eq path — sidesteps that.
+///
+/// Behavior mirrors std's impl: drops trailing separators, splits at the last
+/// remaining separator, collapses repeated separators before the split point,
+/// and returns `None` for an empty path or a path whose only content is one
+/// or more separators (i.e. root).
+#[cfg(unix)]
+#[inline]
+pub fn path_parent_unix(path: &Path) -> Option<&Path> {
+  use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
+
+  let bytes = path.as_os_str().as_bytes();
+  let last_non_slash = bytes.iter().rposition(|&b| b != b'/')?;
+  let trimmed = &bytes[..=last_non_slash];
+  let parent_end = trimmed
+    .iter()
+    .rposition(|&b| b == b'/')
+    .map_or(0, |slash_pos| {
+      bytes[..slash_pos]
+        .iter()
+        .rposition(|&b| b != b'/')
+        .map_or_else(|| usize::from(bytes.first() == Some(&b'/')), |p| p + 1)
+    });
+  Some(Path::new(OsStr::from_bytes(&bytes[..parent_end])))
+}
+
 /// Extension trait to add path normalization to std's [`Path`].
 pub trait PathUtil {
   /// Normalize this path without performing I/O.
@@ -142,6 +174,38 @@ async fn is_invalid_exports_target() {
 
   assert!(!Path::new("C:").is_invalid_exports_target());
   assert!(!Path::new("/").is_invalid_exports_target());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn path_parent_unix_matches_std() {
+  let cases = [
+    "/foo/bar",
+    "/foo",
+    "/",
+    "",
+    "foo",
+    "foo/bar",
+    ".",
+    "..",
+    "./foo",
+    "../foo",
+    "/foo/",
+    "/foo/bar/",
+    "//foo/bar",
+    "foo//bar",
+    "/a/b/c/d/e",
+    "/",
+    "//",
+  ];
+  for case in cases {
+    let p = Path::new(case);
+    assert_eq!(
+      path_parent_unix(p),
+      p.parent(),
+      "case={case:?} diverged from std::Path::parent"
+    );
+  }
 }
 
 #[tokio::test]

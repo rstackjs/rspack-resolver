@@ -16,6 +16,8 @@ use futures::future::BoxFuture;
 use rustc_hash::FxHasher;
 use tokio::sync::OnceCell as OnceLock;
 
+#[cfg(unix)]
+use crate::path::path_parent_unix;
 use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
@@ -59,6 +61,9 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
+    #[cfg(unix)]
+    let parent = path_parent_unix(path).map(|p| self.value(p));
+    #[cfg(not(unix))]
     let parent = path.parent().map(|p| self.value(p));
     let data = CachedPath(Arc::new(CachedPathImpl::new(
       hash,
