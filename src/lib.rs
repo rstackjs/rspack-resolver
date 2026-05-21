@@ -84,7 +84,7 @@ pub use crate::{
   },
   package_json::{JSONValue, ModuleType, PackageJson},
   resolution::Resolution,
-  resolver_path::{ResolverPath, ResolverPathBuf},
+  resolver_path::{ResolverPath, ResolverPathBuf, StripPrefixError, MAIN_SEPARATOR},
 };
 use crate::{
   cache::{Cache, CachedPath},

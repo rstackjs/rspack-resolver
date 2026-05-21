@@ -9,7 +9,7 @@ use crate::{
 ///
 /// The resolved path is stored as [`ResolverPathBuf`] so it carries the
 /// precomputed FxHash that the resolver computed on the way out. Callers
-/// can read the hash via [`Resolution::resolver_path`] / [`Resolution::path_buf`]
+/// can read the hash via [`Resolution::resolver_path`] / [`Resolution::into_path_buf`]
 /// to skip a re-hash on insertion into their own caches.
 #[derive(Clone)]
 pub struct Resolution {

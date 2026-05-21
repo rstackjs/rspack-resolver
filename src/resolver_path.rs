@@ -727,6 +727,21 @@ impl ResolverPathBuf {
       self.rehash();
       return;
     }
+    // Mirror `std::path::PathBuf::push`: a path that has a root but no
+    // prefix (e.g. `\windows`, `/foo`) keeps `self`'s prefix and replaces
+    // everything after it. On Unix this collapses to `is_absolute`; on
+    // Windows it lets `C:foo.push("\\bar")` produce `C:\\bar`.
+    #[cfg(windows)]
+    {
+      let other_bytes = other.inner.as_bytes();
+      if prefix_len(other.inner) == 0 && matches!(other_bytes.first(), Some(&b) if is_sep_byte(b)) {
+        let self_plen = prefix_len(&self.inner);
+        self.inner.truncate(self_plen);
+        self.inner.push_str(other.inner);
+        self.rehash();
+        return;
+      }
+    }
     let needs_sep = !self.inner.is_empty()
       && !self
         .inner
@@ -739,6 +754,30 @@ impl ResolverPathBuf {
     }
     self.inner.push_str(other.inner);
     self.rehash();
+  }
+
+  /// Append a single separator character to the buffer without any segment.
+  /// Used by `normalize_path` to anchor a root that has no prefix attached
+  /// (`/foo` style). Idempotent: no-op when the tail is already a separator.
+  /// The character must be a path separator (`/`, or `\\` on Windows).
+  pub fn push_separator_char(&mut self, sep: char) {
+    debug_assert!(is_sep_byte(sep as u8));
+    if self
+      .inner
+      .as_bytes()
+      .last()
+      .copied()
+      .is_some_and(is_sep_byte)
+    {
+      return;
+    }
+    self.inner.push(sep);
+    self.rehash();
+  }
+
+  /// Convenience: appends [`MAIN_SEPARATOR`].
+  pub fn push_separator(&mut self) {
+    self.push_separator_char(MAIN_SEPARATOR);
   }
 
   pub fn pop(&mut self) -> bool {
