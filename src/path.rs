@@ -11,6 +11,83 @@ pub fn path_to_str(path: &Path) -> &str {
   path.to_str().expect("path should be UTF-8")
 }
 
+/// Strip a single trailing path separator (platform-aware). Used so that
+/// `parent_str("/a/b/")` walks to `"/a"` instead of `"/a/b"`.
+#[inline]
+fn trim_one_trailing_sep(s: &str) -> &str {
+  #[cfg(windows)]
+  {
+    s.strip_suffix('\\')
+      .or_else(|| s.strip_suffix('/'))
+      .unwrap_or(s)
+  }
+  #[cfg(not(windows))]
+  {
+    s.strip_suffix('/').unwrap_or(s)
+  }
+}
+
+#[inline]
+fn last_sep_index(s: &str) -> Option<usize> {
+  #[cfg(windows)]
+  {
+    match (s.rfind('/'), s.rfind('\\')) {
+      (Some(a), Some(b)) => Some(a.max(b)),
+      (Some(a), None) | (None, Some(a)) => Some(a),
+      (None, None) => None,
+    }
+  }
+  #[cfg(not(windows))]
+  {
+    s.rfind('/')
+  }
+}
+
+/// Return the parent slice of a UTF-8 path string.
+///
+/// Splits on the last `/` (and `\` on Windows). Returns `None` when the path
+/// has no parent (Unix root `/`, Windows drive root `C:\`, or a relative single
+/// component).
+#[inline]
+pub fn parent_str(s: &str) -> Option<&str> {
+  if s.is_empty() {
+    return None;
+  }
+  let trimmed = trim_one_trailing_sep(s);
+  let idx = last_sep_index(trimmed)?;
+  let prefix = &trimmed[..idx];
+  let include_sep =
+    prefix.is_empty() || (cfg!(windows) && prefix.len() == 2 && prefix.ends_with(':'));
+  if include_sep {
+    Some(&trimmed[..=idx])
+  } else {
+    Some(prefix)
+  }
+}
+
+/// Join a UTF-8 base path with a single segment using the platform separator.
+///
+/// Mirrors `std::path::Path::join` semantics: when `segment` is absolute
+/// (starts with `/`, or `\` on Windows) it replaces `base` entirely. Otherwise
+/// the segment is appended, inserting a separator only when `base` does not
+/// already end in one.
+#[inline]
+pub fn join_str(base: &str, segment: &str) -> String {
+  if Path::new(segment).is_absolute() {
+    return segment.to_string();
+  }
+  let already_sep =
+    base.ends_with(std::path::MAIN_SEPARATOR) || (cfg!(windows) && base.ends_with('/'));
+  let extra = usize::from(!already_sep);
+  let mut out = String::with_capacity(base.len() + extra + segment.len());
+  out.push_str(base);
+  if !already_sep {
+    out.push(std::path::MAIN_SEPARATOR);
+  }
+  out.push_str(segment);
+  out
+}
+
 /// Extension trait to add path normalization to std's [`Path`].
 pub trait PathUtil {
   /// Normalize this path without performing I/O.
@@ -138,4 +215,38 @@ async fn normalize() {
     Path::new(r"\\server\share").normalize(),
     Path::new(r"\\server\share")
   );
+}
+
+#[test]
+fn parent_str_handles_common_cases() {
+  assert_eq!(parent_str("/a/b/c"), Some("/a/b"));
+  assert_eq!(parent_str("/a/b"), Some("/a"));
+  assert_eq!(parent_str("/a"), Some("/"));
+  assert_eq!(parent_str("/"), None);
+  assert_eq!(parent_str("a"), None);
+  assert_eq!(parent_str(""), None);
+  assert_eq!(parent_str("/a/b/"), Some("/a"));
+}
+
+#[cfg(windows)]
+#[test]
+fn parent_str_handles_windows_separators() {
+  assert_eq!(parent_str(r"C:\a\b\c"), Some(r"C:\a\b"));
+  assert_eq!(parent_str(r"C:\a"), Some(r"C:\"));
+  assert_eq!(parent_str(r"C:\"), None);
+}
+
+#[test]
+fn join_str_appends_with_separator() {
+  let sep = std::path::MAIN_SEPARATOR;
+  assert_eq!(join_str("/a/b", "c"), format!("/a/b{sep}c"));
+  assert_eq!(join_str("/", "c"), "/c");
+  assert_eq!(join_str(&format!("/a{sep}"), "b"), format!("/a{sep}b"));
+}
+
+#[test]
+fn join_str_absolute_segment_replaces_base() {
+  // Mirror Path::join semantics: an absolute segment replaces the base.
+  assert_eq!(join_str("/a/b", "/modules"), "/modules");
+  assert_eq!(join_str("/x", "/y/z"), "/y/z");
 }
