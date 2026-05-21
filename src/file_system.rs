@@ -147,19 +147,26 @@ impl FileSystemOs {
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait::async_trait]
 impl FileSystem for FileSystemOs {
+  // The bulk of resolver work is filesystem stat/read operations whose syscall
+  // cost is microseconds. Calling them through `tokio::fs` forces a
+  // `spawn_blocking` + semaphore acquire + park/unpark per call, which the
+  // single-thread bench shows costs ~20M Ir per iteration in tokio runtime
+  // overhead alone. Use sync std::fs here; the trait still exposes an `async fn`
+  // so callers can await as before. Other Rust resolvers (swc, oxc) make the
+  // same tradeoff for the same reason.
   async fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
     cfg_if! {
       if #[cfg(feature = "yarn_pnp")] {
         if self.options.enable_pnp {
             return match VPath::from(path)? {
                 VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
-                VPath::Virtual(info) => tokio::fs::read(info.physical_base_path()).await,
-                VPath::Native(path) => tokio::fs::read(&path).await,
+                VPath::Virtual(info) => fs::read(info.physical_base_path()),
+                VPath::Native(path) => fs::read(&path),
             }
         }
     }}
 
-    tokio::fs::read(path).await
+    fs::read(path)
   }
 
   async fn read_to_string(&self, path: &Path) -> io::Result<String> {
@@ -168,13 +175,13 @@ impl FileSystem for FileSystemOs {
         if self.options.enable_pnp {
             return match VPath::from(path)? {
                 VPath::Zip(info) => self.pnp_lru.read_to_string(info.physical_base_path(), info.zip_path),
-                VPath::Virtual(info) => tokio::fs::read_to_string(info.physical_base_path()).await,
-                VPath::Native(path) => tokio::fs::read_to_string(&path).await,
+                VPath::Virtual(info) => fs::read_to_string(info.physical_base_path()),
+                VPath::Native(path) => fs::read_to_string(&path),
                 }
             }
         }
     }
-    tokio::fs::read_to_string(path).await
+    fs::read_to_string(path)
   }
 
   async fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
@@ -186,24 +193,18 @@ impl FileSystem for FileSystemOs {
                         .pnp_lru
                         .file_type(info.physical_base_path(), info.zip_path)
                         .map(FileMetadata::from),
-                    VPath::Virtual(info) => {
-                        tokio::fs::metadata(info.physical_base_path())
-                            .await
-                            .map(FileMetadata::from)
-                    }
-                    VPath::Native(path) => tokio::fs::metadata(path).await.map(FileMetadata::from),
+                    VPath::Virtual(info) => fs::metadata(info.physical_base_path()).map(FileMetadata::from),
+                    VPath::Native(path) => fs::metadata(path).map(FileMetadata::from),
                 }
             }
         }
     }
 
-    tokio::fs::metadata(path).await.map(FileMetadata::from)
+    fs::metadata(path).map(FileMetadata::from)
   }
 
   async fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    tokio::fs::symlink_metadata(path)
-      .await
-      .map(FileMetadata::from)
+    fs::symlink_metadata(path).map(FileMetadata::from)
   }
 
   async fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
