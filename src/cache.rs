@@ -247,8 +247,18 @@ impl CachedPathImpl {
           }
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
-            // Component-aware suffix: drop the parent prefix and let
-            // `normalize_with` reattach using the platform separator.
+            // Fast path: parent's canonical form is byte-identical to its
+            // input, so no symlink was resolved anywhere up the chain and
+            // self.path is already canonical. Return None to preserve the
+            // path verbatim — important on Windows where the input may mix
+            // `/` and `\` separators that std::path used to keep, and which
+            // `normalize_with` below would otherwise replace with
+            // `MAIN_SEPARATOR`.
+            if parent_path == parent.path.as_str() {
+              return Ok(None);
+            }
+            // Symlink was resolved upstream: rebuild self by reattaching the
+            // suffix onto the new canonical parent.
             let suffix = self
               .path
               .strip_prefix(parent.path.as_str())
