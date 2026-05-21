@@ -1,6 +1,16 @@
-use std::{env, path::Path};
+use std::{
+  env,
+  path::{Path, PathBuf},
+};
 
 use rspack_resolver::{ResolveError, ResolveOptions, Resolver};
+
+// PathBuf comparison so Windows separator differences (the resolver emits `\\`
+// at boundaries while `path_join` / hand-written specifiers carry `/`) are
+// absorbed component-wise — mirroring how `main` compared `Result<PathBuf>`.
+fn pb(s: String) -> PathBuf {
+  PathBuf::from(s)
+}
 
 fn dir() -> String {
   env::current_dir().unwrap().to_str().unwrap().to_string()
@@ -30,8 +40,8 @@ async fn chinese() {
     .resolve(&dir, specifier)
     .await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path),
-    Ok(dir.path_join("fixtures/misc/中文/中文.js"))
+    resolution.map(|r| pb(r.into_path())),
+    Ok(pb(dir.path_join("fixtures/misc/中文/中文.js")))
   );
 }
 
@@ -50,8 +60,10 @@ async fn styled_components() {
   };
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path),
-    Ok(module_path.path_join("dist/styled-components.browser.cjs.js"))
+    resolution.map(|r| pb(r.into_path())),
+    Ok(pb(
+      module_path.path_join("dist/styled-components.browser.cjs.js")
+    ))
   );
 
   // esm
@@ -63,8 +75,10 @@ async fn styled_components() {
   };
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path),
-    Ok(module_path.path_join("dist/styled-components.browser.esm.js"))
+    resolution.map(|r| pb(r.into_path())),
+    Ok(pb(
+      module_path.path_join("dist/styled-components.browser.esm.js")
+    ))
   );
 }
 
@@ -79,8 +93,8 @@ async fn axios() {
   let options = ResolveOptions::default();
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path),
-    Ok(module_path.path_join("index.js"))
+    resolution.map(|r| pb(r.into_path())),
+    Ok(pb(module_path.path_join("index.js")))
   );
 
   // browser
@@ -90,8 +104,8 @@ async fn axios() {
   };
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path),
-    Ok(module_path.path_join("dist/browser/axios.cjs"))
+    resolution.map(|r| pb(r.into_path())),
+    Ok(pb(module_path.path_join("dist/browser/axios.cjs")))
   );
 
   // cjs
@@ -101,8 +115,8 @@ async fn axios() {
   };
   let resolution = Resolver::new(options).resolve(&path, specifier).await;
   assert_eq!(
-    resolution.map(rspack_resolver::Resolution::into_path),
-    Ok(module_path.path_join("dist/node/axios.cjs"))
+    resolution.map(|r| pb(r.into_path())),
+    Ok(pb(module_path.path_join("dist/node/axios.cjs")))
   );
 }
 
@@ -118,18 +132,21 @@ async fn postcss() {
 
   // should ignore "path"
   let resolution = resolver.resolve(&module_path, "path").await;
-  assert_eq!(resolution, Err(ResolveError::Ignored(module_path.clone())));
+  match resolution {
+    Err(ResolveError::Ignored(p)) => assert_eq!(pb(p), pb(module_path.clone())),
+    other => panic!("expected Ignored, got: {other:?}"),
+  }
 
   // should ignore "./lib/terminal-highlight"
   let resolution = resolver
     .resolve(&module_path, "./lib/terminal-highlight")
     .await;
-  assert_eq!(
-    resolution,
-    Err(ResolveError::Ignored(
-      module_path.path_join("lib/terminal-highlight")
-    ))
-  );
+  match resolution {
+    Err(ResolveError::Ignored(p)) => {
+      assert_eq!(pb(p), pb(module_path.path_join("lib/terminal-highlight")))
+    }
+    other => panic!("expected Ignored, got: {other:?}"),
+  }
 }
 
 #[tokio::test]
@@ -161,8 +178,8 @@ async fn ipaddr_js() {
     let resolution = resolver
       .resolve(&path, "ipaddr.js")
       .await
-      .map(|r| r.full_path());
-    assert_eq!(resolution, Ok(module_path.clone()));
+      .map(|r| pb(r.full_path()));
+    assert_eq!(resolution, Ok(pb(module_path.clone())));
   }
 }
 
@@ -194,8 +211,8 @@ async fn decimal_js() {
     let resolution = resolver
       .resolve(&path, "decimal.js")
       .await
-      .map(|r| r.full_path());
-    assert_eq!(resolution, Ok(module_path.clone()));
+      .map(|r| pb(r.full_path()));
+    assert_eq!(resolution, Ok(pb(module_path.clone())));
   }
 }
 
@@ -227,7 +244,7 @@ async fn decimal_js_from_mathjs() {
     let resolution = resolver
       .resolve(&path, "decimal.js")
       .await
-      .map(|r| r.full_path());
-    assert_eq!(resolution, Ok(module_path.clone()));
+      .map(|r| pb(r.full_path()));
+    assert_eq!(resolution, Ok(pb(module_path.clone())));
   }
 }
