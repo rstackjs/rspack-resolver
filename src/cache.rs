@@ -19,7 +19,7 @@ use tokio::sync::OnceCell as OnceLock;
 use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
-  path::PathUtil,
+  path::{path_join_preallocated, PathUtil},
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
 };
 
@@ -268,7 +268,7 @@ impl CachedPathImpl {
     cache: &Cache<Fs>,
     ctx: &mut Ctx,
   ) -> Option<CachedPath> {
-    let cached_path = cache.value(&self.path.join(module_name));
+    let cached_path = cache.value(&path_join_preallocated(&self.path, module_name));
     cached_path
       .is_dir(&cache.fs, ctx)
       .await
@@ -349,7 +349,7 @@ impl CachedPathImpl {
     let result = self
       .package_json
       .get_or_try_init(|| async {
-        let package_json_path = self.path.join("package.json");
+        let package_json_path = path_join_preallocated(&self.path, "package.json");
         let Ok(package_json_string) = fs.read(&package_json_path).await else {
           return Ok(None);
         };

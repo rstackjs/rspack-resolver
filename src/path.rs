@@ -11,6 +11,18 @@ pub fn path_to_str(path: &Path) -> &str {
   path.to_str().expect("path should be UTF-8")
 }
 
+/// `Path::join` equivalent that allocates the worst-case capacity up front so
+/// the inner `Vec` never has to regrow when the separator + segment is pushed.
+/// Hot on parent walks that repeatedly join names like `node_modules` and
+/// `package.json` to a cached directory path.
+#[inline]
+pub fn path_join_preallocated(base: &Path, sub: &str) -> PathBuf {
+  let mut buf = PathBuf::with_capacity(base.as_os_str().len() + sub.len() + 1);
+  buf.push(base);
+  buf.push(sub);
+  buf
+}
+
 /// Extension trait to add path normalization to std's [`Path`].
 pub trait PathUtil {
   /// Normalize this path without performing I/O.
