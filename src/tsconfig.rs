@@ -1,10 +1,10 @@
-use std::{hash::BuildHasherDefault, path::Path, sync::Arc};
+use std::{hash::BuildHasherDefault, sync::Arc};
 
 use indexmap::IndexMap;
 use rustc_hash::FxHasher;
 use serde::Deserialize;
 
-use crate::path::PathUtil;
+use crate::{path::PathUtil, str_path::StrPath};
 
 pub type CompilerOptionsPathsMap = IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>;
 
@@ -134,11 +134,11 @@ impl TsConfig {
   ///
   /// * When the `tsconfig.json` path is misconfigured.
   pub fn directory(&self) -> &str {
-    debug_assert!(Path::new(&self.path).file_name().is_some());
-    Path::new(&self.path)
-      .parent()
-      .and_then(|p| p.to_str())
-      .expect("tsconfig path should have a UTF-8 parent")
+    let p = StrPath::new(&self.path);
+    debug_assert!(p.file_name().is_some());
+    p.parent()
+      .map(StrPath::as_str)
+      .expect("tsconfig path should have a parent")
   }
 
   pub fn extend_tsconfig(&mut self, other_config: &Self) {
@@ -183,9 +183,9 @@ impl TsConfig {
       if let Some(nested) = tsconfig.find_reference_paths(path, specifier) {
         return Some(nested);
       }
-      // Use Path-based comparison so the prefix check is component-aware,
-      // avoiding false positives like "/foo/barbaz" starting with "/foo/bar".
-      if Path::new(path).starts_with(Path::new(tsconfig.base_path())) {
+      // Component-aware prefix check so we don't trip on
+      // "/foo/barbaz" matching "/foo/bar".
+      if StrPath::new(path).starts_with(StrPath::new(tsconfig.base_path())) {
         return Some(tsconfig.resolve_path_alias(specifier));
       }
     }

@@ -3,15 +3,17 @@
 //! Code adapted from the following libraries
 //! * [path-absolutize](https://docs.rs/path-absolutize)
 //! * [normalize_path](https://docs.rs/normalize-path)
-use std::path::{Component, Path};
+
+use crate::str_path::{Component, StrPath, StrPathBuf};
 
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
 
 /// Extension trait that adds path-normalization helpers operating on `&str`.
 ///
-/// Path normalization still leans on [`std::path::Path`] to handle platform
-/// quirks (drive prefixes, UNC, parent traversal), but every input and output
-/// crosses the API boundary as `str`/`String`.
+/// Path normalization is fully implemented over the crate's
+/// [`crate::str_path::StrPath`] mirror — no `std::path::PathBuf` /
+/// `OsString` roundtrips. Inputs and outputs cross the API boundary as
+/// `str` / `String`.
 pub trait PathUtil {
   /// Normalize this path without performing I/O.
   fn normalize(&self) -> String;
@@ -27,15 +29,15 @@ pub trait PathUtil {
 
 impl PathUtil for str {
   fn normalize(&self) -> String {
-    normalize_path(Path::new(self))
+    normalize_path(StrPath::new(self)).into_string()
   }
 
   fn normalize_with(&self, subpath: &str) -> String {
-    normalize_path_with(Path::new(self), Path::new(subpath))
+    normalize_path_with(StrPath::new(self), StrPath::new(subpath)).into_string()
   }
 
   fn is_invalid_exports_target(&self) -> bool {
-    Path::new(self)
+    StrPath::new(self)
       .components()
       .enumerate()
       .any(|(index, c)| match c {
@@ -59,7 +61,7 @@ impl PathUtil for String {
   }
 }
 
-impl PathUtil for crate::str_path::StrPath {
+impl PathUtil for StrPath {
   fn normalize(&self) -> String {
     self.as_str().normalize()
   }
@@ -72,46 +74,44 @@ impl PathUtil for crate::str_path::StrPath {
 }
 
 // Adapted from https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L7
-fn normalize_path(path: &Path) -> String {
-  use std::path::PathBuf;
+fn normalize_path(path: &StrPath) -> StrPathBuf {
   let mut components = path.components().peekable();
-  let mut ret = if let Some(c @ Component::Prefix(..)) = components.peek() {
-    let buf = PathBuf::from(c.as_os_str());
+  let mut ret = if let Some(Component::Prefix(p)) = components.peek().copied() {
     components.next();
-    buf
+    StrPathBuf::from(p)
   } else {
-    PathBuf::new()
+    StrPathBuf::new()
   };
 
   for component in components {
     match component {
-      Component::Prefix(..) => unreachable!("Path {:?}", path),
+      Component::Prefix(_) => unreachable!("Path {:?}", path),
       Component::RootDir => {
-        ret.push(component.as_os_str());
+        ret.push(StrPath::new(component.as_str()));
       }
       Component::CurDir => {}
       Component::ParentDir => {
         ret.pop();
       }
       Component::Normal(c) => {
-        ret.push(c);
+        ret.push(StrPath::new(c));
       }
     }
   }
 
-  ret.to_str().expect("path should be UTF-8").to_string()
+  ret
 }
 
 // Adapted from https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L37
-fn normalize_path_with(base: &Path, subpath: &Path) -> String {
+fn normalize_path_with(base: &StrPath, subpath: &StrPath) -> StrPathBuf {
   let mut components = subpath.components();
 
   let Some(head) = components.next() else {
-    return subpath.to_str().expect("path should be UTF-8").to_string();
+    return subpath.to_path_buf();
   };
 
-  if matches!(head, Component::Prefix(..) | Component::RootDir) {
-    return subpath.to_str().expect("path should be UTF-8").to_string();
+  if matches!(head, Component::Prefix(_) | Component::RootDir) {
+    return subpath.to_path_buf();
   }
 
   let mut ret = base.to_path_buf();
@@ -122,15 +122,15 @@ fn normalize_path_with(base: &Path, subpath: &Path) -> String {
         ret.pop();
       }
       Component::Normal(c) => {
-        ret.push(c);
+        ret.push(StrPath::new(c));
       }
-      Component::Prefix(..) | Component::RootDir => {
+      Component::Prefix(_) | Component::RootDir => {
         unreachable!("Path {:?} Subpath {:?}", base, subpath)
       }
     }
   }
 
-  ret.to_str().expect("path should be UTF-8").to_string()
+  ret
 }
 
 // https://github.com/webpack/enhanced-resolve/blob/main/test/path.test.js

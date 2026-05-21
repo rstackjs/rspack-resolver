@@ -5,14 +5,13 @@
 use std::{
   fmt::{Debug, Formatter},
   marker::PhantomData,
-  path::Path,
 };
 
 use simd_json::{
   borrowed::Value, prelude::*, to_borrowed_value, BorrowedValue, Error as SimdParseError,
 };
 
-use crate::{path::PathUtil, ResolveError};
+use crate::{path::PathUtil, str_path::StrPath, ResolveError};
 
 pub type JSONMap<'a> = simd_json::borrowed::Object<'a>;
 
@@ -222,12 +221,12 @@ impl PackageJson {
   ///
   /// * When the package.json path is misconfigured.
   pub fn directory(&self) -> &str {
-    let realpath = Path::new(&self.realpath);
-    debug_assert!(realpath.file_name().is_some_and(|x| x == "package.json"));
+    let realpath = StrPath::new(&self.realpath);
+    debug_assert!(realpath.file_name() == Some("package.json"));
     realpath
       .parent()
-      .and_then(|p| p.to_str())
-      .expect("package.json realpath should have a UTF-8 parent")
+      .map(StrPath::as_str)
+      .expect("package.json realpath should have a parent")
   }
 
   /// The "main" field defines the entry point of a package when imported by name via a node_modules lookup. Its value is a path.
@@ -319,10 +318,10 @@ impl PackageJson {
           return Self::alias_value(path, value);
         }
       } else {
-        let dir = Path::new(&self.path)
+        let dir = StrPath::new(&self.path)
           .parent()
-          .and_then(|p| p.to_str())
-          .expect("package.json path should have a UTF-8 parent");
+          .map(StrPath::as_str)
+          .expect("package.json path should have a parent");
         for (key, value) in object {
           let joined = dir.normalize_with(key);
           if joined == path {
