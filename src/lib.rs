@@ -270,8 +270,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx.with_fully_specified(self.options.fully_specified);
     let cached_path = self.cache.value(path)?;
     let cached_path = self.require(&cached_path, specifier, ctx).await?;
-    let path_buf = self.load_realpath(&cached_path, ctx).await?;
-    let path = self.cache.value(&path_buf)?;
+    let path = self.load_realpath(&cached_path, ctx).await?;
 
     let package_json = cached_path
       .find_package_json(&self.cache.fs, &self.options, ctx)
@@ -715,19 +714,21 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     &self,
     cached_path: &ResolverPath,
     ctx: &mut Ctx,
-  ) -> Result<PathBuf, ResolveError> {
-    if self.options.symlinks {
-      cached_path
-        .realpath(&self.cache.fs)
-        .await
-        .map(|path| {
-          ctx.add_file_dependency(&path);
-          path
-        })
-        .map_err(ResolveError::from)
-    } else {
-      Ok(cached_path.to_path_buf())
+  ) -> Result<ResolverPath, ResolveError> {
+    if !self.options.symlinks {
+      return Ok(cached_path.clone());
     }
+    let path_buf = cached_path
+      .realpath(&self.cache.fs)
+      .await
+      .map_err(ResolveError::from)?;
+    ctx.add_file_dependency(&path_buf);
+    // Common path: realpath returns the input bytes unchanged (no symlink in
+    // chain). Reuse the existing cache entry instead of allocating a new one.
+    if path_buf.as_os_str() == cached_path.as_str() {
+      return Ok(cached_path.clone());
+    }
+    self.cache.value(&path_buf)
   }
 
   fn check_restrictions(&self, path: &Path) -> bool {
