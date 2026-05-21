@@ -1,6 +1,6 @@
 use std::{fs, io, path::Path};
 
-use crate::{ResolveOptions, Resolver};
+use crate::{ResolveOptions, Resolver, ResolverPath};
 
 #[derive(Debug, Clone, Copy)]
 enum FileType {
@@ -148,7 +148,9 @@ async fn test() -> io::Result<()> {
       .map(|r| r.full_path());
     assert_eq!(resolved_path, Ok(path.join(request)));
     assert!(
-      ctx.file_dependencies.contains(&resolved_path.unwrap()),
+      ctx
+        .file_dependencies
+        .contains(&ResolverPath::from(resolved_path.unwrap())),
       "file dependencies should contain resolved path {comment:?}"
     );
   }

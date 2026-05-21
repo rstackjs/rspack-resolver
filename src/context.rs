@@ -1,9 +1,10 @@
 use std::{
   ops::{Deref, DerefMut},
-  path::{Path, PathBuf},
+  path::Path,
+  sync::Arc,
 };
 
-use crate::error::ResolveError;
+use crate::{error::ResolveError, resolver_path::ResolverPath};
 
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext(ResolveContextImpl);
@@ -16,11 +17,11 @@ pub struct ResolveContextImpl {
 
   pub fragment: Option<String>,
 
-  /// Files that was found on file system
-  pub file_dependencies: Option<Vec<PathBuf>>,
+  /// Files that were found on file system
+  pub file_dependencies: Option<Vec<ResolverPath>>,
 
-  /// Files that was found on file system
-  pub missing_dependencies: Option<Vec<PathBuf>>,
+  /// Files that were not found on file system
+  pub missing_dependencies: Option<Vec<ResolverPath>>,
 
   /// The current resolving alias for bailing recursion alias.
   pub resolving_alias: Option<String>,
@@ -62,15 +63,32 @@ impl ResolveContext {
     self.missing_dependencies.replace(vec![]);
   }
 
+  /// Add a file dependency from a raw `&Path`, hashing on insert.
   pub fn add_file_dependency(&mut self, dep: &Path) {
     if let Some(deps) = &mut self.file_dependencies {
-      deps.push(dep.to_path_buf());
+      deps.push(ResolverPath::from(dep));
     }
   }
 
+  /// Add a missing dependency from a raw `&Path`, hashing on insert.
   pub fn add_missing_dependency(&mut self, dep: &Path) {
     if let Some(deps) = &mut self.missing_dependencies {
-      deps.push(dep.to_path_buf());
+      deps.push(ResolverPath::from(dep));
+    }
+  }
+
+  /// Add a file dependency reusing the caller's precomputed `FxHash` of `dep`.
+  /// The `Arc<Path>` allocation only happens when dependency tracking is
+  /// enabled, so the no-context resolve path pays no extra cost.
+  pub(crate) fn add_file_dependency_cached(&mut self, hash: u64, dep: &Path) {
+    if let Some(deps) = &mut self.file_dependencies {
+      deps.push(ResolverPath::from_parts(hash, Arc::from(dep)));
+    }
+  }
+
+  pub(crate) fn add_missing_dependency_cached(&mut self, hash: u64, dep: &Path) {
+    if let Some(deps) = &mut self.missing_dependencies {
+      deps.push(ResolverPath::from_parts(hash, Arc::from(dep)));
     }
   }
 

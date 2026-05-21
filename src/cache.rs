@@ -1,5 +1,3 @@
-#[cfg(unix)]
-use std::os::unix::ffi::OsStrExt;
 use std::{
   borrow::{Borrow, Cow},
   convert::AsRef,
@@ -20,6 +18,7 @@ use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
   path::PathUtil,
+  resolver_path::hash_path,
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
 };
 
@@ -45,17 +44,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   }
 
   pub fn value(&self, path: &Path) -> CachedPath {
-    let hash = {
-      let mut hasher = FxHasher::default();
-      // On Unix, hash the raw path bytes in one bulk `Hasher::write`. The std
-      // `Path::hash` impl walks components (utf8 split + per-segment write)
-      // and dominated profile samples on this cache-lookup hot path.
-      #[cfg(unix)]
-      hasher.write(path.as_os_str().as_bytes());
-      #[cfg(not(unix))]
-      path.hash(&mut hasher);
-      hasher.finish()
-    };
+    let hash = hash_path(path);
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
@@ -205,10 +194,10 @@ impl CachedPathImpl {
 
   pub async fn is_file<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
     if let Some(meta) = self.meta(fs).await {
-      ctx.add_file_dependency(self.path());
+      ctx.add_file_dependency_cached(self.hash, &self.path);
       meta.is_file
     } else {
-      ctx.add_missing_dependency(self.path());
+      ctx.add_missing_dependency_cached(self.hash, &self.path);
       false
     }
   }
@@ -216,7 +205,7 @@ impl CachedPathImpl {
   pub async fn is_dir<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
     self.meta(fs).await.map_or_else(
       || {
-        ctx.add_missing_dependency(self.path());
+        ctx.add_missing_dependency_cached(self.hash, &self.path);
         false
       },
       |meta| meta.is_dir,
@@ -338,8 +327,8 @@ impl CachedPathImpl {
       match pkg {
         Some(package_json) => ctx.add_file_dependency(&package_json.path),
         None => {
-          if let Some(deps) = &mut ctx.missing_dependencies {
-            deps.push(self.path.join("package.json"));
+          if ctx.missing_dependencies.is_some() {
+            ctx.add_missing_dependency(&self.path.join("package.json"));
           }
         }
       }
@@ -400,13 +389,13 @@ impl CachedPathImpl {
       }
       Ok(None) => {
         // Avoid an allocation by making this lazy
-        if let Some(deps) = &mut ctx.missing_dependencies {
-          deps.push(self.path.join("package.json"));
+        if ctx.missing_dependencies.is_some() {
+          ctx.add_missing_dependency(&self.path.join("package.json"));
         }
       }
       Err(_) => {
-        if let Some(deps) = &mut ctx.file_dependencies {
-          deps.push(self.path.join("package.json"));
+        if ctx.file_dependencies.is_some() {
+          ctx.add_file_dependency(&self.path.join("package.json"));
         }
       }
     }

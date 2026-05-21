@@ -2,7 +2,7 @@
 
 use normalize_path::NormalizePath;
 
-use crate::{AliasValue, ResolveContext, ResolveOptions, Resolver};
+use crate::{AliasValue, ResolveContext, ResolveOptions, Resolver, ResolverPath};
 
 #[tokio::test]
 async fn test() {
@@ -59,13 +59,15 @@ async fn test() {
     let _ = resolver.resolve_with_context(&f, specifier, &mut ctx).await;
 
     for path in ctx.file_dependencies {
-      assert_eq!(path, path.normalize(), "{path:?}");
+      assert_eq!(path.as_path(), path.normalize(), "{path:?}");
     }
 
     for path in missing_dependencies {
       assert_eq!(path, path.normalize(), "{path:?}");
       assert!(
-        ctx.missing_dependencies.contains(&path),
+        ctx
+          .missing_dependencies
+          .contains(&ResolverPath::from(&path)),
         "{specifier}: {path:?} not in {:?}",
         &ctx.missing_dependencies
       );
@@ -108,11 +110,11 @@ async fn alias_and_extensions() {
   let _ = resolver.resolve_with_context(&f, "react-dom/client", &mut ctx);
 
   for path in ctx.file_dependencies {
-    assert_eq!(path, path.normalize(), "{path:?}");
+    assert_eq!(path.as_path(), path.normalize(), "{path:?}");
   }
 
   for path in ctx.missing_dependencies {
-    assert_eq!(path, path.normalize(), "{path:?}");
+    assert_eq!(path.as_path(), path.normalize(), "{path:?}");
     if let Some(path) = path.parent() {
       assert!(!path.is_file(), "{path:?} must not be a file");
     }
