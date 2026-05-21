@@ -254,6 +254,22 @@ impl CachedPathImpl {
           }
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
+            // Fast path: when no symlinks were found anywhere up the chain
+            // (the common case in resolver inputs), `parent_path` is the
+            // same bytes as `parent.path`. Cache `None` instead of an
+            // owned copy of `self.path` so the get_or_try_init body
+            // sidesteps the `normalize_with` allocation and the outer
+            // `unwrap_or_else` falls through to `self.path` directly.
+            #[cfg(unix)]
+            let parent_unchanged = {
+              use std::os::unix::ffi::OsStrExt;
+              parent_path.as_os_str().as_bytes() == parent.path.as_os_str().as_bytes()
+            };
+            #[cfg(not(unix))]
+            let parent_unchanged = parent_path.as_path() == &*parent.path;
+            if parent_unchanged {
+              return Ok(None);
+            }
             return Ok(Some(
               parent_path.normalize_with(self.path.strip_prefix(&parent.path).unwrap()),
             ));
