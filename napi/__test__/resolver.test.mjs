@@ -273,11 +273,17 @@ describe("resolver", () => {
     const pnpProjectRoot = join(rootDir, "fixtures", "pnp");
     const resolver = new ResolverFactory({ enablePnp: true });
 
-    expect(resolver.sync(pnpProjectRoot, "is-even")).toEqual({
-      path: join(
-        pnpProjectRoot,
-        ".yarn/cache/is-even-npm-1.0.0-9f726520dc-2728cc2f39.zip/node_modules/is-even/index.js"
+    // pnp returns POSIX-style paths even on Windows; normalize both sides so
+    // the comparison is separator-agnostic (mirrors how the Rust-side tests
+    // wrap with `PathBuf` for component-wise eq).
+    const result = resolver.sync(pnpProjectRoot, "is-even");
+    expect(normalize(result.path)).toEqual(
+      normalize(
+        join(
+          pnpProjectRoot,
+          ".yarn/cache/is-even-npm-1.0.0-9f726520dc-2728cc2f39.zip/node_modules/is-even/index.js"
+        )
       )
-    });
+    );
   });
 });
