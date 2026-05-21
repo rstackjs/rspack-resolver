@@ -45,7 +45,10 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   pub fn value(&self, path: &str) -> CachedPath {
     // Compute the path's hash up front so lookups never touch the heap. On a
     // miss we hand the same value to `ResolverPathBuf::with_prehash` so the
-    // owned buffer reuses it instead of rehashing the bytes.
+    // owned buffer reuses it instead of rehashing the bytes. `hash_path` runs
+    // FxHasher across the raw `&str` bytes in one bulk write — same shape as
+    // upstream's unix `as_bytes()` fast path, with no `Path::hash` component
+    // walk to begin with.
     let hash = hash_path(path);
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
