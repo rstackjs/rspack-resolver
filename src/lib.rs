@@ -110,73 +110,10 @@ pub struct ResolveContext {
 /// Resolver with the current operating system as the file system
 pub type Resolver = ResolverGeneric<FileSystemOs>;
 
-/// Pre-computed accelerator for [`ResolverGeneric::load_alias`].
-///
-/// Records which 1-byte and 2-byte specifier prefixes could possibly match an
-/// alias key. The check lets `load_alias` short-circuit before iterating every
-/// alias entry when the specifier can't match anything (e.g. a relative request
-/// like `./foo` against bare-name aliases).
-#[derive(Clone)]
-struct AliasFirstBytes {
-  byte1_only: [bool; 256],
-  byte12: rustc_hash::FxHashSet<u16>,
-  /// An empty alias key (or a bare `$` exact-match) matches any absolute
-  /// specifier in enhanced-resolve. When present, the prefix gate must
-  /// fall through to the full loop instead of short-circuiting.
-  wildcard: bool,
-}
-
-impl AliasFirstBytes {
-  fn build(aliases: &Alias) -> Self {
-    let mut byte1_only = [false; 256];
-    let mut byte12 = rustc_hash::FxHashSet::default();
-    let mut wildcard = false;
-    for (key, _) in aliases {
-      // `$`-suffixed keys are exact-match aliases — index by the stripped key.
-      let effective = key.strip_suffix('$').unwrap_or(key);
-      let bytes = effective.as_bytes();
-      match bytes {
-        [b1] => byte1_only[*b1 as usize] = true,
-        [b1, b2, ..] => {
-          byte12.insert(u16::from(*b1) << 8 | u16::from(*b2));
-        }
-        [] => wildcard = true,
-      }
-    }
-    Self {
-      byte1_only,
-      byte12,
-      wildcard,
-    }
-  }
-
-  fn may_match_bytes(&self, bytes: &[u8]) -> bool {
-    if self.wildcard {
-      return true;
-    }
-    match bytes {
-      [] => false,
-      [b1] => self.byte1_only[*b1 as usize],
-      [b1, b2, ..] => {
-        self.byte1_only[*b1 as usize]
-          || self
-            .byte12
-            .contains(&(u16::from(*b1) << 8 | u16::from(*b2)))
-      }
-    }
-  }
-
-  fn may_match(&self, specifier: &str) -> bool {
-    self.may_match_bytes(specifier.as_bytes())
-  }
-}
-
 /// Generic implementation of the resolver, can be configured by the [FileSystem] trait
 pub struct ResolverGeneric<Fs> {
   options: ResolveOptions,
   cache: Arc<Cache<Fs>>,
-  alias_first_bytes: AliasFirstBytes,
-  fallback_first_bytes: AliasFirstBytes,
   #[cfg(feature = "yarn_pnp")]
   pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
   /// Paths that have been searched and confirmed to have no `.pnp.cjs` reachable by filesystem walk.
@@ -200,14 +137,9 @@ impl<Fs: Send + Sync + FileSystem + Default> Default for ResolverGeneric<Fs> {
 
 impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
   pub fn new(options: ResolveOptions) -> Self {
-    let options = options.sanitize();
-    let alias_first_bytes = AliasFirstBytes::build(&options.alias);
-    let fallback_first_bytes = AliasFirstBytes::build(&options.fallback);
     Self {
-      options,
+      options: options.sanitize(),
       cache: Arc::new(Cache::new(Fs::default())),
-      alias_first_bytes,
-      fallback_first_bytes,
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
@@ -219,14 +151,9 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
 
 impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   pub fn new_with_file_system(file_system: Fs, options: ResolveOptions) -> Self {
-    let options = options.sanitize();
-    let alias_first_bytes = AliasFirstBytes::build(&options.alias);
-    let fallback_first_bytes = AliasFirstBytes::build(&options.fallback);
     Self {
-      options,
+      options: options.sanitize(),
       cache: Arc::new(Cache::new(file_system)),
-      alias_first_bytes,
-      fallback_first_bytes,
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
@@ -238,14 +165,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// Clone the resolver using the same underlying cache.
   #[must_use]
   pub fn clone_with_options(&self, options: ResolveOptions) -> Self {
-    let options = options.sanitize();
-    let alias_first_bytes = AliasFirstBytes::build(&options.alias);
-    let fallback_first_bytes = AliasFirstBytes::build(&options.fallback);
     Self {
-      options,
+      options: options.sanitize(),
       cache: Arc::clone(&self.cache),
-      alias_first_bytes,
-      fallback_first_bytes,
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::clone(&self.pnp_manifest),
       #[cfg(feature = "yarn_pnp")]
@@ -408,13 +330,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
     // enhanced-resolve: try alias
     if let Some(path) = self
-      .load_alias(
-        cached_path,
-        specifier,
-        &self.options.alias,
-        &self.alias_first_bytes,
-        ctx,
-      )
+      .load_alias(cached_path, specifier, &self.options.alias, ctx)
       .await?
     {
       return Ok(path);
@@ -454,13 +370,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         }
         // enhanced-resolve: try fallback
         self
-          .load_alias(
-            cached_path,
-            specifier,
-            &self.options.fallback,
-            &self.fallback_first_bytes,
-            ctx,
-          )
+          .load_alias(cached_path, specifier, &self.options.fallback, ctx)
           .await
           .and_then(|value| value.ok_or(err))
       }
@@ -890,13 +800,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // enhanced-resolve: try file as alias
     let alias_specifier = path_to_str(cached_path.path());
     if let Some(path) = self
-      .load_alias(
-        cached_path,
-        alias_specifier,
-        &self.options.alias,
-        &self.alias_first_bytes,
-        ctx,
-      )
+      .load_alias(cached_path, alias_specifier, &self.options.alias, ctx)
       .await?
     {
       return Ok(Some(path));
@@ -1344,14 +1248,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     cached_path: &CachedPath,
     specifier: &str,
     aliases: &Alias,
-    first_bytes: &AliasFirstBytes,
     ctx: &mut Ctx,
   ) -> ResolveResult {
-    // Quick reject: if the specifier's first 1–2 bytes can't match any alias
-    // key prefix, no `strip_prefix` in the loop below can succeed.
-    if !first_bytes.may_match(specifier) {
-      return Ok(None);
-    }
     for (alias_key_raw, specifiers) in aliases {
       let alias_key = if let Some(alias_key) = alias_key_raw.strip_suffix('$') {
         if alias_key != specifier {
