@@ -57,6 +57,7 @@ mod package_json;
 mod path;
 mod resolution;
 mod specifier;
+mod str_path;
 mod tsconfig;
 
 #[cfg(test)]
