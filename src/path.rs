@@ -77,7 +77,10 @@ impl PathUtil for Path {
       return subpath.to_path_buf();
     }
 
-    let mut ret = self.to_path_buf();
+    // Pre-size to the worst-case length so the loop's pushes can never grow
+    // the inner Vec. `+1` covers the separator inserted by `PathBuf::push`.
+    let mut ret = PathBuf::with_capacity(self.as_os_str().len() + subpath.as_os_str().len() + 1);
+    ret.push(self);
     for component in std::iter::once(head).chain(components) {
       match component {
         Component::CurDir => {}
