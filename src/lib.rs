@@ -90,7 +90,7 @@ use crate::{
   context::ResolveContext as Ctx,
   package_json::JSONMap,
   path::{PathUtil, SLASH_START},
-  resolver_path::{Component, ResolverPath},
+  resolver_path::{Component, ResolverPath, ResolverPathBuf},
   specifier::Specifier,
   tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
@@ -278,8 +278,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       // path must be inside the package.
       debug_assert!(ResolverPath::new(&path).starts_with(package_json.directory()));
     }
+    // Move the resolved path into a `ResolverPathBuf` so the prehash is
+    // computed once at this boundary and travels with the `Resolution`.
     Ok(Resolution {
-      path,
+      path: ResolverPathBuf::from(path),
       query: ctx.query.take(),
       fragment: ctx.fragment.take(),
       package_json,
@@ -1413,9 +1415,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // Create a meaningful error message.
     let dir = path_p
       .parent()
-      .and_then(|p| p.to_str())
-      .unwrap_or("")
-      .to_string();
+      .map_or_else(String::new, |p| p.as_str().to_string());
     let filename_without_extension = filename.rsplit_once('.').map_or(filename, |(stem, _)| stem);
     let files = extensions
       .iter()

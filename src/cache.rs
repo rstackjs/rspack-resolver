@@ -174,9 +174,9 @@ impl CachedPathImpl {
     self.path.as_str()
   }
 
-  /// Internal: the structured `&ResolverPath` view (parent / file_name / …).
+  /// Internal: the structured `ResolverPath` view (parent / file_name / …).
   #[allow(dead_code)] // Used as the resolver migrates more sites to `ResolverPath`.
-  pub(crate) fn resolver_path(&self) -> &ResolverPath {
+  pub(crate) fn resolver_path(&self) -> ResolverPath<'_> {
     self.path.as_path()
   }
 
@@ -246,9 +246,12 @@ impl CachedPathImpl {
             let parent_path = parent.realpath(fs).await?;
             // Component-aware suffix: drop the parent prefix and let
             // `normalize_with` reattach using the platform separator.
-            let suffix = self.path.strip_prefix(&*parent.path).unwrap_or(&self.path);
+            let suffix = self
+              .path
+              .strip_prefix(parent.path.as_str())
+              .map_or_else(|_| self.path.as_str(), |t| t.as_str());
             return Ok(Some(ResolverPathBuf::from(
-              parent_path.normalize_with(suffix.as_str()),
+              parent_path.normalize_with(suffix),
             )));
           }
           Ok(None)

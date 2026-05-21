@@ -61,7 +61,7 @@ impl PathUtil for String {
   }
 }
 
-impl PathUtil for ResolverPath {
+impl PathUtil for ResolverPathBuf {
   fn normalize(&self) -> String {
     self.as_str().normalize()
   }
@@ -74,7 +74,7 @@ impl PathUtil for ResolverPath {
 }
 
 // Adapted from https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L7
-fn normalize_path(path: &ResolverPath) -> ResolverPathBuf {
+fn normalize_path(path: ResolverPath<'_>) -> ResolverPathBuf {
   let mut components = path.components().peekable();
   let mut ret = if let Some(Component::Prefix(p)) = components.peek().copied() {
     components.next();
@@ -87,14 +87,14 @@ fn normalize_path(path: &ResolverPath) -> ResolverPathBuf {
     match component {
       Component::Prefix(_) => unreachable!("Path {:?}", path),
       Component::RootDir => {
-        ret.push(ResolverPath::new(component.as_str()));
+        ret.push(component.as_str());
       }
       Component::CurDir => {}
       Component::ParentDir => {
         ret.pop();
       }
       Component::Normal(c) => {
-        ret.push(ResolverPath::new(c));
+        ret.push(c);
       }
     }
   }
@@ -103,7 +103,7 @@ fn normalize_path(path: &ResolverPath) -> ResolverPathBuf {
 }
 
 // Adapted from https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L37
-fn normalize_path_with(base: &ResolverPath, subpath: &ResolverPath) -> ResolverPathBuf {
+fn normalize_path_with(base: ResolverPath<'_>, subpath: ResolverPath<'_>) -> ResolverPathBuf {
   let mut components = subpath.components();
 
   let Some(head) = components.next() else {
@@ -122,7 +122,7 @@ fn normalize_path_with(base: &ResolverPath, subpath: &ResolverPath) -> ResolverP
         ret.pop();
       }
       Component::Normal(c) => {
-        ret.push(ResolverPath::new(c));
+        ret.push(c);
       }
       Component::Prefix(_) | Component::RootDir => {
         unreachable!("Path {:?} Subpath {:?}", base, subpath)
