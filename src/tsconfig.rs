@@ -234,14 +234,20 @@ impl TsConfig {
         best_key
           .and_then(|key| paths_map.get(key))
           .map_or_else(Vec::new, |paths| {
+            // The captured `*` slice comes from the specifier verbatim, so
+            // on Windows it may carry `/`. Rewrite to the platform separator
+            // before insertion so the substituted path normalizes cleanly
+            // (otherwise downstream extension lookups like `<dir>\foo/x.ts`
+            // diverge from what `path.join` produces on the JS side).
+            let captured =
+              &specifier[longest_prefix_length..specifier.len() - longest_suffix_length];
+            #[cfg(windows)]
+            let captured = captured.replace('/', "\\");
+            #[cfg(windows)]
+            let captured = captured.as_str();
             paths
               .iter()
-              .map(|path| {
-                path.replace(
-                  '*',
-                  &specifier[longest_prefix_length..specifier.len() - longest_suffix_length],
-                )
-              })
+              .map(|path| path.replace('*', captured))
               .collect::<Vec<_>>()
           })
       },
