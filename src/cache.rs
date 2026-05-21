@@ -16,10 +16,12 @@ use futures::future::BoxFuture;
 use rustc_hash::FxHasher;
 use tokio::sync::OnceCell as OnceLock;
 
+#[cfg(unix)]
+use crate::path::path_parent_unix;
 use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
-  path::PathUtil,
+  path::{path_join_preallocated, PathUtil},
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
 };
 
@@ -59,6 +61,9 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
+    #[cfg(unix)]
+    let parent = path_parent_unix(path).map(|p| self.value(p));
+    #[cfg(not(unix))]
     let parent = path.parent().map(|p| self.value(p));
     let data = CachedPath(Arc::new(CachedPathImpl::new(
       hash,
@@ -249,6 +254,22 @@ impl CachedPathImpl {
           }
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
+            // Fast path: when no symlinks were found anywhere up the chain
+            // (the common case in resolver inputs), `parent_path` is the
+            // same bytes as `parent.path`. Cache `None` instead of an
+            // owned copy of `self.path` so the get_or_try_init body
+            // sidesteps the `normalize_with` allocation and the outer
+            // `unwrap_or_else` falls through to `self.path` directly.
+            #[cfg(unix)]
+            let parent_unchanged = {
+              use std::os::unix::ffi::OsStrExt;
+              parent_path.as_os_str().as_bytes() == parent.path.as_os_str().as_bytes()
+            };
+            #[cfg(not(unix))]
+            let parent_unchanged = parent_path.as_path() == &*parent.path;
+            if parent_unchanged {
+              return Ok(None);
+            }
             return Ok(Some(
               parent_path.normalize_with(self.path.strip_prefix(&parent.path).unwrap()),
             ));
@@ -268,7 +289,7 @@ impl CachedPathImpl {
     cache: &Cache<Fs>,
     ctx: &mut Ctx,
   ) -> Option<CachedPath> {
-    let cached_path = cache.value(&self.path.join(module_name));
+    let cached_path = cache.value(&path_join_preallocated(&self.path, module_name));
     cached_path
       .is_dir(&cache.fs, ctx)
       .await
@@ -349,7 +370,7 @@ impl CachedPathImpl {
     let result = self
       .package_json
       .get_or_try_init(|| async {
-        let package_json_path = self.path.join("package.json");
+        let package_json_path = path_join_preallocated(&self.path, "package.json");
         let Ok(package_json_string) = fs.read(&package_json_path).await else {
           return Ok(None);
         };
@@ -427,7 +448,19 @@ impl Hash for dyn CacheKey + '_ {
 
 impl PartialEq for dyn CacheKey + '_ {
   fn eq(&self, other: &Self) -> bool {
-    self.tuple().1 == other.tuple().1
+    let a = self.tuple().1;
+    let b = other.tuple().1;
+    // On Unix, raw byte compare matches `Path::eq` semantics and skips
+    // the std `Components` iteration cost. Mirrors the hash side already
+    // bytes-based in `Cache::value`.
+    #[cfg(unix)]
+    {
+      a.as_os_str().as_bytes() == b.as_os_str().as_bytes()
+    }
+    #[cfg(not(unix))]
+    {
+      a == b
+    }
   }
 }
 

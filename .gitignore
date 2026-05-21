@@ -3,3 +3,4 @@ node_modules
 fuzz/Cargo.lock
 artifacts
 bindings
+optimization-artifacts/
