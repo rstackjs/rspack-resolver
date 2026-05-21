@@ -1,11 +1,9 @@
 //! https://github.com/webpack/enhanced-resolve/blob/main/test/fallback.test.js
 
-use super::JoinExt;
-
 #[tokio::test]
 #[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
 async fn fallback() {
-  use super::memory_fs::MemoryFS;
+  use super::{memory_fs::MemoryFS, JoinExt};
   use crate::{AliasValue, ResolveError, ResolveOptions, ResolverGeneric};
 
   let f = "/";
