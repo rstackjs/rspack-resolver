@@ -95,6 +95,10 @@ pub enum ResolveError {
   /// Occurs when alias paths reference each other.
   #[error("Recursion in resolving")]
   Recursion,
+
+  /// The given path is not valid UTF-8. `rspack_resolver` only supports UTF-8 paths.
+  #[error("path is not valid UTF-8: {}", .0.display())]
+  PathNotUtf8(PathBuf),
 }
 
 impl ResolveError {
@@ -193,4 +197,10 @@ async fn test_coverage() {
   let error = ResolveError::Specifier(SpecifierError::Empty("x".into()));
   assert_eq!(format!("{error:?}"), r#"Specifier(Empty("x"))"#);
   assert_eq!(error.clone(), error);
+}
+
+#[tokio::test]
+async fn test_path_not_utf8_display() {
+  let err = ResolveError::PathNotUtf8(PathBuf::from("/some/path"));
+  assert_eq!(err.to_string(), "path is not valid UTF-8: /some/path");
 }
