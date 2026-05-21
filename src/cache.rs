@@ -5,7 +5,6 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
-  path::Path,
   sync::Arc,
 };
 
@@ -18,6 +17,7 @@ use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
   path::PathUtil,
+  str_path::{StrPath, StrPathBuf},
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
 };
 
@@ -51,13 +51,10 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
-    let parent = Path::new(path)
-      .parent()
-      .and_then(|p| p.to_str())
-      .map(|p| self.value(p));
+    let parent = StrPath::new(path).parent().map(|p| self.value(p.as_str()));
     let data = CachedPath(Arc::new(CachedPathImpl::new(
       hash,
-      path.to_string().into_boxed_str(),
+      StrPathBuf::from(path).into_boxed_path(),
       parent,
     )));
     self.paths.insert(data.clone());
@@ -145,22 +142,24 @@ impl AsRef<CachedPathImpl> for CachedPath {
 
 impl CacheKey for CachedPath {
   fn tuple(&self) -> (u64, &str) {
-    (self.hash, &self.path)
+    (self.hash, self.path.as_str())
   }
 }
 
 pub struct CachedPathImpl {
   hash: u64,
-  path: Box<str>,
+  /// Owned `Box<StrPath>` — gives us `parent()`, `file_name()`, … directly,
+  /// while `.as_str()` exposes the raw string for callers that want bytes.
+  path: Box<StrPath>,
   parent: Option<CachedPath>,
   meta: OnceLock<Option<FileMetadata>>,
-  canonicalized: OnceLock<Option<String>>,
+  canonicalized: OnceLock<Option<StrPathBuf>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
 }
 
 impl CachedPathImpl {
-  fn new(hash: u64, path: Box<str>, parent: Option<CachedPath>) -> Self {
+  fn new(hash: u64, path: Box<StrPath>, parent: Option<CachedPath>) -> Self {
     Self {
       hash,
       path,
@@ -173,6 +172,12 @@ impl CachedPathImpl {
   }
 
   pub fn path(&self) -> &str {
+    self.path.as_str()
+  }
+
+  /// Internal: the structured `&StrPath` view (parent / file_name / …).
+  #[allow(dead_code)] // Used as the resolver migrates more sites to `StrPath`.
+  pub(crate) fn str_path(&self) -> &StrPath {
     &self.path
   }
 
@@ -188,7 +193,7 @@ impl CachedPathImpl {
     }
     *self
       .meta
-      .get_or_init(|| async { fs.metadata(&self.path).await.ok() })
+      .get_or_init(|| async { fs.metadata(self.path.as_str()).await.ok() })
       .await
   }
 
@@ -220,34 +225,38 @@ impl CachedPathImpl {
       // Cache hit: return immediately and avoid the recursive parent walk +
       // `Box::pin` per call on the hot path.
       if let Some(cached) = self.canonicalized.get() {
-        return Ok(cached.clone().unwrap_or_else(|| self.path.to_string()));
+        return Ok(cached.as_ref().map_or_else(
+          || self.path.as_str().to_string(),
+          |p| p.as_str().to_string(),
+        ));
       }
       self
         .canonicalized
         .get_or_try_init(|| async move {
           if fs
-            .symlink_metadata(&self.path)
+            .symlink_metadata(self.path.as_str())
             .await
             .is_ok_and(|m| m.is_symlink)
           {
-            return fs.canonicalize(&self.path).await.map(Some);
+            return fs
+              .canonicalize(self.path.as_str())
+              .await
+              .map(|p| Some(StrPathBuf::from(p)));
           }
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
-            let suffix = self
-              .path
-              .strip_prefix(parent.path.as_ref())
-              .unwrap_or(&self.path);
-            // Strip leading separator so `normalize_with` doesn't treat the
-            // suffix as absolute and overwrite the parent prefix.
-            let suffix = suffix.trim_start_matches(['/', '\\']);
-            return Ok(Some(parent_path.normalize_with(suffix)));
+            // Component-aware suffix: drop the parent prefix and let
+            // `normalize_with` reattach using the platform separator.
+            let suffix = self.path.strip_prefix(&*parent.path).unwrap_or(&self.path);
+            return Ok(Some(StrPathBuf::from(
+              parent_path.normalize_with(suffix.as_str()),
+            )));
           }
           Ok(None)
         })
         .await
         .cloned()
-        .map(|r| r.unwrap_or_else(|| self.path.to_string()))
+        .map(|r| r.map_or_else(|| self.path.as_str().to_string(), StrPathBuf::into_string))
     };
     Box::pin(fut)
   }
@@ -285,7 +294,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = self.path.as_ref())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = self.path.as_str())))]
   pub async fn find_package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -316,7 +325,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = self.path.as_ref())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = self.path.as_str())))]
   pub async fn package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,

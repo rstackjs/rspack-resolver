@@ -59,6 +59,18 @@ impl PathUtil for String {
   }
 }
 
+impl PathUtil for crate::str_path::StrPath {
+  fn normalize(&self) -> String {
+    self.as_str().normalize()
+  }
+  fn normalize_with(&self, subpath: &str) -> String {
+    self.as_str().normalize_with(subpath)
+  }
+  fn is_invalid_exports_target(&self) -> bool {
+    self.as_str().is_invalid_exports_target()
+  }
+}
+
 // Adapted from https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L7
 fn normalize_path(path: &Path) -> String {
   use std::path::PathBuf;
