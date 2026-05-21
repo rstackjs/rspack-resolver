@@ -42,9 +42,19 @@ pub fn fixture_root() -> String {
 }
 
 pub fn fixture() -> String {
-  let mut p = fixture_root();
-  p.push_str("/enhanced_resolve/test/fixtures");
-  p
+  // Mirror `main`'s `PathBuf`-based builder so the result uses platform-native
+  // separators end-to-end (all `\\` on Windows, all `/` on Unix). Without this,
+  // `env::current_dir()` yields `\\`-separated bytes on Windows while the
+  // literal suffix here would contribute `/`, producing a mixed string that
+  // diverges byte-wise from what the resolver actually emits — the previous
+  // `PathBuf::eq` was component-aware and absorbed this; `String::eq` is not.
+  std::path::PathBuf::from(fixture_root())
+    .join("enhanced_resolve")
+    .join("test")
+    .join("fixtures")
+    .to_str()
+    .unwrap()
+    .to_string()
 }
 
 /// Test helper: join a `&str` path with a subpath using OS separator.
