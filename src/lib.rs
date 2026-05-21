@@ -97,6 +97,50 @@ use crate::{
 
 type ResolveResult = Result<Option<CachedPath>, ResolveError>;
 
+/// Classifies a specifier into the dispatch bucket used by
+/// [`ResolverGeneric::require_without_parse`].
+///
+/// Avoids the std `Path::Components` walk for the dispatch decision, which
+/// fires on every resolve. The bench `single-thread` case triggers this
+/// ~880 times per iteration with all-cold caches.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SpecifierKind {
+  Absolute,
+  Relative,
+  Hash,
+  Other,
+}
+
+#[inline]
+fn specifier_kind(specifier: &str) -> SpecifierKind {
+  let bytes = specifier.as_bytes();
+  match bytes {
+    [] => SpecifierKind::Other,
+    [b'/', ..] => SpecifierKind::Absolute,
+    #[cfg(windows)]
+    [b'\\', ..] => SpecifierKind::Absolute,
+    [b'.', b'.'] | [b'.', b'.', b'/', ..] => SpecifierKind::Relative,
+    #[cfg(windows)]
+    [b'.', b'.', b'\\', ..] => SpecifierKind::Relative,
+    [b'.'] | [b'.', b'/', ..] => SpecifierKind::Relative,
+    #[cfg(windows)]
+    [b'.', b'\\', ..] => SpecifierKind::Relative,
+    [b'#', ..] => SpecifierKind::Hash,
+    _ => {
+      #[cfg(windows)]
+      {
+        if matches!(
+          Path::new(specifier).components().next(),
+          Some(Component::Prefix(_))
+        ) {
+          return SpecifierKind::Absolute;
+        }
+      }
+      SpecifierKind::Other
+    }
+  }
+}
+
 /// Context returned from the [Resolver::resolve_with_context] API
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
@@ -336,20 +380,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(path);
     }
 
-    let result = match Path::new(specifier).components().next() {
+    let result = match specifier_kind(specifier) {
       // 2. If X begins with '/'
-      Some(Component::RootDir | Component::Prefix(_)) => {
-        self.require_absolute(cached_path, specifier, ctx).await
-      }
-      // 3. If X begins with './' or '/' or '../'
-      Some(Component::CurDir | Component::ParentDir) => {
-        self.require_relative(cached_path, specifier, ctx).await
-      }
+      SpecifierKind::Absolute => self.require_absolute(cached_path, specifier, ctx).await,
+      // 3. If X begins with './' or '../' (or is "." / "..")
+      SpecifierKind::Relative => self.require_relative(cached_path, specifier, ctx).await,
       // 4. If X begins with '#'
-      Some(Component::Normal(_)) if specifier.as_bytes()[0] == b'#' => {
-        self.require_hash(cached_path, specifier, ctx).await
-      }
-      _ => {
+      SpecifierKind::Hash => self.require_hash(cached_path, specifier, ctx).await,
+      SpecifierKind::Other => {
         // 1. If X is a core module,
         //   a. return the core module
         //   b. STOP
@@ -1096,9 +1134,18 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // 5. let MATCH = PACKAGE_EXPORTS_RESOLVE(pathToFileURL(DIR/NAME), "." + SUBPATH,
     //    `package.json` "exports", ["node", "require"]) defined in the ESM resolver.
     // Note: The subpath is not prepended with a dot on purpose
+    // Skip the `format!` alloc when subpath is empty (the common bare-specifier
+    // case like `@scope/pkg`). When non-empty, prepend once before the loop.
+    let prefixed_owned;
+    let prefixed: &str = if subpath.is_empty() {
+      "."
+    } else {
+      prefixed_owned = format!(".{subpath}");
+      &prefixed_owned
+    };
     for exports in package_json.exports_fields(&self.options.exports_fields) {
       if let Some(path) = self
-        .package_exports_resolve(cached_path.path(), &format!(".{subpath}"), exports, ctx)
+        .package_exports_resolve(cached_path.path(), prefixed, exports, ctx)
         .await?
       {
         // 6. RESOLVE_ESM_MATCH(MATCH)
@@ -1136,9 +1183,16 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       let package_url = package_json.directory();
       // Note: The subpath is not prepended with a dot on purpose
       // because `package_exports_resolve` matches subpath without the leading dot.
+      let prefixed_owned;
+      let prefixed: &str = if subpath.is_empty() {
+        "."
+      } else {
+        prefixed_owned = format!(".{subpath}");
+        &prefixed_owned
+      };
       for exports in package_json.exports_fields(&self.options.exports_fields) {
         if let Some(cached_path) = self
-          .package_exports_resolve(package_url, &format!(".{subpath}"), exports, ctx)
+          .package_exports_resolve(package_url, prefixed, exports, ctx)
           .await?
         {
           // 6. RESOLVE_ESM_MATCH(MATCH)
@@ -1707,9 +1761,16 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .package_json(&self.cache.fs, &self.options, ctx)
       .await?
     {
+      let prefixed_owned;
+      let prefixed: &str = if subpath.is_empty() {
+        "."
+      } else {
+        prefixed_owned = format!(".{subpath}");
+        &prefixed_owned
+      };
       for exports in package_json.exports_fields(&self.options.exports_fields) {
         if let Some(path) = self
-          .package_exports_resolve(cached_path.path(), &format!(".{subpath}"), exports, ctx)
+          .package_exports_resolve(cached_path.path(), prefixed, exports, ctx)
           .await?
         {
           return Ok(Some(path));
@@ -1727,9 +1788,15 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         }
       }
     }
-    let subpath = format!(".{subpath}");
+    let subpath_owned;
+    let subpath: &str = if subpath.is_empty() {
+      "."
+    } else {
+      subpath_owned = format!(".{subpath}");
+      &subpath_owned
+    };
     ctx.with_fully_specified(false);
-    self.require(&cached_path, &subpath, ctx).await.map(Some)
+    self.require(&cached_path, subpath, ctx).await.map(Some)
   }
 
   /// PACKAGE_EXPORTS_RESOLVE(packageURL, subpath, exports, conditions)

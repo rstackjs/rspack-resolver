@@ -427,7 +427,19 @@ impl Hash for dyn CacheKey + '_ {
 
 impl PartialEq for dyn CacheKey + '_ {
   fn eq(&self, other: &Self) -> bool {
-    self.tuple().1 == other.tuple().1
+    let a = self.tuple().1;
+    let b = other.tuple().1;
+    // On Unix, raw byte compare matches `Path::eq` semantics and skips
+    // the std `Components` iteration cost. Mirrors the hash side already
+    // bytes-based in `Cache::value`.
+    #[cfg(unix)]
+    {
+      a.as_os_str().as_bytes() == b.as_os_str().as_bytes()
+    }
+    #[cfg(not(unix))]
+    {
+      a == b
+    }
   }
 }
 
