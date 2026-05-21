@@ -209,6 +209,29 @@ impl CacheKey for ResolverPath {
   }
 }
 
+impl ResolverPath {
+  /// Construct a standalone [`ResolverPath`] from a path — does NOT touch the
+  /// cache. Used for resolver results (e.g. the canonicalized realpath) that
+  /// the caller needs as a typed `ResolverPath` but should not pollute the
+  /// resolver cache with.
+  ///
+  /// The returned value has `parent: None` and empty fs OnceCells. Cheap to
+  /// allocate (one `Arc<ResolverPathInner>`) and intentionally not stored
+  /// anywhere — drop it when done.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`ResolveError::PathNotUtf8`] if `path` is not valid UTF-8.
+  pub(crate) fn shallow<P: AsRef<Path>>(path: P) -> Result<Self, ResolveError> {
+    let path = path.as_ref();
+    let s = path
+      .to_str()
+      .ok_or_else(|| ResolveError::PathNotUtf8(path.to_path_buf()))?;
+    let hash = fx_hash_bytes(s.as_bytes());
+    Ok(Self(Arc::new(ResolverPathInner::new(hash, s.into(), None))))
+  }
+}
+
 #[cfg(test)]
 impl ResolverPath {
   /// Construct a `ResolverPath` directly from a UTF-8 string — test-only.

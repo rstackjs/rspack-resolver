@@ -723,12 +723,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .await
       .map_err(ResolveError::from)?;
     ctx.add_file_dependency(&path_buf);
-    // Common path: realpath returns the input bytes unchanged (no symlink in
-    // chain). Reuse the existing cache entry instead of allocating a new one.
     if path_buf.as_os_str() == cached_path.as_str() {
       return Ok(cached_path.clone());
     }
-    self.cache.value(&path_buf)
+    // The realpath landed on a different file (symlink resolved). Wrap it in
+    // a standalone ResolverPath rather than inserting into the resolver cache
+    // — the realpath result is rarely queried again and inserting it builds
+    // the full parent chain, which is what made #231 regress memory by 22%.
+    ResolverPath::shallow(&path_buf)
   }
 
   fn check_restrictions(&self, path: &Path) -> bool {
