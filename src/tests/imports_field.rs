@@ -2,6 +2,8 @@
 //!
 //! The huge imports field test cases are at the bottom of this file.
 
+use std::path::PathBuf;
+
 use simd_json::{json, prelude::*};
 
 use super::JoinExt;
@@ -33,11 +35,18 @@ async fn test_simple() {
     ];
 
   for (comment, path, request, expected) in pass {
+    // PathBuf comparison: the resolver may emit `\\` while `path_join` /
+    // hand-written expected strings carry `/`. Component-wise equality
+    // reproduces pre-refactor `main` behavior (which compared `PathBuf`s).
     let resolved_path = resolver
       .resolve(&path, request)
       .await
-      .map(|r| r.full_path());
-    assert_eq!(resolved_path, Ok(expected), "{comment} {path:?} {request}");
+      .map(|r| PathBuf::from(r.full_path()));
+    assert_eq!(
+      resolved_path,
+      Ok(PathBuf::from(expected)),
+      "{comment} {path:?} {request}"
+    );
   }
 
   // Note added:
@@ -1317,7 +1326,7 @@ async fn test_cases() {
         &mut Ctx::default(),
       )
       .await
-      .map(|p| p.map(|p| p.path().to_string()));
+      .map(|p| p.map(|p| PathBuf::from(p.path().to_string())));
     if let Some(expect) = case.expect {
       if expect.is_empty() {
         assert!(
@@ -1328,7 +1337,12 @@ async fn test_cases() {
         );
       } else {
         for expect in expect {
-          assert_eq!(resolved, Ok(Some(expect.normalize())), "{}", &case.name);
+          assert_eq!(
+            resolved,
+            Ok(Some(PathBuf::from(expect.normalize()))),
+            "{}",
+            &case.name
+          );
         }
       }
     } else {

@@ -47,7 +47,16 @@ mod tests {
       .map(|p| p.normalize())
       .collect::<HashSet<_>>();
 
-    assert_eq!(resolved_path_string, file_path_string);
-    assert_eq!(expected_file_deps, actual_file_deps);
+    // PathBuf comparison: pnp/POSIX-style paths flowing through this code
+    // path may carry `/` separators even on Windows; component-wise eq via
+    // PathBuf reproduces the pre-refactor (Path-based) semantics.
+    use std::path::PathBuf;
+    assert_eq!(
+      PathBuf::from(&resolved_path_string),
+      PathBuf::from(&file_path_string)
+    );
+    let expected_paths: HashSet<PathBuf> = expected_file_deps.iter().map(PathBuf::from).collect();
+    let actual_paths: HashSet<PathBuf> = actual_file_deps.iter().map(PathBuf::from).collect();
+    assert_eq!(expected_paths, actual_paths);
   }
 }

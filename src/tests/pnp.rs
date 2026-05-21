@@ -3,7 +3,7 @@
 //! enhanced_resolve's test <https://github.com/webpack/enhanced-resolve/blob/main/test/pnp.test.js>
 //! cannot be ported over because it uses mocks on `pnpApi` provided by the runtime.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::JoinExt;
 use crate::{path::PathUtil, ResolveContext, ResolveError::NotFound, ResolveOptions, Resolver};
@@ -18,24 +18,24 @@ async fn pnp1() {
     ..ResolveOptions::default()
   });
 
+  // PathBuf comparison: pnp's runtime returns POSIX-style paths even on
+  // Windows; the test expected is constructed via `path_join` which uses
+  // `\\` separators on Windows. Component-wise `PathBuf::eq` accepts both.
+  let full = |r: crate::Resolution| PathBuf::from(r.full_path());
+  let pb = |s: String| PathBuf::from(s);
+
   assert_eq!(
-    resolver
-      .resolve(&fixture, "is-even")
-      .await
-      .map(|r| r.full_path()),
-    Ok(fixture.path_join(
+    resolver.resolve(&fixture, "is-even").await.map(full),
+    Ok(pb(fixture.path_join(
       ".yarn/cache/is-even-npm-1.0.0-9f726520dc-2728cc2f39.zip/node_modules/is-even/index.js"
-    ))
+    )))
   );
 
   assert_eq!(
-    resolver
-      .resolve(&fixture, "lodash.zip")
-      .await
-      .map(|r| r.full_path()),
-    Ok(fixture.path_join(
+    resolver.resolve(&fixture, "lodash.zip").await.map(full),
+    Ok(pb(fixture.path_join(
       ".yarn/cache/lodash.zip-npm-4.2.0-5299417ec8-e596da80a6.zip/node_modules/lodash.zip/index.js"
-    ))
+    )))
   );
 
   assert_eq!(
@@ -47,35 +47,35 @@ async fn pnp1() {
         "is-odd"
       )
       .await
-      .map(|r| r.full_path()),
-    Ok(fixture.path_join(
+      .map(full),
+    Ok(pb(fixture.path_join(
       ".yarn/cache/is-odd-npm-0.1.2-9d980a9da8-7dc6c6fd00.zip/node_modules/is-odd/index.js"
-    )),
+    ))),
+  );
+
+  assert_eq!(
+    resolver.resolve(&fixture, "is-odd").await.map(full),
+    Ok(pb(fixture.path_join(
+      ".yarn/cache/is-odd-npm-3.0.1-93c3c3f41b-89ee2e353c.zip/node_modules/is-odd/index.js"
+    ))),
+  );
+
+  assert_eq!(
+    resolver.resolve(&fixture, "preact").await.map(full),
+    Ok(pb(fixture.path_join(
+      ".yarn/cache/preact-npm-10.25.4-2dd2c0aa44-33a009d614.zip/node_modules/preact/dist/preact.mjs"
+    ))),
   );
 
   assert_eq!(
     resolver
-      .resolve(&fixture, "is-odd")
+      .resolve(&fixture, "preact/devtools")
       .await
-      .map(|r| r.full_path()),
-    Ok(fixture.path_join(
-      ".yarn/cache/is-odd-npm-3.0.1-93c3c3f41b-89ee2e353c.zip/node_modules/is-odd/index.js"
-    )),
+      .map(full),
+    Ok(pb(fixture.path_join(
+      ".yarn/cache/preact-npm-10.25.4-2dd2c0aa44-33a009d614.zip/node_modules/preact/devtools/dist/devtools.mjs"
+    ))),
   );
-
-  assert_eq!(
-        resolver.resolve(&fixture, "preact").await.map(|r| r.full_path()),
-        Ok(fixture.path_join(
-            ".yarn/cache/preact-npm-10.25.4-2dd2c0aa44-33a009d614.zip/node_modules/preact/dist/preact.mjs"
-        )),
-    );
-
-  assert_eq!(
-        resolver.resolve(&fixture, "preact/devtools").await.map(|r| r.full_path()),
-        Ok(fixture.path_join(
-            ".yarn/cache/preact-npm-10.25.4-2dd2c0aa44-33a009d614.zip/node_modules/preact/devtools/dist/devtools.mjs"
-        )),
-    );
 }
 
 #[tokio::test]
@@ -164,8 +164,8 @@ async fn resolve_in_pnp_linked_folder() {
     resolver
       .resolve(&fixture, "lib/lib.js")
       .await
-      .map(|r| r.full_path()),
-    Ok(fixture.path_join("shared/lib.js"))
+      .map(|r| PathBuf::from(r.full_path())),
+    Ok(PathBuf::from(fixture.path_join("shared/lib.js")))
   );
 }
 

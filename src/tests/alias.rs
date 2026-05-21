@@ -1,5 +1,7 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/alias.test.js>
 
+use std::path::PathBuf;
+
 use super::JoinExt;
 use crate::{AliasValue, Resolution, ResolveContext, ResolveError, ResolveOptions, Resolver};
 
@@ -300,8 +302,18 @@ async fn alias_fragment() {
       )],
       ..ResolveOptions::default()
     });
-    let resolved_path = resolver.resolve(&f, "foo").await.map(|r| r.full_path());
-    assert_eq!(resolved_path, Ok(expected), "{comment} {request}");
+    // PathBuf comparison: `expected` is hand-formatted with `/` while the
+    // resolver emits `\\` at boundaries on Windows; component-wise eq
+    // matches what `PathBuf::eq` did pre-refactor.
+    let resolved_path = resolver
+      .resolve(&f, "foo")
+      .await
+      .map(|r| PathBuf::from(r.full_path()));
+    assert_eq!(
+      resolved_path,
+      Ok(PathBuf::from(expected)),
+      "{comment} {request}"
+    );
   }
 }
 

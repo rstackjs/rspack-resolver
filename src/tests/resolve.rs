@@ -1,5 +1,7 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/resolve.test.js>
 
+use std::path::PathBuf;
+
 use super::JoinExt;
 use crate::{ResolveError, ResolveOptions, Resolver};
 
@@ -54,11 +56,17 @@ async fn resolve() {
     ];
 
   for (comment, path, request, expected) in pass {
+    // PathBuf comparison: see note in alias_fragment — separator-agnostic
+    // component-wise equality matches pre-refactor `main` behavior.
     let resolved_path = resolver
       .resolve(&path, request)
       .await
-      .map(|r| r.full_path());
-    assert_eq!(resolved_path, Ok(expected), "{comment} {path:?} {request}");
+      .map(|r| PathBuf::from(r.full_path()));
+    assert_eq!(
+      resolved_path,
+      Ok(PathBuf::from(expected)),
+      "{comment} {path:?} {request}"
+    );
   }
 }
 
