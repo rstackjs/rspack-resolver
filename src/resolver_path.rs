@@ -1,7 +1,7 @@
 //! UTF-8 path types that mirror [`std::path::Path`] / [`std::path::PathBuf`].
 //!
 //! Internally rspack-resolver always speaks UTF-8 — we never have to roundtrip
-//! through `OsStr`. `StrPath` / `StrPathBuf` give us the ergonomics of `Path`
+//! through `OsStr`. `ResolverPath` / `ResolverPathBuf` give us the ergonomics of `Path`
 //! (`.parent()`, `.join()`, `.file_name()`, `.components()`, …) operating
 //! directly on string slices, with no `Option<&str>` from `to_str()` and no
 //! allocation through `OsString`.
@@ -28,9 +28,22 @@ use std::{
   borrow::Borrow,
   cmp::Ordering,
   fmt,
-  hash::{Hash, Hasher},
+  hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
   ops::Deref,
 };
+
+use rustc_hash::FxHasher;
+
+/// FxHash of a path slice, matching the hash other parts of the crate
+/// compute via `FxHasher::default()` + `str::hash`. Centralized so the
+/// precomputed value on [`ResolverPathBuf`] and the on-the-fly value from
+/// [`ResolverPath::compute_hash`] agree.
+#[inline]
+pub fn hash_path(s: &str) -> u64 {
+  let mut h = BuildHasherDefault::<FxHasher>::default().build_hasher();
+  s.hash(&mut h);
+  h.finish()
+}
 
 // ---------------------------------------------------------------------------
 // Separator + platform helpers
@@ -172,7 +185,7 @@ fn parse_windows_prefix(path: &str) -> Option<WindowsPrefix> {
 // Component
 // ---------------------------------------------------------------------------
 
-/// Iterator over [`StrPath`] components — mirrors `std::path::Component`.
+/// Iterator over [`ResolverPath`] components — mirrors `std::path::Component`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Component<'a> {
   /// A windows-style prefix (drive letter, UNC, verbatim).
@@ -198,7 +211,7 @@ impl<'a> Component<'a> {
   }
 }
 
-/// Iterator over the components of a [`StrPath`].
+/// Iterator over the components of a [`ResolverPath`].
 #[derive(Clone)]
 pub struct Components<'a> {
   /// Remaining slice yet to be tokenized.
@@ -243,7 +256,7 @@ impl<'a> Components<'a> {
     }
   }
 
-  /// Borrow what's left as a single `&StrPath`. Used by `Path::components().as_path()`-style consumers.
+  /// Borrow what's left as a single `&ResolverPath`. Used by `Path::components().as_path()`-style consumers.
   pub fn as_str(&self) -> &'a str {
     // We don't model the prefix/root in `rest`; for the resolver's usages
     // the trailing remainder is enough.
@@ -360,21 +373,21 @@ impl<'a> DoubleEndedIterator for Components<'a> {
 }
 
 // ---------------------------------------------------------------------------
-// StrPath (unsized)
+// ResolverPath (unsized)
 // ---------------------------------------------------------------------------
 
 /// Borrowed UTF-8 path. Mirror of [`std::path::Path`].
 #[repr(transparent)]
-pub struct StrPath {
+pub struct ResolverPath {
   inner: str,
 }
 
-impl StrPath {
+impl ResolverPath {
   /// Wrap a string slice as a path slice. Always succeeds — UTF-8 by construction.
   #[inline]
-  pub fn new<S: AsRef<str> + ?Sized>(s: &S) -> &StrPath {
-    // SAFETY: `StrPath` is `#[repr(transparent)]` around `str`.
-    unsafe { &*(s.as_ref() as *const str as *const StrPath) }
+  pub fn new<S: AsRef<str> + ?Sized>(s: &S) -> &ResolverPath {
+    // SAFETY: `ResolverPath` is `#[repr(transparent)]` around `str`.
+    unsafe { &*(s.as_ref() as *const str as *const ResolverPath) }
   }
 
   /// View the path as a `&str`.
@@ -425,7 +438,7 @@ impl StrPath {
   }
 
   /// Parent path. Returns `None` for a path that is just a prefix and/or root.
-  pub fn parent(&self) -> Option<&StrPath> {
+  pub fn parent(&self) -> Option<&ResolverPath> {
     let mut comps = self.components();
     let last = comps.next_back()?;
     match last {
@@ -444,7 +457,7 @@ impl StrPath {
             break;
           }
         }
-        Some(StrPath::new(&self.inner[..end]))
+        Some(ResolverPath::new(&self.inner[..end]))
       }
       Component::Prefix(_) | Component::RootDir => None,
     }
@@ -471,17 +484,20 @@ impl StrPath {
   }
 
   /// Component-aware prefix check.
-  pub fn starts_with<P: AsRef<StrPath>>(&self, base: P) -> bool {
+  pub fn starts_with<P: AsRef<ResolverPath>>(&self, base: P) -> bool {
     iter_starts_with(self.components(), base.as_ref().components())
   }
 
   /// Component-aware suffix check.
-  pub fn ends_with<P: AsRef<StrPath>>(&self, child: P) -> bool {
+  pub fn ends_with<P: AsRef<ResolverPath>>(&self, child: P) -> bool {
     iter_ends_with(self.components(), child.as_ref().components())
   }
 
   /// Strip the given component-aware prefix, returning the tail.
-  pub fn strip_prefix<P: AsRef<StrPath>>(&self, base: P) -> Result<&StrPath, StripPrefixError> {
+  pub fn strip_prefix<P: AsRef<ResolverPath>>(
+    &self,
+    base: P,
+  ) -> Result<&ResolverPath, StripPrefixError> {
     let base = base.as_ref();
     let mut s_comps = self.components();
     let mut b_comps = base.components();
@@ -492,7 +508,7 @@ impl StrPath {
           let rest = s_comps.rest;
           let trimmed =
             rest.trim_start_matches(|c: char| c == '\\' || (!s_comps.verbatim && c == '/'));
-          return Ok(StrPath::new(trimmed));
+          return Ok(ResolverPath::new(trimmed));
         }
         Some(b) => match s_comps.next() {
           Some(s) if components_equal(s, b) => continue,
@@ -503,21 +519,21 @@ impl StrPath {
   }
 
   /// Join with another path. Absolute `other` replaces this path.
-  pub fn join<P: AsRef<StrPath>>(&self, other: P) -> StrPathBuf {
+  pub fn join<P: AsRef<ResolverPath>>(&self, other: P) -> ResolverPathBuf {
     let mut buf = self.to_path_buf();
     buf.push(other);
     buf
   }
 
   /// Path with the extension swapped for `new_ext` (without leading dot).
-  pub fn with_extension(&self, new_ext: &str) -> StrPathBuf {
+  pub fn with_extension(&self, new_ext: &str) -> ResolverPathBuf {
     let mut buf = self.to_path_buf();
     buf.set_extension(new_ext);
     buf
   }
 
   /// Path with the file name swapped.
-  pub fn with_file_name(&self, file_name: &str) -> StrPathBuf {
+  pub fn with_file_name(&self, file_name: &str) -> ResolverPathBuf {
     let mut buf = self.to_path_buf();
     buf.set_file_name(file_name);
     buf
@@ -529,8 +545,19 @@ impl StrPath {
   }
 
   /// Allocate an owned copy.
-  pub fn to_path_buf(&self) -> StrPathBuf {
-    StrPathBuf::from(self.inner.to_string())
+  pub fn to_path_buf(&self) -> ResolverPathBuf {
+    ResolverPathBuf::from(self.inner.to_string())
+  }
+
+  /// FxHash of the underlying string slice.
+  ///
+  /// Borrowed [`ResolverPath`] values can't carry the precomputed hash that
+  /// [`ResolverPathBuf::precomputed_hash`] returns (the type is unsized — no
+  /// place to store it), so this recomputes on demand. The result agrees with
+  /// the precomputed hash carried by [`ResolverPathBuf`] for the same bytes.
+  #[inline]
+  pub fn compute_hash(&self) -> u64 {
+    hash_path(&self.inner)
   }
 
   /// Display in the platform's native form (forwarding to the underlying str).
@@ -616,65 +643,65 @@ fn rsplit_file_at_dot(file: &str) -> (&str, Option<&str>) {
 }
 
 // ---------------------------------------------------------------------------
-// Standard trait impls for StrPath
+// Standard trait impls for ResolverPath
 // ---------------------------------------------------------------------------
 
-impl AsRef<str> for StrPath {
+impl AsRef<str> for ResolverPath {
   fn as_ref(&self) -> &str {
     &self.inner
   }
 }
 
-impl AsRef<StrPath> for StrPath {
-  fn as_ref(&self) -> &StrPath {
+impl AsRef<ResolverPath> for ResolverPath {
+  fn as_ref(&self) -> &ResolverPath {
     self
   }
 }
 
-impl AsRef<StrPath> for str {
-  fn as_ref(&self) -> &StrPath {
-    StrPath::new(self)
+impl AsRef<ResolverPath> for str {
+  fn as_ref(&self) -> &ResolverPath {
+    ResolverPath::new(self)
   }
 }
 
-impl AsRef<StrPath> for String {
-  fn as_ref(&self) -> &StrPath {
-    StrPath::new(self)
+impl AsRef<ResolverPath> for String {
+  fn as_ref(&self) -> &ResolverPath {
+    ResolverPath::new(self)
   }
 }
 
-impl fmt::Debug for StrPath {
+impl fmt::Debug for ResolverPath {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     fmt::Debug::fmt(&self.inner, f)
   }
 }
 
-impl fmt::Display for StrPath {
+impl fmt::Display for ResolverPath {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     fmt::Display::fmt(&self.inner, f)
   }
 }
 
-impl PartialEq for StrPath {
+impl PartialEq for ResolverPath {
   fn eq(&self, other: &Self) -> bool {
     // Component-wise equality — matches std::path::Path behaviour.
     self.components().eq(other.components())
   }
 }
-impl Eq for StrPath {}
+impl Eq for ResolverPath {}
 
-impl PartialOrd for StrPath {
+impl PartialOrd for ResolverPath {
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
     Some(self.cmp(other))
   }
 }
-impl Ord for StrPath {
+impl Ord for ResolverPath {
   fn cmp(&self, other: &Self) -> Ordering {
     self.components().cmp(other.components())
   }
 }
 
-impl Hash for StrPath {
+impl Hash for ResolverPath {
   fn hash<H: Hasher>(&self, state: &mut H) {
     for c in self.components() {
       c.as_str().hash(state);
@@ -682,34 +709,62 @@ impl Hash for StrPath {
   }
 }
 
-impl ToOwned for StrPath {
-  type Owned = StrPathBuf;
-  fn to_owned(&self) -> StrPathBuf {
+impl ToOwned for ResolverPath {
+  type Owned = ResolverPathBuf;
+  fn to_owned(&self) -> ResolverPathBuf {
     self.to_path_buf()
   }
 }
 
 // ---------------------------------------------------------------------------
-// StrPathBuf (owned)
+// ResolverPathBuf (owned)
 // ---------------------------------------------------------------------------
 
 /// Owned UTF-8 path. Mirror of [`std::path::PathBuf`].
-#[derive(Clone, Default)]
-pub struct StrPathBuf {
+///
+/// Stores a precomputed FxHash of the contained string alongside the buffer.
+/// Cache layers (notably [`crate::cache::Cache`]) re-use this via
+/// [`Self::precomputed_hash`] so insertions and lookups don't have to re-hash
+/// the path each time.
+#[derive(Clone)]
+pub struct ResolverPathBuf {
+  /// Precomputed `FxHash` of `inner`. Kept in sync with `inner` by every
+  /// mutating method.
+  prehash: u64,
   inner: String,
 }
 
-impl StrPathBuf {
+impl Default for ResolverPathBuf {
+  fn default() -> Self {
+    Self {
+      prehash: hash_path(""),
+      inner: String::new(),
+    }
+  }
+}
+
+impl ResolverPathBuf {
   pub fn new() -> Self {
     Self::default()
   }
 
   pub fn from_string(s: String) -> Self {
-    Self { inner: s }
+    let prehash = hash_path(&s);
+    Self { prehash, inner: s }
   }
 
-  pub fn as_path(&self) -> &StrPath {
-    StrPath::new(&self.inner)
+  /// Construct from a string whose `FxHash` has already been computed elsewhere
+  /// (e.g. by a cache that hashes the key for lookup before deciding to
+  /// allocate). The caller is responsible for the hash matching the bytes; if
+  /// `debug_assertions` is enabled we verify.
+  #[inline]
+  pub fn with_prehash(prehash: u64, s: String) -> Self {
+    debug_assert_eq!(prehash, hash_path(&s), "prehash does not match string");
+    Self { prehash, inner: s }
+  }
+
+  pub fn as_path(&self) -> &ResolverPath {
+    ResolverPath::new(&self.inner)
   }
 
   pub fn as_str(&self) -> &str {
@@ -720,19 +775,39 @@ impl StrPathBuf {
     self.inner
   }
 
-  pub fn into_boxed_path(self) -> Box<StrPath> {
+  pub fn into_boxed_path(self) -> Box<ResolverPath> {
     let raw: *mut str = Box::into_raw(self.inner.into_boxed_str());
-    // SAFETY: `StrPath` is `#[repr(transparent)]` around `str`.
-    unsafe { Box::from_raw(raw as *mut StrPath) }
+    // SAFETY: `ResolverPath` is `#[repr(transparent)]` around `str`.
+    unsafe { Box::from_raw(raw as *mut ResolverPath) }
+  }
+
+  /// Precomputed FxHash of the contained path. Cheap to call (single field
+  /// read) — use this when feeding identity-hashed maps/sets to avoid
+  /// re-hashing the same path on every lookup.
+  ///
+  /// The value agrees with [`ResolverPath::compute_hash`] for the same path
+  /// bytes, so a borrowed `&ResolverPath` and an owned `ResolverPathBuf`
+  /// produce identical hashes.
+  #[inline]
+  pub fn precomputed_hash(&self) -> u64 {
+    self.prehash
+  }
+
+  /// Refresh `prehash` after a mutation. Centralized so `push`/`pop`/
+  /// `set_file_name`/`set_extension` can't forget to keep it in sync.
+  #[inline]
+  fn rehash(&mut self) {
+    self.prehash = hash_path(&self.inner);
   }
 
   /// Append `other`. Absolute `other` replaces the current contents (mirrors
   /// `PathBuf::push`).
-  pub fn push<P: AsRef<StrPath>>(&mut self, other: P) {
+  pub fn push<P: AsRef<ResolverPath>>(&mut self, other: P) {
     let other = other.as_ref();
     if other.is_absolute() {
       self.inner.clear();
       self.inner.push_str(&other.inner);
+      self.rehash();
       return;
     }
     let needs_sep = !self.inner.is_empty()
@@ -746,6 +821,7 @@ impl StrPathBuf {
       self.inner.push(MAIN_SEPARATOR);
     }
     self.inner.push_str(&other.inner);
+    self.rehash();
   }
 
   /// Remove the final component. Returns `false` if there was nothing to pop.
@@ -755,6 +831,7 @@ impl StrPathBuf {
     };
     let new_len = parent.inner.len();
     self.inner.truncate(new_len);
+    self.rehash();
     true
   }
 
@@ -764,7 +841,7 @@ impl StrPathBuf {
       let popped = self.pop();
       debug_assert!(popped);
     }
-    self.push(StrPath::new(file_name));
+    self.push(ResolverPath::new(file_name));
   }
 
   /// Replace (or set) the file extension.
@@ -779,90 +856,91 @@ impl StrPathBuf {
       self.inner.push('.');
       self.inner.push_str(new_ext);
     }
+    self.rehash();
     true
   }
 }
 
-impl Deref for StrPathBuf {
-  type Target = StrPath;
+impl Deref for ResolverPathBuf {
+  type Target = ResolverPath;
   fn deref(&self) -> &Self::Target {
     self.as_path()
   }
 }
 
-impl Borrow<StrPath> for StrPathBuf {
-  fn borrow(&self) -> &StrPath {
+impl Borrow<ResolverPath> for ResolverPathBuf {
+  fn borrow(&self) -> &ResolverPath {
     self.as_path()
   }
 }
 
-impl AsRef<StrPath> for StrPathBuf {
-  fn as_ref(&self) -> &StrPath {
+impl AsRef<ResolverPath> for ResolverPathBuf {
+  fn as_ref(&self) -> &ResolverPath {
     self.as_path()
   }
 }
 
-impl AsRef<str> for StrPathBuf {
+impl AsRef<str> for ResolverPathBuf {
   fn as_ref(&self) -> &str {
     &self.inner
   }
 }
 
-impl From<String> for StrPathBuf {
+impl From<String> for ResolverPathBuf {
   fn from(s: String) -> Self {
     Self::from_string(s)
   }
 }
 
-impl From<&str> for StrPathBuf {
+impl From<&str> for ResolverPathBuf {
   fn from(s: &str) -> Self {
     Self::from_string(s.to_string())
   }
 }
 
-impl From<&StrPath> for StrPathBuf {
-  fn from(p: &StrPath) -> Self {
+impl From<&ResolverPath> for ResolverPathBuf {
+  fn from(p: &ResolverPath) -> Self {
     p.to_path_buf()
   }
 }
 
-impl From<StrPathBuf> for String {
-  fn from(p: StrPathBuf) -> Self {
+impl From<ResolverPathBuf> for String {
+  fn from(p: ResolverPathBuf) -> Self {
     p.into_string()
   }
 }
 
-impl fmt::Debug for StrPathBuf {
+impl fmt::Debug for ResolverPathBuf {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     fmt::Debug::fmt(&self.inner, f)
   }
 }
 
-impl fmt::Display for StrPathBuf {
+impl fmt::Display for ResolverPathBuf {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     fmt::Display::fmt(&self.inner, f)
   }
 }
 
-impl PartialEq for StrPathBuf {
+impl PartialEq for ResolverPathBuf {
   fn eq(&self, other: &Self) -> bool {
     self.as_path() == other.as_path()
   }
 }
-impl Eq for StrPathBuf {}
+impl Eq for ResolverPathBuf {}
 
-impl PartialOrd for StrPathBuf {
+impl PartialOrd for ResolverPathBuf {
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
     Some(self.cmp(other))
   }
 }
-impl Ord for StrPathBuf {
+impl Ord for ResolverPathBuf {
   fn cmp(&self, other: &Self) -> Ordering {
     self.as_path().cmp(other.as_path())
   }
 }
 
-impl Hash for StrPathBuf {
+impl Hash for ResolverPathBuf {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.as_path().hash(state);
   }
@@ -873,11 +951,11 @@ impl Hash for StrPathBuf {
 // ---------------------------------------------------------------------------
 
 pub struct Ancestors<'a> {
-  next: Option<&'a StrPath>,
+  next: Option<&'a ResolverPath>,
 }
 
 impl<'a> Iterator for Ancestors<'a> {
-  type Item = &'a StrPath;
+  type Item = &'a ResolverPath;
   fn next(&mut self) -> Option<Self::Item> {
     let cur = self.next.take()?;
     self.next = cur.parent();
@@ -906,8 +984,8 @@ mod tests {
 
   use super::*;
 
-  fn p(s: &str) -> &StrPath {
-    StrPath::new(s)
+  fn p(s: &str) -> &ResolverPath {
+    ResolverPath::new(s)
   }
 
   /// Assert that two paths agree on a set of properties with `std::path::Path`.
@@ -915,7 +993,7 @@ mod tests {
     let our = p(s);
     let std_p = Path::new(s);
     assert_eq!(
-      our.parent().map(StrPath::as_str),
+      our.parent().map(ResolverPath::as_str),
       std_p.parent().and_then(|p| p.to_str()),
       "parent mismatch for {s:?}",
     );
@@ -1000,7 +1078,7 @@ mod tests {
 
   #[test]
   fn pop_and_parent() {
-    let mut buf = StrPathBuf::from("/foo/bar");
+    let mut buf = ResolverPathBuf::from("/foo/bar");
     assert!(buf.pop());
     assert_eq!(buf.as_str(), "/foo");
     assert!(buf.pop());
@@ -1023,7 +1101,7 @@ mod tests {
 
   #[test]
   fn set_extension_works() {
-    let mut buf = StrPathBuf::from("/foo/bar.js");
+    let mut buf = ResolverPathBuf::from("/foo/bar.js");
     assert!(buf.set_extension("ts"));
     assert_eq!(buf.as_str(), "/foo/bar.ts");
     assert!(buf.set_extension(""));
@@ -1032,14 +1110,49 @@ mod tests {
 
   #[test]
   fn ancestors_walk_up() {
-    let chain: Vec<&str> = p("/foo/bar/baz").ancestors().map(StrPath::as_str).collect();
+    let chain: Vec<&str> = p("/foo/bar/baz")
+      .ancestors()
+      .map(ResolverPath::as_str)
+      .collect();
     assert_eq!(chain, vec!["/foo/bar/baz", "/foo/bar", "/foo", "/"]);
   }
 
   #[test]
   fn box_path_roundtrip() {
-    let buf = StrPathBuf::from("/foo/bar");
-    let boxed: Box<StrPath> = buf.into_boxed_path();
+    let buf = ResolverPathBuf::from("/foo/bar");
+    let boxed: Box<ResolverPath> = buf.into_boxed_path();
     assert_eq!(boxed.as_str(), "/foo/bar");
+  }
+
+  #[test]
+  fn prehash_matches_borrowed_compute_hash() {
+    for s in ["", "/", "/foo", "/foo/bar/baz.js", "C:\\Users\\rust"] {
+      let buf = ResolverPathBuf::from(s);
+      assert_eq!(
+        buf.precomputed_hash(),
+        ResolverPath::new(s).compute_hash(),
+        "hashes disagree for {s:?}"
+      );
+    }
+  }
+
+  #[test]
+  fn prehash_updates_with_mutation() {
+    let mut buf = ResolverPathBuf::from("/foo");
+    let h1 = buf.precomputed_hash();
+    buf.push(ResolverPath::new("bar"));
+    let h2 = buf.precomputed_hash();
+    assert_ne!(h1, h2);
+    assert_eq!(h2, ResolverPath::new(buf.as_str()).compute_hash());
+
+    buf.pop();
+    assert_eq!(buf.precomputed_hash(), h1);
+
+    let mut buf = ResolverPathBuf::from("/foo/bar.js");
+    let before = buf.precomputed_hash();
+    buf.set_extension("ts");
+    assert_ne!(before, buf.precomputed_hash());
+    assert_eq!(buf.as_str(), "/foo/bar.ts");
+    assert_eq!(buf.precomputed_hash(), hash_path("/foo/bar.ts"));
   }
 }

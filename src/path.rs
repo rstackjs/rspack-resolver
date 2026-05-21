@@ -4,14 +4,14 @@
 //! * [path-absolutize](https://docs.rs/path-absolutize)
 //! * [normalize_path](https://docs.rs/normalize-path)
 
-use crate::str_path::{Component, StrPath, StrPathBuf};
+use crate::resolver_path::{Component, ResolverPath, ResolverPathBuf};
 
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
 
 /// Extension trait that adds path-normalization helpers operating on `&str`.
 ///
 /// Path normalization is fully implemented over the crate's
-/// [`crate::str_path::StrPath`] mirror — no `std::path::PathBuf` /
+/// [`crate::resolver_path::ResolverPath`] mirror — no `std::path::PathBuf` /
 /// `OsString` roundtrips. Inputs and outputs cross the API boundary as
 /// `str` / `String`.
 pub trait PathUtil {
@@ -29,15 +29,15 @@ pub trait PathUtil {
 
 impl PathUtil for str {
   fn normalize(&self) -> String {
-    normalize_path(StrPath::new(self)).into_string()
+    normalize_path(ResolverPath::new(self)).into_string()
   }
 
   fn normalize_with(&self, subpath: &str) -> String {
-    normalize_path_with(StrPath::new(self), StrPath::new(subpath)).into_string()
+    normalize_path_with(ResolverPath::new(self), ResolverPath::new(subpath)).into_string()
   }
 
   fn is_invalid_exports_target(&self) -> bool {
-    StrPath::new(self)
+    ResolverPath::new(self)
       .components()
       .enumerate()
       .any(|(index, c)| match c {
@@ -61,7 +61,7 @@ impl PathUtil for String {
   }
 }
 
-impl PathUtil for StrPath {
+impl PathUtil for ResolverPath {
   fn normalize(&self) -> String {
     self.as_str().normalize()
   }
@@ -74,27 +74,27 @@ impl PathUtil for StrPath {
 }
 
 // Adapted from https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L7
-fn normalize_path(path: &StrPath) -> StrPathBuf {
+fn normalize_path(path: &ResolverPath) -> ResolverPathBuf {
   let mut components = path.components().peekable();
   let mut ret = if let Some(Component::Prefix(p)) = components.peek().copied() {
     components.next();
-    StrPathBuf::from(p)
+    ResolverPathBuf::from(p)
   } else {
-    StrPathBuf::new()
+    ResolverPathBuf::new()
   };
 
   for component in components {
     match component {
       Component::Prefix(_) => unreachable!("Path {:?}", path),
       Component::RootDir => {
-        ret.push(StrPath::new(component.as_str()));
+        ret.push(ResolverPath::new(component.as_str()));
       }
       Component::CurDir => {}
       Component::ParentDir => {
         ret.pop();
       }
       Component::Normal(c) => {
-        ret.push(StrPath::new(c));
+        ret.push(ResolverPath::new(c));
       }
     }
   }
@@ -103,7 +103,7 @@ fn normalize_path(path: &StrPath) -> StrPathBuf {
 }
 
 // Adapted from https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L37
-fn normalize_path_with(base: &StrPath, subpath: &StrPath) -> StrPathBuf {
+fn normalize_path_with(base: &ResolverPath, subpath: &ResolverPath) -> ResolverPathBuf {
   let mut components = subpath.components();
 
   let Some(head) = components.next() else {
@@ -122,7 +122,7 @@ fn normalize_path_with(base: &StrPath, subpath: &StrPath) -> StrPathBuf {
         ret.pop();
       }
       Component::Normal(c) => {
-        ret.push(StrPath::new(c));
+        ret.push(ResolverPath::new(c));
       }
       Component::Prefix(_) | Component::RootDir => {
         unreachable!("Path {:?} Subpath {:?}", base, subpath)

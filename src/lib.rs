@@ -56,8 +56,8 @@ mod options;
 mod package_json;
 mod path;
 mod resolution;
+mod resolver_path;
 mod specifier;
-mod str_path;
 mod tsconfig;
 
 #[cfg(test)]
@@ -90,8 +90,8 @@ use crate::{
   context::ResolveContext as Ctx,
   package_json::JSONMap,
   path::{PathUtil, SLASH_START},
+  resolver_path::{Component, ResolverPath},
   specifier::Specifier,
-  str_path::{Component, StrPath},
   tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
 
@@ -276,7 +276,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .await?;
     if let Some(package_json) = &package_json {
       // path must be inside the package.
-      debug_assert!(StrPath::new(&path).starts_with(package_json.directory()));
+      debug_assert!(ResolverPath::new(&path).starts_with(package_json.directory()));
     }
     Ok(Resolution {
       path,
@@ -336,7 +336,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(path);
     }
 
-    let result = match StrPath::new(specifier).components().next() {
+    let result = match ResolverPath::new(specifier).components().next() {
       // 2. If X begins with '/'
       Some(Component::RootDir | Component::Prefix(_)) => {
         self.require_absolute(cached_path, specifier, ctx).await
@@ -401,7 +401,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
     // Make sure only path prefixes gets called
-    debug_assert!(StrPath::new(specifier)
+    debug_assert!(ResolverPath::new(specifier)
       .components()
       .next()
       .is_some_and(|c| matches!(c, Component::RootDir | Component::Prefix(_))));
@@ -447,7 +447,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
     // Make sure only relative or normal paths gets called
-    debug_assert!(StrPath::new(specifier)
+    debug_assert!(ResolverPath::new(specifier)
       .components()
       .next()
       .is_some_and(|c| matches!(
@@ -495,7 +495,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
     // Make sure no other path prefixes gets called
-    debug_assert!(StrPath::new(specifier)
+    debug_assert!(ResolverPath::new(specifier)
       .components()
       .next()
       .is_some_and(|c| matches!(c, Component::Normal(_))));
@@ -734,8 +734,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   fn check_restrictions(&self, path: &str) -> bool {
     // https://github.com/webpack/enhanced-resolve/blob/a998c7d218b7a9ec2461fc4fddd1ad5dd7687485/lib/RestrictionsPlugin.js#L19-L24
     fn is_inside(path: &str, parent: &str) -> bool {
-      let path_p = StrPath::new(path);
-      let parent_p = StrPath::new(parent);
+      let path_p = ResolverPath::new(path);
+      let parent_p = ResolverPath::new(parent);
       if !path_p.starts_with(parent_p) {
         return false;
       }
@@ -744,7 +744,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
       path_p
         .strip_prefix(parent_p)
-        .is_ok_and(|p| p == StrPath::new("./"))
+        .is_ok_and(|p| p == ResolverPath::new("./"))
     }
     for restriction in &self.options.restrictions {
       match restriction {
@@ -976,8 +976,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
     // 3. Search for `.pnp.cjs` by walking up this path. pnp's API still
     // expects `std::path::Path`, so build a single std::path::Path::new at
-    // the boundary; we keep the rest of the walk in StrPath land.
-    let base_path = StrPath::new(cached_path.path());
+    // the boundary; we keep the rest of the walk in ResolverPath land.
+    let base_path = ResolverPath::new(cached_path.path());
     let Some(manifest_path) =
       pnp::find_closest_pnp_manifest_path(std::path::Path::new(base_path.as_str()))
     else {
@@ -1080,7 +1080,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> Option<CachedPath> {
     if module_name == "node_modules" {
       cached_path.cached_node_modules(&self.cache, ctx).await
-    } else if StrPath::new(cached_path.path()).file_name() == Some(module_name) {
+    } else if ResolverPath::new(cached_path.path()).file_name() == Some(module_name) {
       Some(cached_path.clone())
     } else {
       cached_path
@@ -1231,7 +1231,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       // Complete when resolving to self `{"./a.js": "./a.js"}`
       if new_specifier
         .strip_prefix("./")
-        .filter(|s| StrPath::new(path).ends_with(StrPath::new(s)))
+        .filter(|s| ResolverPath::new(path).ends_with(ResolverPath::new(s)))
         .is_some()
       {
         return if cached_path.is_file(&self.cache.fs, ctx).await {
@@ -1372,7 +1372,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(None);
     }
     let path_str = cached_path.path();
-    let path_p = StrPath::new(path_str);
+    let path_p = ResolverPath::new(path_str);
     let Some(path_extension) = path_p.extension() else {
       return Ok(None);
     };

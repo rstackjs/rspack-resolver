@@ -11,7 +11,7 @@ use simd_json::{
   borrowed::Value, prelude::*, to_borrowed_value, BorrowedValue, Error as SimdParseError,
 };
 
-use crate::{path::PathUtil, str_path::StrPath, ResolveError};
+use crate::{path::PathUtil, resolver_path::ResolverPath, ResolveError};
 
 pub type JSONMap<'a> = simd_json::borrowed::Object<'a>;
 
@@ -221,11 +221,11 @@ impl PackageJson {
   ///
   /// * When the package.json path is misconfigured.
   pub fn directory(&self) -> &str {
-    let realpath = StrPath::new(&self.realpath);
+    let realpath = ResolverPath::new(&self.realpath);
     debug_assert!(realpath.file_name() == Some("package.json"));
     realpath
       .parent()
-      .map(StrPath::as_str)
+      .map(ResolverPath::as_str)
       .expect("package.json realpath should have a parent")
   }
 
@@ -318,9 +318,9 @@ impl PackageJson {
           return Self::alias_value(path, value);
         }
       } else {
-        let dir = StrPath::new(&self.path)
+        let dir = ResolverPath::new(&self.path)
           .parent()
-          .map(StrPath::as_str)
+          .map(ResolverPath::as_str)
           .expect("package.json path should have a parent");
         for (key, value) in object {
           let joined = dir.normalize_with(key);

@@ -17,7 +17,7 @@ use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
   path::PathUtil,
-  str_path::{StrPath, StrPathBuf},
+  resolver_path::{hash_path, ResolverPath, ResolverPathBuf},
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
 };
 
@@ -43,18 +43,18 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   }
 
   pub fn value(&self, path: &str) -> CachedPath {
-    let hash = {
-      let mut hasher = FxHasher::default();
-      path.hash(&mut hasher);
-      hasher.finish()
-    };
+    // Compute the path's hash up front so lookups never touch the heap. On a
+    // miss we hand the same value to `ResolverPathBuf::with_prehash` so the
+    // owned buffer reuses it instead of rehashing the bytes.
+    let hash = hash_path(path);
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
-    let parent = StrPath::new(path).parent().map(|p| self.value(p.as_str()));
+    let parent = ResolverPath::new(path)
+      .parent()
+      .map(|p| self.value(p.as_str()));
     let data = CachedPath(Arc::new(CachedPathImpl::new(
-      hash,
-      StrPathBuf::from(path).into_boxed_path(),
+      ResolverPathBuf::with_prehash(hash, path.to_string()),
       parent,
     )));
     self.paths.insert(data.clone());
@@ -109,7 +109,7 @@ pub struct CachedPath(Arc<CachedPathImpl>);
 
 impl Hash for CachedPath {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    self.0.hash.hash(state);
+    self.0.path.precomputed_hash().hash(state);
   }
 }
 
@@ -142,26 +142,25 @@ impl AsRef<CachedPathImpl> for CachedPath {
 
 impl CacheKey for CachedPath {
   fn tuple(&self) -> (u64, &str) {
-    (self.hash, self.path.as_str())
+    (self.0.path.precomputed_hash(), self.0.path.as_str())
   }
 }
 
 pub struct CachedPathImpl {
-  hash: u64,
-  /// Owned `Box<StrPath>` — gives us `parent()`, `file_name()`, … directly,
-  /// while `.as_str()` exposes the raw string for callers that want bytes.
-  path: Box<StrPath>,
+  /// Owned `ResolverPathBuf` — carries the precomputed FxHash that the cache
+  /// keys off of, plus the structured `ResolverPath` API for `parent()`,
+  /// `file_name()`, etc.
+  path: ResolverPathBuf,
   parent: Option<CachedPath>,
   meta: OnceLock<Option<FileMetadata>>,
-  canonicalized: OnceLock<Option<StrPathBuf>>,
+  canonicalized: OnceLock<Option<ResolverPathBuf>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
 }
 
 impl CachedPathImpl {
-  fn new(hash: u64, path: Box<StrPath>, parent: Option<CachedPath>) -> Self {
+  fn new(path: ResolverPathBuf, parent: Option<CachedPath>) -> Self {
     Self {
-      hash,
       path,
       parent,
       meta: OnceLock::new(),
@@ -175,10 +174,10 @@ impl CachedPathImpl {
     self.path.as_str()
   }
 
-  /// Internal: the structured `&StrPath` view (parent / file_name / …).
-  #[allow(dead_code)] // Used as the resolver migrates more sites to `StrPath`.
-  pub(crate) fn str_path(&self) -> &StrPath {
-    &self.path
+  /// Internal: the structured `&ResolverPath` view (parent / file_name / …).
+  #[allow(dead_code)] // Used as the resolver migrates more sites to `ResolverPath`.
+  pub(crate) fn resolver_path(&self) -> &ResolverPath {
+    self.path.as_path()
   }
 
   pub fn parent(&self) -> Option<&CachedPath> {
@@ -241,14 +240,14 @@ impl CachedPathImpl {
             return fs
               .canonicalize(self.path.as_str())
               .await
-              .map(|p| Some(StrPathBuf::from(p)));
+              .map(|p| Some(ResolverPathBuf::from(p)));
           }
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
             // Component-aware suffix: drop the parent prefix and let
             // `normalize_with` reattach using the platform separator.
             let suffix = self.path.strip_prefix(&*parent.path).unwrap_or(&self.path);
-            return Ok(Some(StrPathBuf::from(
+            return Ok(Some(ResolverPathBuf::from(
               parent_path.normalize_with(suffix.as_str()),
             )));
           }
@@ -256,7 +255,12 @@ impl CachedPathImpl {
         })
         .await
         .cloned()
-        .map(|r| r.map_or_else(|| self.path.as_str().to_string(), StrPathBuf::into_string))
+        .map(|r| {
+          r.map_or_else(
+            || self.path.as_str().to_string(),
+            ResolverPathBuf::into_string,
+          )
+        })
     };
     Box::pin(fut)
   }

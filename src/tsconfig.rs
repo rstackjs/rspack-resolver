@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxHasher;
 use serde::Deserialize;
 
-use crate::{path::PathUtil, str_path::StrPath};
+use crate::{path::PathUtil, resolver_path::ResolverPath};
 
 pub type CompilerOptionsPathsMap = IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>;
 
@@ -134,10 +134,10 @@ impl TsConfig {
   ///
   /// * When the `tsconfig.json` path is misconfigured.
   pub fn directory(&self) -> &str {
-    let p = StrPath::new(&self.path);
+    let p = ResolverPath::new(&self.path);
     debug_assert!(p.file_name().is_some());
     p.parent()
-      .map(StrPath::as_str)
+      .map(ResolverPath::as_str)
       .expect("tsconfig path should have a parent")
   }
 
@@ -185,7 +185,7 @@ impl TsConfig {
       }
       // Component-aware prefix check so we don't trip on
       // "/foo/barbaz" matching "/foo/bar".
-      if StrPath::new(path).starts_with(StrPath::new(tsconfig.base_path())) {
+      if ResolverPath::new(path).starts_with(ResolverPath::new(tsconfig.base_path())) {
         return Some(tsconfig.resolve_path_alias(specifier));
       }
     }
