@@ -223,18 +223,12 @@ pub struct Components<'a> {
 
 impl<'a> Components<'a> {
   fn new(path: &'a str) -> Self {
-    let plen = prefix_len(path);
+    #[cfg(windows)]
+    let (plen, verbatim) =
+      parse_windows_prefix(path).map_or((0usize, false), |p| (p.len, p.verbatim));
+    #[cfg(not(windows))]
+    let (plen, verbatim) = (0usize, false);
     let prefix = if plen > 0 { Some(&path[..plen]) } else { None };
-    let verbatim = {
-      #[cfg(windows)]
-      {
-        prefix.is_some() && path.starts_with(r"\\?")
-      }
-      #[cfg(not(windows))]
-      {
-        false
-      }
-    };
     let after_prefix = &path[plen..];
     let (has_root, rest) = match after_prefix.as_bytes().first() {
       Some(&b) if is_sep_byte(b) => (true, &after_prefix[1..]),
@@ -503,6 +497,10 @@ impl<'a> ResolverPath<'a> {
 
   /// Strip the given component-aware prefix, returning the tail. Recomputes
   /// the tail's hash (different slice).
+  ///
+  /// # Errors
+  /// Returns [`StripPrefixError`] if `base` is not a component-wise prefix
+  /// of `self` (mirroring [`std::path::Path::strip_prefix`]).
   pub fn strip_prefix<S: AsRef<str>>(self, base: S) -> Result<ResolverPath<'a>, StripPrefixError> {
     let mut s_comps = self.components();
     let mut b_comps = Components::new(base.as_ref());
@@ -710,6 +708,11 @@ impl ResolverPathBuf {
     self.as_path().ends_with(child)
   }
 
+  /// See [`ResolverPath::strip_prefix`].
+  ///
+  /// # Errors
+  /// Returns [`StripPrefixError`] if `base` is not a component-wise prefix
+  /// of `self`.
   pub fn strip_prefix<S: AsRef<str>>(&self, base: S) -> Result<ResolverPath<'_>, StripPrefixError> {
     self.as_path().strip_prefix(base)
   }

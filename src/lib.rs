@@ -84,13 +84,14 @@ pub use crate::{
   },
   package_json::{JSONValue, ModuleType, PackageJson},
   resolution::Resolution,
+  resolver_path::{ResolverPath, ResolverPathBuf},
 };
 use crate::{
   cache::{Cache, CachedPath},
   context::ResolveContext as Ctx,
   package_json::JSONMap,
   path::{PathUtil, SLASH_START},
-  resolver_path::{Component, ResolverPath, ResolverPathBuf},
+  resolver_path::Component,
   specifier::Specifier,
   tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
