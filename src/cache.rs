@@ -26,25 +26,61 @@ use crate::{
 #[derive(Default)]
 pub struct Cache<Fs> {
   pub(crate) fs: Fs,
+  exact_paths: DashMap<u64, Vec<CachedPath>, BuildHasherDefault<IdentityHasher>>,
   paths: DashSet<CachedPath, BuildHasherDefault<IdentityHasher>>,
+  use_exact_paths: bool,
   tsconfigs: DashMap<PathBuf, Arc<TsConfig>, BuildHasherDefault<FxHasher>>,
 }
 
 impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
-  pub fn new(fs: Fs) -> Self {
+  pub fn new(fs: Fs, use_exact_paths: bool) -> Self {
     Self {
       fs,
+      exact_paths: DashMap::default(),
       paths: DashSet::default(),
+      use_exact_paths,
       tsconfigs: DashMap::default(),
     }
   }
 
   pub fn clear(&self) {
+    self.exact_paths.clear();
     self.paths.clear();
     self.tsconfigs.clear();
   }
 
   pub fn value(&self, path: &Path) -> CachedPath {
+    if self.use_exact_paths {
+      return self.value_exact(path);
+    }
+    self.value_semantic(path)
+  }
+
+  fn value_exact(&self, path: &Path) -> CachedPath {
+    let hash = {
+      let mut hasher = FxHasher::default();
+      path.as_os_str().hash(&mut hasher);
+      hasher.finish()
+    };
+    if let Some(cache_entry) = self.exact_paths.get(&hash).and_then(|cache_entries| {
+      cache_entries
+        .iter()
+        .find(|cache_entry| cache_entry.path().as_os_str() == path.as_os_str())
+        .cloned()
+    }) {
+      return cache_entry;
+    }
+    let parent = path.parent().map(|p| self.value_exact(p));
+    let data = CachedPath(Arc::new(CachedPathImpl::new(
+      hash,
+      path.to_path_buf().into_boxed_path(),
+      parent,
+    )));
+    self.exact_paths.entry(hash).or_default().push(data.clone());
+    data
+  }
+
+  fn value_semantic(&self, path: &Path) -> CachedPath {
     let hash = {
       let mut hasher = FxHasher::default();
       // On Unix, hash the raw path bytes in one bulk `Hasher::write`. The std
@@ -59,7 +95,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
-    let parent = path.parent().map(|p| self.value(p));
+    let parent = path.parent().map(|p| self.value_semantic(p));
     let data = CachedPath(Arc::new(CachedPathImpl::new(
       hash,
       path.to_path_buf().into_boxed_path(),

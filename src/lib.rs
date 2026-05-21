@@ -137,9 +137,20 @@ impl<Fs: Send + Sync + FileSystem + Default> Default for ResolverGeneric<Fs> {
 
 impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
   pub fn new(options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let use_exact_paths = {
+      #[cfg(feature = "yarn_pnp")]
+      {
+        !options.enable_pnp
+      }
+      #[cfg(not(feature = "yarn_pnp"))]
+      {
+        true
+      }
+    };
     Self {
-      options: options.sanitize(),
-      cache: Arc::new(Cache::new(Fs::default())),
+      options,
+      cache: Arc::new(Cache::new(Fs::default(), use_exact_paths)),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
@@ -151,9 +162,20 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
 
 impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   pub fn new_with_file_system(file_system: Fs, options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let use_exact_paths = {
+      #[cfg(feature = "yarn_pnp")]
+      {
+        !options.enable_pnp
+      }
+      #[cfg(not(feature = "yarn_pnp"))]
+      {
+        true
+      }
+    };
     Self {
-      options: options.sanitize(),
-      cache: Arc::new(Cache::new(file_system)),
+      options,
+      cache: Arc::new(Cache::new(file_system, use_exact_paths)),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
