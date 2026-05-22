@@ -47,6 +47,7 @@
 #![doc = include_str!("../examples/resolver.rs")]
 //! ```
 
+mod alias_trie;
 mod builtins;
 mod cache;
 mod context;
@@ -76,6 +77,15 @@ use dashmap::DashSet;
 use futures::future::{try_join_all, BoxFuture};
 use rustc_hash::FxHashSet;
 
+use crate::{
+  alias_trie::AliasTrie,
+  cache::{Cache, CachedPath},
+  context::ResolveContext as Ctx,
+  package_json::JSONMap,
+  path::{path_to_str, PathUtil, SLASH_START},
+  specifier::Specifier,
+  tsconfig::{ExtendsField, ProjectReference, TsConfig},
+};
 pub use crate::{
   builtins::NODEJS_BUILTINS,
   error::{JSONError, ResolveError, SpecifierError},
@@ -87,14 +97,6 @@ pub use crate::{
   package_json::{JSONValue, ModuleType, PackageJson},
   resolution::Resolution,
   resolver_path::ResolverPath,
-};
-use crate::{
-  cache::{Cache, CachedPath},
-  context::ResolveContext as Ctx,
-  package_json::JSONMap,
-  path::{path_to_str, PathUtil, SLASH_START},
-  specifier::Specifier,
-  tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
 
 type ResolveResult = Result<Option<CachedPath>, ResolveError>;
@@ -116,6 +118,10 @@ pub type Resolver = ResolverGeneric<FileSystemOs>;
 pub struct ResolverGeneric<Fs> {
   options: ResolveOptions,
   cache: Arc<Cache<Fs>>,
+  /// Pre-built byte-trie over `options.alias` keys.
+  alias_trie: AliasTrie,
+  /// Pre-built byte-trie over `options.fallback` keys.
+  fallback_trie: AliasTrie,
   #[cfg(feature = "yarn_pnp")]
   pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
   /// Paths that have been searched and confirmed to have no `.pnp.cjs` reachable by filesystem walk.
@@ -139,9 +145,14 @@ impl<Fs: Send + Sync + FileSystem + Default> Default for ResolverGeneric<Fs> {
 
 impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
   pub fn new(options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let alias_trie = AliasTrie::build(&options.alias);
+    let fallback_trie = AliasTrie::build(&options.fallback);
     Self {
-      options: options.sanitize(),
+      options,
       cache: Arc::new(Cache::new(Fs::default())),
+      alias_trie,
+      fallback_trie,
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
@@ -153,9 +164,14 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
 
 impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   pub fn new_with_file_system(file_system: Fs, options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let alias_trie = AliasTrie::build(&options.alias);
+    let fallback_trie = AliasTrie::build(&options.fallback);
     Self {
-      options: options.sanitize(),
+      options,
       cache: Arc::new(Cache::new(file_system)),
+      alias_trie,
+      fallback_trie,
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
@@ -167,9 +183,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// Clone the resolver using the same underlying cache.
   #[must_use]
   pub fn clone_with_options(&self, options: ResolveOptions) -> Self {
+    let options = options.sanitize();
+    let alias_trie = AliasTrie::build(&options.alias);
+    let fallback_trie = AliasTrie::build(&options.fallback);
     Self {
-      options: options.sanitize(),
+      options,
       cache: Arc::clone(&self.cache),
+      alias_trie,
+      fallback_trie,
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::clone(&self.pnp_manifest),
       #[cfg(feature = "yarn_pnp")]
@@ -332,7 +353,13 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
     // enhanced-resolve: try alias
     if let Some(path) = self
-      .load_alias(cached_path, specifier, &self.options.alias, ctx)
+      .load_alias(
+        cached_path,
+        specifier,
+        &self.options.alias,
+        &self.alias_trie,
+        ctx,
+      )
       .await?
     {
       return Ok(path);
@@ -372,7 +399,13 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         }
         // enhanced-resolve: try fallback
         self
-          .load_alias(cached_path, specifier, &self.options.fallback, ctx)
+          .load_alias(
+            cached_path,
+            specifier,
+            &self.options.fallback,
+            &self.fallback_trie,
+            ctx,
+          )
           .await
           .and_then(|value| value.ok_or(err))
       }
@@ -802,7 +835,13 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // enhanced-resolve: try file as alias
     let alias_specifier = path_to_str(cached_path.path());
     if let Some(path) = self
-      .load_alias(cached_path, alias_specifier, &self.options.alias, ctx)
+      .load_alias(
+        cached_path,
+        alias_specifier,
+        &self.options.alias,
+        &self.alias_trie,
+        ctx,
+      )
       .await?
     {
       return Ok(Some(path));
@@ -1250,21 +1289,18 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     cached_path: &CachedPath,
     specifier: &str,
     aliases: &Alias,
+    trie: &AliasTrie,
     ctx: &mut Ctx,
   ) -> ResolveResult {
-    for (alias_key_raw, specifiers) in aliases {
-      let alias_key = if let Some(alias_key) = alias_key_raw.strip_suffix('$') {
-        if alias_key != specifier {
-          continue;
-        }
-        alias_key
-      } else {
-        let strip_package_name = Self::strip_package_name(specifier, alias_key_raw);
-        if strip_package_name.is_none() {
-          continue;
-        }
-        alias_key_raw
-      };
+    // The trie has already done all the prefix / `$`-exact / `SLASH_START`
+    // bookkeeping that the previous strip_prefix loop hand-rolled; here we
+    // only walk the matches in declared order and dispatch each one.
+    for m in trie.matches(specifier) {
+      let (alias_key_raw, specifiers) = &aliases[m.index];
+      // `key_len` is the byte length of the matching key after stripping
+      // any `$` suffix, so a slice into the raw key gives us the effective
+      // key used for `normalize_with` and error reporting.
+      let alias_key = &alias_key_raw[..m.key_len];
       // It should stop resolving when all of the tried alias values
       // failed to resolve.
       // <https://github.com/webpack/enhanced-resolve/blob/570337b969eee46120a18b62b72809a3246147da/lib/AliasPlugin.js#L65>
