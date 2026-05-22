@@ -18,7 +18,7 @@ use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
   path::PathUtil,
-  resolver_path::hash_path,
+  resolver_path::{hash_path, ResolverPath},
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
 };
 
@@ -155,6 +155,15 @@ pub struct CachedPathImpl {
   package_json: OnceLock<Option<Arc<PackageJson>>>,
 }
 
+impl From<&CachedPathImpl> for ResolverPath {
+  /// Reuse the cache-side `FxHash` (already computed in `Cache::value`); the
+  /// only remaining work is one `Arc::from(&Path)` to materialize the shared
+  /// path buffer for the `ResolveContext` sink.
+  fn from(cached: &CachedPathImpl) -> Self {
+    Self::from_parts(cached.hash, Arc::from(&*cached.path))
+  }
+}
+
 impl CachedPathImpl {
   fn new(hash: u64, path: Box<Path>, parent: Option<CachedPath>) -> Self {
     Self {
@@ -194,10 +203,10 @@ impl CachedPathImpl {
 
   pub async fn is_file<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
     if let Some(meta) = self.meta(fs).await {
-      ctx.add_file_dependency_cached(self.hash, &self.path);
+      ctx.add_file_dependency(self);
       meta.is_file
     } else {
-      ctx.add_missing_dependency_cached(self.hash, &self.path);
+      ctx.add_missing_dependency(self);
       false
     }
   }
@@ -205,7 +214,7 @@ impl CachedPathImpl {
   pub async fn is_dir<Fs: Send + Sync + FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
     self.meta(fs).await.map_or_else(
       || {
-        ctx.add_missing_dependency_cached(self.hash, &self.path);
+        ctx.add_missing_dependency(self);
         false
       },
       |meta| meta.is_dir,

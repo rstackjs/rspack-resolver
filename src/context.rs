@@ -1,8 +1,4 @@
-use std::{
-  ops::{Deref, DerefMut},
-  path::Path,
-  sync::Arc,
-};
+use std::ops::{Deref, DerefMut};
 
 use crate::{error::ResolveError, resolver_path::ResolverPath};
 
@@ -63,6 +59,10 @@ impl ResolveContext {
     self.missing_dependencies.replace(vec![]);
   }
 
+  // Accepts anything convertible to `ResolverPath`. The conversion (which
+  // includes the `Arc<Path>` allocation for `&Path` / `PathBuf` callers, or
+  // hash reuse for `&CachedPathImpl`) only runs inside the `Some` branch, so
+  // `resolve()` calls without a context still pay zero.
   pub fn add_file_dependency<P: Into<ResolverPath>>(&mut self, dep: P) {
     if let Some(deps) = &mut self.file_dependencies {
       deps.push(dep.into());
@@ -72,21 +72,6 @@ impl ResolveContext {
   pub fn add_missing_dependency<P: Into<ResolverPath>>(&mut self, dep: P) {
     if let Some(deps) = &mut self.missing_dependencies {
       deps.push(dep.into());
-    }
-  }
-
-  // The `*_cached` variants reuse a `FxHash` the caller already computed (e.g.
-  // from `CachedPathImpl.hash`). The `Arc<Path>` alloc is gated on the `Some`
-  // so a `resolve()` call without context still pays zero.
-  pub(crate) fn add_file_dependency_cached(&mut self, hash: u64, dep: &Path) {
-    if let Some(deps) = &mut self.file_dependencies {
-      deps.push(ResolverPath::from_parts(hash, Arc::from(dep)));
-    }
-  }
-
-  pub(crate) fn add_missing_dependency_cached(&mut self, hash: u64, dep: &Path) {
-    if let Some(deps) = &mut self.missing_dependencies {
-      deps.push(ResolverPath::from_parts(hash, Arc::from(dep)));
     }
   }
 
