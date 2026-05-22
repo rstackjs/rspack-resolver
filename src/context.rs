@@ -63,23 +63,21 @@ impl ResolveContext {
     self.missing_dependencies.replace(vec![]);
   }
 
-  /// Add a file dependency from a raw `&Path`, hashing on insert.
   pub fn add_file_dependency(&mut self, dep: &Path) {
     if let Some(deps) = &mut self.file_dependencies {
       deps.push(ResolverPath::from(dep));
     }
   }
 
-  /// Add a missing dependency from a raw `&Path`, hashing on insert.
   pub fn add_missing_dependency(&mut self, dep: &Path) {
     if let Some(deps) = &mut self.missing_dependencies {
       deps.push(ResolverPath::from(dep));
     }
   }
 
-  /// Add a file dependency reusing the caller's precomputed `FxHash` of `dep`.
-  /// The `Arc<Path>` allocation only happens when dependency tracking is
-  /// enabled, so the no-context resolve path pays no extra cost.
+  // The `*_cached` variants reuse a `FxHash` the caller already computed (e.g.
+  // from `CachedPathImpl.hash`). The `Arc<Path>` alloc is gated on the `Some`
+  // so a `resolve()` call without context still pays zero.
   pub(crate) fn add_file_dependency_cached(&mut self, hash: u64, dep: &Path) {
     if let Some(deps) = &mut self.file_dependencies {
       deps.push(ResolverPath::from_parts(hash, Arc::from(dep)));

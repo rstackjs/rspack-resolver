@@ -1,7 +1,6 @@
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
 use std::{
-  borrow::Borrow,
   fmt,
   hash::{Hash, Hasher},
   ops::Deref,
@@ -17,6 +16,14 @@ use rustc_hash::FxHasher;
 /// Downstream consumers (rspack) place these into hash collections keyed by the
 /// precomputed hash, avoiding repeated hashing of long absolute paths on every
 /// insert and lookup.
+///
+/// Equality compares the raw `OsStr` bytes of the path, **not** the component
+/// view that `Path::eq` uses. This keeps `Hash` and `Eq` consistent: two
+/// `ResolverPath`s are equal iff their stored hashes are equal, which is what
+/// the resolver guarantees because it only inserts paths produced by its own
+/// cache (already byte-canonical). Constructing a `ResolverPath` from an
+/// unnormalized `Path` and looking it up against a normalized one will miss —
+/// callers must use the form the resolver produced.
 #[derive(Clone)]
 pub struct ResolverPath {
   hash: u64,
@@ -29,8 +36,13 @@ impl ResolverPath {
     Self { hash, path }
   }
 
-  /// Construct without recomputing the hash. The caller must guarantee that
-  /// `hash` equals [`hash_path`] of `path`.
+  /// Construct without recomputing the hash.
+  ///
+  /// # Precondition
+  /// `hash` MUST equal [`hash_path`] of `path`. Violating this breaks
+  /// `HashSet`'s bucketing invariant — entries become unfindable and
+  /// deduplication stops working. Not `unsafe` because the failure mode is a
+  /// logic bug rather than UB.
   #[inline]
   pub(crate) fn from_parts(hash: u64, path: Arc<Path>) -> Self {
     Self { hash, path }
@@ -82,8 +94,11 @@ impl Hash for ResolverPath {
 }
 
 impl PartialEq for ResolverPath {
+  /// Compare on raw `OsStr` bytes so equality matches [`hash_path`]'s scheme.
+  /// `Path::eq` would normalize components (collapse `//` and `.` segments) and
+  /// silently produce `a == b` pairs whose hashes differ.
   fn eq(&self, other: &Self) -> bool {
-    self.path == other.path
+    self.path.as_os_str() == other.path.as_os_str()
   }
 }
 
@@ -99,12 +114,6 @@ impl Deref for ResolverPath {
 
 impl AsRef<Path> for ResolverPath {
   fn as_ref(&self) -> &Path {
-    &self.path
-  }
-}
-
-impl Borrow<Path> for ResolverPath {
-  fn borrow(&self) -> &Path {
     &self.path
   }
 }
