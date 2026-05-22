@@ -39,10 +39,10 @@ impl ResolverPath {
   /// Construct without recomputing the hash.
   ///
   /// # Precondition
-  /// `hash` MUST equal [`hash_path`] of `path`. Violating this breaks
-  /// `HashSet`'s bucketing invariant — entries become unfindable and
-  /// deduplication stops working. Not `unsafe` because the failure mode is a
-  /// logic bug rather than UB.
+  /// `hash` MUST equal `hash_path(path)`. Violating this breaks `HashSet`'s
+  /// bucketing invariant — entries become unfindable and deduplication stops
+  /// working. Not `unsafe` because the failure mode is a logic bug rather
+  /// than UB.
   #[inline]
   pub(crate) fn from_parts(hash: u64, path: Arc<Path>) -> Self {
     Self { hash, path }
@@ -94,9 +94,10 @@ impl Hash for ResolverPath {
 }
 
 impl PartialEq for ResolverPath {
-  /// Mirror [`hash_path`] per-platform so the `a == b ⇒ hash(a) == hash(b)`
-  /// invariant holds: raw `OsStr` bytes on Unix (matches the bulk-byte hash),
-  /// component-normalized `Path::eq` elsewhere (matches `Path::hash`).
+  /// Mirror `hash_path`'s per-platform scheme so the `a == b ⇒ hash(a) ==
+  /// hash(b)` invariant holds: raw `OsStr` bytes on Unix (matches the
+  /// bulk-byte hash), component-normalized `Path::eq` elsewhere (matches
+  /// `Path::hash`).
   fn eq(&self, other: &Self) -> bool {
     #[cfg(unix)]
     {
