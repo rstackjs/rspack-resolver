@@ -63,15 +63,15 @@ impl ResolveContext {
     self.missing_dependencies.replace(vec![]);
   }
 
-  pub fn add_file_dependency(&mut self, dep: &Path) {
+  pub fn add_file_dependency<P: Into<ResolverPath>>(&mut self, dep: P) {
     if let Some(deps) = &mut self.file_dependencies {
-      deps.push(ResolverPath::from(dep));
+      deps.push(dep.into());
     }
   }
 
-  pub fn add_missing_dependency(&mut self, dep: &Path) {
+  pub fn add_missing_dependency<P: Into<ResolverPath>>(&mut self, dep: P) {
     if let Some(deps) = &mut self.missing_dependencies {
-      deps.push(ResolverPath::from(dep));
+      deps.push(dep.into());
     }
   }
 

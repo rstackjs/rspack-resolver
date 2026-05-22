@@ -328,7 +328,7 @@ impl CachedPathImpl {
         Some(package_json) => ctx.add_file_dependency(&package_json.path),
         None => {
           if ctx.missing_dependencies.is_some() {
-            ctx.add_missing_dependency(&self.path.join("package.json"));
+            ctx.add_missing_dependency(self.path.join("package.json"));
           }
         }
       }
@@ -390,12 +390,12 @@ impl CachedPathImpl {
       Ok(None) => {
         // Avoid an allocation by making this lazy
         if ctx.missing_dependencies.is_some() {
-          ctx.add_missing_dependency(&self.path.join("package.json"));
+          ctx.add_missing_dependency(self.path.join("package.json"));
         }
       }
       Err(_) => {
         if ctx.file_dependencies.is_some() {
-          ctx.add_file_dependency(&self.path.join("package.json"));
+          ctx.add_file_dependency(self.path.join("package.json"));
         }
       }
     }
