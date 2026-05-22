@@ -13,17 +13,17 @@ use rustc_hash::FxHasher;
 /// A path returned in [`crate::ResolveContext`] dependencies, paired with a
 /// precomputed `FxHash` of the path bytes.
 ///
-/// Downstream consumers (rspack) place these into hash collections keyed by the
-/// precomputed hash, avoiding repeated hashing of long absolute paths on every
-/// insert and lookup.
+/// Downstream consumers (rspack) place these into hash collections keyed by
+/// the precomputed hash, avoiding repeated hashing of long absolute paths on
+/// every insert and lookup.
 ///
-/// Equality compares the raw `OsStr` bytes of the path, **not** the component
-/// view that `Path::eq` uses. This keeps `Hash` and `Eq` consistent: two
-/// `ResolverPath`s are equal iff their stored hashes are equal, which is what
-/// the resolver guarantees because it only inserts paths produced by its own
-/// cache (already byte-canonical). Constructing a `ResolverPath` from an
-/// unnormalized `Path` and looking it up against a normalized one will miss —
-/// callers must use the form the resolver produced.
+/// Hash and equality are kept aligned per platform so the standard
+/// `a == b ⇒ hash(a) == hash(b)` contract holds:
+/// - On Unix, both hash and equality compare the raw `OsStr` bytes (fast bulk
+///   `write`; matches the resolver's cache-side `Cache::value` hash).
+/// - On other platforms, both go through `Path` (component-walked hash and
+///   normalized equality), so e.g. `pack1/foo` and `pack1\\foo` are treated as
+///   the same dependency on Windows — same behavior `PathBuf` had before.
 #[derive(Clone)]
 pub struct ResolverPath {
   hash: u64,
@@ -94,11 +94,18 @@ impl Hash for ResolverPath {
 }
 
 impl PartialEq for ResolverPath {
-  /// Compare on raw `OsStr` bytes so equality matches [`hash_path`]'s scheme.
-  /// `Path::eq` would normalize components (collapse `//` and `.` segments) and
-  /// silently produce `a == b` pairs whose hashes differ.
+  /// Mirror [`hash_path`] per-platform so the `a == b ⇒ hash(a) == hash(b)`
+  /// invariant holds: raw `OsStr` bytes on Unix (matches the bulk-byte hash),
+  /// component-normalized `Path::eq` elsewhere (matches `Path::hash`).
   fn eq(&self, other: &Self) -> bool {
-    self.path.as_os_str() == other.path.as_os_str()
+    #[cfg(unix)]
+    {
+      self.path.as_os_str() == other.path.as_os_str()
+    }
+    #[cfg(not(unix))]
+    {
+      self.path == other.path
+    }
   }
 }
 
