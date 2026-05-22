@@ -228,6 +228,28 @@ mod tests {
   }
 
   #[test]
+  fn duplicate_keys_return_all_terminals_in_declared_order() {
+    // Same key string registered multiple times lands on the same trie node
+    // with multiple `Terminal` entries (see `TerminalList`). `matches` must
+    // surface every duplicate and keep them in declared order, so the loader
+    // can try each AliasValue list in the order the user wrote them.
+    let aliases = aliases(&[
+      ("react", &["./alpha"]),     // idx=0
+      ("other", &["./unrelated"]), // idx=1, interleaved to ensure sort isn't a no-op
+      ("react", &["./bravo"]),     // idx=2
+      ("react", &["./charlie"]),   // idx=3
+    ]);
+    let trie = AliasTrie::build(&aliases);
+    let matches = trie.matches("react/foo");
+    let indices: Vec<_> = matches.iter().map(|m| m.index).collect();
+    assert_eq!(indices, vec![0, 2, 3], "got {matches:?}");
+    assert!(
+      matches.iter().all(|m| m.key_len == 5 && !m.is_exact),
+      "all duplicates of `react` must share key_len=5 and is_exact=false, got {matches:?}"
+    );
+  }
+
+  #[test]
   fn dollar_exact_key_rejects_specifier_with_tail() {
     // "b$" is exact-match for "b" only; "b/index" must NOT match.
     let aliases = aliases(&[("b$", &["a/index"])]);
