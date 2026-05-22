@@ -1,3 +1,5 @@
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
 use std::{
   borrow::{Borrow, Cow},
   convert::AsRef,
@@ -45,6 +47,12 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   pub fn value(&self, path: &Path) -> CachedPath {
     let hash = {
       let mut hasher = FxHasher::default();
+      // On Unix, hash the raw path bytes in one bulk `Hasher::write`. The std
+      // `Path::hash` impl walks components (utf8 split + per-segment write)
+      // and dominated profile samples on this cache-lookup hot path.
+      #[cfg(unix)]
+      hasher.write(path.as_os_str().as_bytes());
+      #[cfg(not(unix))]
       path.hash(&mut hasher);
       hasher.finish()
     };
