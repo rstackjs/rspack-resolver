@@ -95,7 +95,9 @@ impl AliasTrie {
     }
     // Trie walk yields matches by key length; callers expect declared order so
     // they can try AliasValue lists in the order the user wrote them.
-    out.sort_by_key(|m| m.index);
+    if out.len() > 1 {
+      out.sort_unstable_by_key(|m| m.index);
+    }
     out
   }
 }
