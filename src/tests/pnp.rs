@@ -3,7 +3,9 @@
 //! enhanced_resolve's test <https://github.com/webpack/enhanced-resolve/blob/main/test/pnp.test.js>
 //! cannot be ported over because it uses mocks on `pnpApi` provided by the runtime.
 
-use crate::{path::PathUtil, ResolveContext, ResolveError::NotFound, ResolveOptions, Resolver};
+use crate::{
+  path::PathUtil, ResolveContext, ResolveError::NotFound, ResolveOptions, Resolver, ResolverPath,
+};
 
 #[tokio::test]
 async fn pnp1() {
@@ -94,7 +96,9 @@ async fn pnp_file_dependencies() {
     .await;
   assert!(result.is_ok());
   assert!(
-    ctx.file_dependencies.contains(&fixture.join(".pnp.cjs")),
+    ctx
+      .file_dependencies
+      .contains(&ResolverPath::from(fixture.join(".pnp.cjs"))),
     ".pnp.cjs should be in file_dependencies, got: {:?}",
     ctx.file_dependencies
   );

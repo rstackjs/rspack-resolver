@@ -2,7 +2,9 @@
 
 use rustc_hash::FxHashSet;
 
-use crate::{JSONError, Resolution, ResolveContext, ResolveError, ResolveOptions, Resolver};
+use crate::{
+  JSONError, Resolution, ResolveContext, ResolveError, ResolveOptions, Resolver, ResolverPath,
+};
 
 // should not resolve main in incorrect description file #1
 #[tokio::test]
@@ -23,7 +25,10 @@ async fn incorrect_description_file_1() {
   assert!(matches!(resolution, Err(ResolveError::JSON(_))));
   assert_eq!(
     ctx.file_dependencies,
-    FxHashSet::from_iter([f.join("pack1"), f.join("pack1/package.json")])
+    FxHashSet::from_iter([
+      ResolverPath::from(f.join("pack1")),
+      ResolverPath::from(f.join("pack1/package.json")),
+    ])
   );
   assert!(!ctx.missing_dependencies.is_empty());
 }

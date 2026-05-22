@@ -56,6 +56,7 @@ mod options;
 mod package_json;
 mod path;
 mod resolution;
+mod resolver_path;
 mod specifier;
 mod tsconfig;
 
@@ -85,6 +86,7 @@ pub use crate::{
   },
   package_json::{JSONValue, ModuleType, PackageJson},
   resolution::Resolution,
+  resolver_path::ResolverPath,
 };
 use crate::{
   cache::{Cache, CachedPath},
@@ -100,11 +102,11 @@ type ResolveResult = Result<Option<CachedPath>, ResolveError>;
 /// Context returned from the [Resolver::resolve_with_context] API
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
-  /// Files that was found on file system
-  pub file_dependencies: FxHashSet<PathBuf>,
+  /// Files that were found on file system
+  pub file_dependencies: FxHashSet<ResolverPath>,
 
-  /// Dependencies that was not found on file system
-  pub missing_dependencies: FxHashSet<PathBuf>,
+  /// Dependencies that were not found on file system
+  pub missing_dependencies: FxHashSet<ResolverPath>,
 }
 
 /// Resolver with the current operating system as the file system
