@@ -5,6 +5,12 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
+"@user/m1@link:./shared-name-mismatch::locator=pnp%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@user/m1@link:./shared-name-mismatch::locator=pnp%40workspace%3A."
+  languageName: node
+  linkType: soft
+
 "extend@npm:3.0.2":
   version: 3.0.2
   resolution: "extend@npm:3.0.2"
@@ -88,6 +94,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "pnp@workspace:."
   dependencies:
+    "@user/m1": "link:./shared-name-mismatch"
     extend: "npm:3.0.2"
     is-even: "npm:^1.0.0"
     is-odd: "npm:^3.0.1"
