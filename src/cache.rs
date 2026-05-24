@@ -225,11 +225,7 @@ impl CachedPathImpl {
     // Cache hit: avoid the heap-allocated `Box::pin` for the cache-miss state machine
     // by returning before delegating to the boxed recursive helper.
     if let Some(cached) = self.canonicalized.get() {
-      return Ok(
-        cached
-          .clone()
-          .unwrap_or_else(|| self.path.clone().to_path_buf()),
-      );
+      return Ok(cached.clone().unwrap_or_else(|| self.path.to_path_buf()));
     }
     self.realpath_uncached(fs).await
   }
@@ -259,7 +255,7 @@ impl CachedPathImpl {
         })
         .await
         .cloned()
-        .map(|r| r.unwrap_or_else(|| self.path.clone().to_path_buf()))
+        .map(|r| r.unwrap_or_else(|| self.path.to_path_buf()))
     })
   }
 
