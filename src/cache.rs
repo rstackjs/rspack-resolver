@@ -279,6 +279,11 @@ impl CachedPathImpl {
     ctx: &mut Ctx,
   ) -> Option<CachedPath> {
     if let Some(nm) = self.node_modules.get() {
+      // Replay ctx tracking from the cold path: module_directory -> is_dir calls
+      // ctx.add_missing_dependency when node_modules doesn't exist on disk.
+      if nm.is_none() {
+        ctx.add_missing_dependency(self.path.join("node_modules"));
+      }
       return nm.clone();
     }
     self
