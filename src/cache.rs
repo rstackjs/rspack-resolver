@@ -221,20 +221,24 @@ impl CachedPathImpl {
     )
   }
 
-  pub fn realpath<'a, Fs: FileSystem + Send + Sync>(
+  pub async fn realpath<Fs: FileSystem + Send + Sync>(&self, fs: &Fs) -> io::Result<PathBuf> {
+    // Cache hit: avoid the heap-allocated `Box::pin` for the cache-miss state machine
+    // by returning before delegating to the boxed recursive helper.
+    if let Some(cached) = self.canonicalized.get() {
+      return Ok(
+        cached
+          .clone()
+          .unwrap_or_else(|| self.path.clone().to_path_buf()),
+      );
+    }
+    self.realpath_uncached(fs).await
+  }
+
+  fn realpath_uncached<'a, Fs: FileSystem + Send + Sync>(
     &'a self,
     fs: &'a Fs,
   ) -> BoxFuture<'a, io::Result<PathBuf>> {
-    let fut = async move {
-      // Cache hit: return immediately and avoid the recursive parent walk +
-      // `Box::pin` per call on the hot path.
-      if let Some(cached) = self.canonicalized.get() {
-        return Ok(
-          cached
-            .clone()
-            .unwrap_or_else(|| self.path.clone().to_path_buf()),
-        );
-      }
+    Box::pin(async move {
       self
         .canonicalized
         .get_or_try_init(|| async move {
@@ -256,8 +260,7 @@ impl CachedPathImpl {
         .await
         .cloned()
         .map(|r| r.unwrap_or_else(|| self.path.clone().to_path_buf()))
-    };
-    Box::pin(fut)
+    })
   }
 
   pub async fn module_directory<Fs: Send + Sync + FileSystem>(
