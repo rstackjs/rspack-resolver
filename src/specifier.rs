@@ -44,22 +44,27 @@ impl<'a> Specifier<'a> {
   ) -> (Cow<'a, str>, Option<&'a str>, Option<&'a str>) {
     let mut query_start: Option<usize> = None;
     let mut fragment_start: Option<usize> = None;
+    let mut escaped_indexes: Vec<usize> = Vec::new();
 
-    let mut prev = specifier.chars().next().unwrap();
-    let mut escaped_indexes = vec![];
-    for (i, c) in specifier.char_indices().skip(skip) {
-      if c == '?' && query_start.is_none() {
+    // Scan as bytes: `?`, `#`, and `\0` are single-byte ASCII (< 0x80), so their
+    // byte positions coincide with char positions in any UTF-8 input. This skips
+    // the per-step UTF-8 decode that `char_indices()` performs, which dominated
+    // the callgrind baseline.
+    let bytes = specifier.as_bytes();
+    let mut prev = bytes[0];
+    for (i, &b) in bytes.iter().enumerate().skip(skip) {
+      if b == b'?' && query_start.is_none() {
         query_start = Some(i);
       }
-      if c == '#' {
-        if prev == '\0' {
+      if b == b'#' {
+        if prev == 0 {
           escaped_indexes.push(i - 1);
         } else {
           fragment_start = Some(i);
           break;
         }
       }
-      prev = c;
+      prev = b;
     }
 
     let (path, query, fragment) = match (query_start, fragment_start) {
@@ -79,14 +84,18 @@ impl<'a> Specifier<'a> {
     let path = if escaped_indexes.is_empty() {
       Cow::Borrowed(path)
     } else {
-      // Remove the `\0` characters for a legal path.
-      Cow::Owned(
-        path
-          .chars()
-          .enumerate()
-          .filter_map(|(i, c)| (!escaped_indexes.contains(&i)).then_some(c))
-          .collect::<String>(),
-      )
+      // Each escaped index points at a `\0` byte that we need to drop. Copy the
+      // surrounding slices in one pass — O(n) — instead of re-decoding chars and
+      // calling `escaped_indexes.contains(&i)` per char, which was O(n*k).
+      // The slice indices land on char boundaries because `\0` is ASCII.
+      let mut s = String::with_capacity(path.len() - escaped_indexes.len());
+      let mut last = 0;
+      for &esc in &escaped_indexes {
+        s.push_str(&path[last..esc]);
+        last = esc + 1;
+      }
+      s.push_str(&path[last..]);
+      Cow::Owned(s)
     };
 
     (path, query, fragment)
