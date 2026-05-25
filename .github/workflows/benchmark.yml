@@ -52,7 +52,7 @@ jobs:
       - name: Build Benchmark
         env:
           RUSTFLAGS: "-C debuginfo=1 -C strip=none -g"
-        run: cargo codspeed build
+        run: cargo codspeed build --features __internal_bench
 
       - name: Run CPU benchmark
         uses: CodSpeedHQ/action@281164b0f014a4e7badd2c02cecad9b595b70537 # https://github.com/CodSpeedHQ/action/releases/tag/v4.10.6

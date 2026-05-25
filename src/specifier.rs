@@ -14,6 +14,11 @@ impl<'a> Specifier<'a> {
     self.path.as_ref()
   }
 
+  /// Parse a module specifier into path, query, and fragment.
+  ///
+  /// # Errors
+  ///
+  /// * See [SpecifierError]
   pub fn parse(specifier: &'a str) -> Result<Self, SpecifierError> {
     if specifier.is_empty() {
       return Err(SpecifierError::Empty(specifier.to_string()));
