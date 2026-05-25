@@ -24,6 +24,10 @@ doctest = false
 harness = false
 name    = "resolver"
 
+[[bench]]
+harness = false
+name    = "resolver_gungraun"
+
 [lints.clippy]
 all   = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }
@@ -107,6 +111,7 @@ tokio = { version = "1.48.0", default-features = false, features = ["sync", "rt"
 criterion = { version = "4.3.0", package = "codspeed-criterion-compat", default-features = false, features = [
   "async_tokio",
 ] }
+gungraun = "0.18.2"
 
 normalize-path = { version = "0.2.1" }
 rayon          = { version = "1.11.0" }
