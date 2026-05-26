@@ -228,6 +228,11 @@ fn bench_resolver(c: &mut Criterion) {
 
   let mut group = c.benchmark_group("resolver");
 
+  // CodSpeed memory mode (Valgrind massif) cannot meaningfully measure
+  // multi-threaded throughput — heap snapshots conflate allocations across
+  // worker threads and produce noisy, non-actionable deltas.
+  let skip_threaded = env::var("CODSPEED_RUNNER_MODE").as_deref() == Ok("memory");
+
   // codspeed can only handle to up to 500 threads
   let multi_rt = || {
     Builder::new_multi_thread()
@@ -291,33 +296,35 @@ fn bench_resolver(c: &mut Criterion) {
     },
   );
 
-  group.bench_with_input(
-    BenchmarkId::from_parameter("multi-thread"),
-    &data,
-    |b, data| {
-      let runner = multi_rt();
-      let rspack_resolver = Arc::new(rspack_resolver(false));
+  if !skip_threaded {
+    group.bench_with_input(
+      BenchmarkId::from_parameter("[multi-threaded]resolve"),
+      &data,
+      |b, data| {
+        let runner = multi_rt();
+        let rspack_resolver = Arc::new(rspack_resolver(false));
 
-      b.iter_with_setup(
-        || {
-          rspack_resolver.clear_cache();
-        },
-        |_| {
-          runner.block_on(async {
-            let mut join_set = JoinSet::new();
-            data.iter().for_each(|(path, request)| {
-              join_set.spawn(create_async_resolve_task(
-                rspack_resolver.clone(),
-                path.to_path_buf(),
-                request.to_string(),
-              ));
+        b.iter_with_setup(
+          || {
+            rspack_resolver.clear_cache();
+          },
+          |_| {
+            runner.block_on(async {
+              let mut join_set = JoinSet::new();
+              data.iter().for_each(|(path, request)| {
+                join_set.spawn(create_async_resolve_task(
+                  rspack_resolver.clone(),
+                  path.to_path_buf(),
+                  request.to_string(),
+                ));
+              });
+              let _ = join_set.join_all().await;
             });
-            let _ = join_set.join_all().await;
-          });
-        },
-      );
-    },
-  );
+          },
+        );
+      },
+    );
+  }
 
   group.bench_with_input(
     BenchmarkId::from_parameter("resolve from symlinks"),
@@ -345,29 +352,31 @@ fn bench_resolver(c: &mut Criterion) {
     },
   );
 
-  group.bench_with_input(
-    BenchmarkId::from_parameter("resolve from symlinks multi thread"),
-    &symlinks_range,
-    |b, data| {
-      let runner = multi_rt();
-      let rspack_resolver = Arc::new(rspack_resolver(false));
+  if !skip_threaded {
+    group.bench_with_input(
+      BenchmarkId::from_parameter("[multi-threaded]resolve from symlinks"),
+      &symlinks_range,
+      |b, data| {
+        let runner = multi_rt();
+        let rspack_resolver = Arc::new(rspack_resolver(false));
 
-      let symlink_test_dir = symlink_test_dir.clone();
+        let symlink_test_dir = symlink_test_dir.clone();
 
-      b.to_async(runner).iter(|| async {
-        let mut join_set = JoinSet::new();
+        b.to_async(runner).iter(|| async {
+          let mut join_set = JoinSet::new();
 
-        data.clone().for_each(|i| {
-          join_set.spawn(create_async_resolve_task(
-            rspack_resolver.clone(),
-            symlink_test_dir.clone(),
-            format!("./file{i}").to_string(),
-          ));
+          data.clone().for_each(|i| {
+            join_set.spawn(create_async_resolve_task(
+              rspack_resolver.clone(),
+              symlink_test_dir.clone(),
+              format!("./file{i}").to_string(),
+            ));
+          });
+          join_set.join_all().await;
         });
-        join_set.join_all().await;
-      });
-    },
-  );
+      },
+    );
+  }
 
   let pnp_workspace = env::current_dir().unwrap().join("fixtures/pnp");
   let root_range = 1..11;
