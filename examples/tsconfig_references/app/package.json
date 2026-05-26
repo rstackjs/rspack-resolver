@@ -13,7 +13,7 @@
   "devDependencies": {
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "typescript": "^6.0.0",
-    "webpack": "^5.99.9",
+    "webpack": "^5.104.1",
     "webpack-cli": "^7.0.0"
   }
 }
