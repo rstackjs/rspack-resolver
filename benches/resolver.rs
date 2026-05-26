@@ -292,7 +292,7 @@ fn bench_resolver(c: &mut Criterion) {
   );
 
   group.bench_with_input(
-    BenchmarkId::from_parameter("multi-thread"),
+    BenchmarkId::from_parameter("[multi-threaded]resolve"),
     &data,
     |b, data| {
       let runner = multi_rt();
@@ -346,7 +346,7 @@ fn bench_resolver(c: &mut Criterion) {
   );
 
   group.bench_with_input(
-    BenchmarkId::from_parameter("resolve from symlinks multi thread"),
+    BenchmarkId::from_parameter("[multi-threaded]resolve from symlinks"),
     &symlinks_range,
     |b, data| {
       let runner = multi_rt();
