@@ -1,0 +1,75 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  timezone: "Asia/Shanghai",
+  extends: [
+    ":dependencyDashboard",
+    "helpers:pinGitHubActionDigests",
+    "github>rstackjs/renovate:security"
+  ],
+  schedule: ["before 8am on saturday"],
+  enabledManagers: ["github-actions", "cargo", "npm"],
+  ignorePaths: ["**/node_modules/**", "**/fixtures/**", "benches/**"],
+  labels: ["dependencies"],
+  packageRules: [
+    // manually update peer dependencies
+    {
+      matchDepTypes: ["peerDependencies"],
+      enabled: false
+    },
+    {
+      // applies to all updates: chore commit + always bump package.json range
+      matchPackageNames: ["*"],
+      semanticCommitType: "chore",
+      rangeStrategy: "bump"
+    },
+    {
+      groupName: "patch crates",
+      matchManagers: ["cargo"],
+      matchPackageNames: ["*", "!napi*", "!mimalloc"],
+      matchUpdateTypes: ["patch"]
+    },
+    {
+      groupName: "napi",
+      matchPackageNames: ["napi*", "@napi-rs/*"]
+    },
+    {
+      groupName: "ignored crates",
+      matchManagers: ["cargo"],
+      // mimalloc is pinned for benchmark allocator alignment with rspack's xtask/benchmark
+      matchPackageNames: ["mimalloc"],
+      enabled: false
+    },
+    {
+      groupName: "patch npm dependencies",
+      matchManagers: ["npm"],
+      matchDepTypes: ["dependencies", "devDependencies"],
+      matchPackageNames: ["*", "!typescript"],
+      // bump major and minor in a separate PR
+      matchUpdateTypes: ["patch"]
+    },
+    // Disable Node.js updates
+    {
+      groupName: "node",
+      matchPackageNames: ["node"],
+      enabled: false
+    },
+    {
+      groupName: "github-actions",
+      matchManagers: ["github-actions"],
+      matchPackageNames: [
+        "*",
+        "!actions/upload-artifact",
+        "!actions/download-artifact"
+      ]
+    },
+    {
+      groupName: "manually managed github-actions",
+      matchManagers: ["github-actions"],
+      matchPackageNames: [
+        "actions/upload-artifact",
+        "actions/download-artifact"
+      ],
+      enabled: false
+    }
+  ]
+}
