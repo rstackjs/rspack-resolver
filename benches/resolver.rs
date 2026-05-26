@@ -46,9 +46,7 @@ unsafe impl<A: GlobalAlloc> GlobalAlloc for NeverGrowInPlaceAllocator<A> {
   }
 }
 
-use criterion::{
-  black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput,
-};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use rspack_resolver::{
   FileSystemOptions, FileSystemOs, ResolveOptions, Resolver, __BenchSpecifier as Specifier,
 };
@@ -595,10 +593,14 @@ fn bench_specifier_escape_scaling(c: &mut Criterion) {
   // Worth a dedicated knob so the optimizer can target it.
   let mut group = c.benchmark_group("specifier/escapes");
   for &n in &[1usize, 4, 16, 64] {
+    // `parts.len()` must equal `n + 1` so that `join("\0#")` inserts exactly
+    // `n` separators (= `n` escape markers in the input). The first element
+    // is a path prefix, the last is the real `#fragment`, and we pad the
+    // middle with `n - 1` filler segments.
     let mut parts = vec!["./pkg/"];
-    let chunk = "segment";
-    let extras: Vec<&str> = std::iter::repeat(chunk).take(n).collect();
-    parts.extend(extras.iter().copied());
+    for _ in 0..n.saturating_sub(1) {
+      parts.push("segment");
+    }
     parts.push("real#hash");
     let input = specifier_with_escapes(&parts);
     group.throughput(Throughput::Bytes(input.len() as u64));
@@ -606,14 +608,10 @@ fn bench_specifier_escape_scaling(c: &mut Criterion) {
       BenchmarkId::from_parameter(format!("escapes_{n}")),
       &input,
       |b, s| {
-        b.iter_batched(
-          || s.as_str(),
-          |s| {
-            let parsed = Specifier::parse(black_box(s)).unwrap();
-            black_box(parsed);
-          },
-          BatchSize::SmallInput,
-        );
+        b.iter(|| {
+          let parsed = Specifier::parse(black_box(s.as_str())).unwrap();
+          black_box(parsed);
+        });
       },
     );
   }
