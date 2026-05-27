@@ -28,7 +28,7 @@ importers:
         version: 1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
       '@rstest/core':
         specifier: ^0.9.0
-        version: 0.9.10(core-js@3.47.0)
+        version: 0.9.10
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -62,30 +62,6 @@ importers:
       zx:
         specifier: ^8.8.5
         version: 8.8.5
-
-  bindings/darwin-arm64: {}
-
-  bindings/darwin-x64: {}
-
-  bindings/linux-arm64-gnu: {}
-
-  bindings/linux-arm64-musl: {}
-
-  bindings/linux-x64-gnu: {}
-
-  bindings/linux-x64-musl: {}
-
-  bindings/wasm32-wasi:
-    dependencies:
-      '@napi-rs/wasm-runtime':
-        specifier: ^1.1.1
-        version: 1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
-
-  bindings/win32-arm64-msvc: {}
-
-  bindings/win32-ia32-msvc: {}
-
-  bindings/win32-x64-msvc: {}
 
   fixtures/pnpm:
     devDependencies:
@@ -887,9 +863,6 @@ packages:
 
   complex.js@2.4.2:
     resolution: {integrity: sha512-qtx7HRhPGSCBtGiST4/WGHuW+zeaND/6Ld+db6PbrulIB1i2Ev/2UPiqcmpQNPSyfBKraC0EOvOKCB5dGZKt3g==}
-
-  core-js@3.47.0:
-    resolution: {integrity: sha512-c3Q2VVkGAUyupsjRnaNX6u8Dq2vAdzm9iuPj5FW0fRxzlxgq9Q39MDq10IvmQSpLgHQNyQzQmOo6bgGHmH3NNg==}
 
   css-color-keywords@1.0.0:
     resolution: {integrity: sha512-FyyrDHZKEjXDpNJYvVsV960FiqQyXc/LlYmsxl2BcdMb2WPx0OGRVgTg55rPSyLSNMqP52R9r8geSp7apN3Ofg==}
@@ -1759,12 +1732,10 @@ snapshots:
     dependencies:
       '@octokit/openapi-types': 27.0.0
 
-  '@rsbuild/core@2.0.5(core-js@3.47.0)':
+  '@rsbuild/core@2.0.5':
     dependencies:
       '@rspack/core': 2.0.2(@swc/helpers@0.5.21)
       '@swc/helpers': 0.5.21
-    optionalDependencies:
-      core-js: 3.47.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
@@ -1821,9 +1792,9 @@ snapshots:
     optionalDependencies:
       '@swc/helpers': 0.5.21
 
-  '@rstest/core@0.9.10(core-js@3.47.0)':
+  '@rstest/core@0.9.10':
     dependencies:
-      '@rsbuild/core': 2.0.5(core-js@3.47.0)
+      '@rsbuild/core': 2.0.5
       '@types/chai': 5.2.3
       tinypool: 2.1.0
     transitivePeerDependencies:
@@ -1910,9 +1881,6 @@ snapshots:
   commander@14.0.3: {}
 
   complex.js@2.4.2: {}
-
-  core-js@3.47.0:
-    optional: true
 
   css-color-keywords@1.0.0: {}
 

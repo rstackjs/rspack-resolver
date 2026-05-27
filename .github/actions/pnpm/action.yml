@@ -10,17 +10,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6.0.5
-      with:
-        version: 10.33.2
-
     - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
       with:
         node-version: ${{ inputs['node-version'] }}
-        cache: pnpm
 
-    - name: Enable corepack
-      if: ${{ inputs.node-version != '16' }}
+    - name: Install pnpm
       shell: bash
       run: |
         if [[ "${{runner.os}}" == "Windows" ]]; then
@@ -28,9 +22,15 @@ runs:
           NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
           export PATH="$NPM_PREFIX:$PATH"
         fi
-        npm install -g corepack@0.31.0 --force
-        echo "Corepack version: $(corepack --version)"
-        corepack enable
+        PNPM_VERSION=$(node -p "require('./package.json').packageManager.replace('pnpm@', '')")
+        if [[ "${{ inputs.node-version }}" == 20* ]]; then
+          npm install -g "@pnpm/exe@$PNPM_VERSION" --force
+        else
+          npm install -g corepack@0.31.0 --force
+          echo "Corepack version: $(corepack --version)"
+          corepack enable
+        fi
+        pnpm --version
 
     - name: yarn
       shell: bash
