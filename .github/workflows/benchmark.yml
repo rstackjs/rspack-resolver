@@ -37,7 +37,7 @@ jobs:
           cache: pnpm
 
       - name: Setup benchmark data
-        run: cd benches && pnpm install --ignore-workspace
+        run: cd benches && pnpm install --ignore-workspace --config.strict-dep-builds=false
 
       - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
