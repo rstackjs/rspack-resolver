@@ -371,20 +371,19 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(path);
     }
 
-    let result = match Path::new(specifier).components().next() {
-      // 2. If X begins with '/'
-      Some(Component::RootDir | Component::Prefix(_)) => {
+    // Why: `Path::new(specifier).components().next()` runs the full
+    // `Components` state machine just to look at the first character.
+    // `classify_specifier_head` does the same dispatch over raw bytes; see
+    // its property test for the equivalence proof.
+    let result = match specifier::classify_specifier_head(specifier) {
+      specifier::SpecifierHead::Absolute => {
         self.require_absolute(cached_path, specifier, ctx).await
       }
-      // 3. If X begins with './' or '/' or '../'
-      Some(Component::CurDir | Component::ParentDir) => {
+      specifier::SpecifierHead::Relative => {
         self.require_relative(cached_path, specifier, ctx).await
       }
-      // 4. If X begins with '#'
-      Some(Component::Normal(_)) if specifier.as_bytes()[0] == b'#' => {
-        self.require_hash(cached_path, specifier, ctx).await
-      }
-      _ => {
+      specifier::SpecifierHead::Hash => self.require_hash(cached_path, specifier, ctx).await,
+      specifier::SpecifierHead::Bare => {
         // 1. If X is a core module,
         //   a. return the core module
         //   b. STOP

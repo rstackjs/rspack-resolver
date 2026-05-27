@@ -102,9 +102,76 @@ impl<'a> Specifier<'a> {
   }
 }
 
+/// Classification of a specifier's first character, used by the resolver to
+/// dispatch a fresh specifier into the matching resolution path.
+///
+/// On Unix and for `/`-prefixed inputs on Windows this is equivalent to
+/// inspecting `Path::new(specifier).components().next()` for `RootDir`,
+/// `CurDir`, `ParentDir`, and `Normal` — but without running the full
+/// `std::path::Components` state machine (Windows-prefix detection,
+/// `Component` enum construction, UTF-8 boundary checks) on what is
+/// effectively a 1- or 2-byte decision. The separator and `.`/`..` markers
+/// are always single-byte ASCII, so the dispatch can be made by direct byte
+/// inspection.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum SpecifierHead {
+  /// Starts with `/` (Unix root) or, on Windows, a drive/UNC prefix.
+  Absolute,
+  /// Starts with `./`, `../`, or is exactly `.` or `..`.
+  Relative,
+  /// Starts with `#` — package imports / subpath imports.
+  Hash,
+  /// Anything else — bare specifier, empty string, or starts with `.`
+  /// followed by a non-`/` (e.g. `.foo`), which `Components` reports as a
+  /// `Normal` segment.
+  Bare,
+}
+
+/// Classify the first character of a module specifier.
+///
+/// See [`SpecifierHead`] for the contract and the property test in this
+/// module's `tests` for the equivalence proof against the std API.
+pub fn classify_specifier_head(specifier: &str) -> SpecifierHead {
+  let bytes = specifier.as_bytes();
+  match bytes.first() {
+    None => SpecifierHead::Bare,
+    Some(b'/') => SpecifierHead::Absolute,
+    Some(b'#') => SpecifierHead::Hash,
+    Some(b'.') => match bytes.get(1) {
+      // `.` alone, or `./...`
+      None | Some(b'/') => SpecifierHead::Relative,
+      Some(b'.') => match bytes.get(2) {
+        // `..` alone, or `../...`
+        None | Some(b'/') => SpecifierHead::Relative,
+        // `..foo` — `Components` reports this as `Normal("..foo")`.
+        _ => SpecifierHead::Bare,
+      },
+      // `.foo` — `Components` reports as `Normal(".foo")`.
+      _ => SpecifierHead::Bare,
+    },
+    #[cfg(windows)]
+    Some(b'\\') => SpecifierHead::Absolute,
+    _ => {
+      // On Windows, drive-letter specifiers like `C:` are reported as
+      // `Component::Prefix`. Defer to the std path API to stay correct.
+      #[cfg(windows)]
+      {
+        use std::path::{Component, Path};
+        if matches!(
+          Path::new(specifier).components().next(),
+          Some(Component::RootDir | Component::Prefix(_))
+        ) {
+          return SpecifierHead::Absolute;
+        }
+      }
+      SpecifierHead::Bare
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
-  use super::{Specifier, SpecifierError};
+  use super::{classify_specifier_head, Specifier, SpecifierError, SpecifierHead};
 
   #[test]
   fn debug() {
@@ -277,5 +344,61 @@ mod tests {
     }
 
     Ok(())
+  }
+
+  /// Reference dispatch derived from `Path::new(s).components().next()`. This
+  /// is the algorithm `classify_specifier_head` must remain equivalent to on
+  /// Unix and for `/`-prefixed inputs on Windows.
+  fn reference_head(specifier: &str) -> SpecifierHead {
+    use std::path::{Component, Path};
+    match Path::new(specifier).components().next() {
+      Some(Component::RootDir | Component::Prefix(_)) => SpecifierHead::Absolute,
+      Some(Component::CurDir | Component::ParentDir) => SpecifierHead::Relative,
+      Some(Component::Normal(_)) if specifier.as_bytes().first() == Some(&b'#') => {
+        SpecifierHead::Hash
+      }
+      _ => SpecifierHead::Bare,
+    }
+  }
+
+  #[test]
+  fn classify_specifier_head_known_cases() {
+    let cases = [
+      ("", SpecifierHead::Bare),
+      ("/abs", SpecifierHead::Absolute),
+      ("/", SpecifierHead::Absolute),
+      (".", SpecifierHead::Relative),
+      ("..", SpecifierHead::Relative),
+      ("./foo", SpecifierHead::Relative),
+      ("../foo", SpecifierHead::Relative),
+      (".foo", SpecifierHead::Bare),
+      ("..foo", SpecifierHead::Bare),
+      ("#imports/sub", SpecifierHead::Hash),
+      ("react", SpecifierHead::Bare),
+      ("@scope/pkg", SpecifierHead::Bare),
+      ("中文/包", SpecifierHead::Bare),
+    ];
+    for (input, expected) in cases {
+      assert_eq!(classify_specifier_head(input), expected, "{input:?}");
+      assert_eq!(reference_head(input), expected, "{input:?} reference");
+    }
+  }
+
+  proptest::proptest! {
+    /// Verify `classify_specifier_head` matches the std `Path::components`-based
+    /// dispatch for any ASCII input (the universe the resolver actually sees).
+    #[test]
+    fn classify_matches_components_for_ascii(s in "[\\x20-\\x7e]{0,32}") {
+      proptest::prop_assert_eq!(classify_specifier_head(&s), reference_head(&s));
+    }
+
+    /// Same equivalence over arbitrary UTF-8 to cover non-ASCII segment bytes.
+    /// Skipped on Windows, where drive/UNC prefixes (e.g. `C:`) bypass the
+    /// fast path and need std parsing.
+    #[cfg(unix)]
+    #[test]
+    fn classify_matches_components_for_utf8(s in ".*") {
+      proptest::prop_assert_eq!(classify_specifier_head(&s), reference_head(&s));
+    }
   }
 }
