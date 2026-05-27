@@ -35,7 +35,6 @@ runs:
           corepack enable
         fi
         pnpm --version
-        yarn --version
 
     - name: yarn
       shell: bash
