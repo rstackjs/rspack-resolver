@@ -131,6 +131,12 @@ pub enum SpecifierHead {
 ///
 /// See [`SpecifierHead`] for the contract and the property test in this
 /// module's `tests` for the equivalence proof against the std API.
+///
+/// `#[inline]`: the call site in `require_without_parse` is per-resolve and
+/// previously contained the entire `Path::components()` match inline. Without
+/// this hint, CodSpeed (x86_64) saw the cross-module call survive LTO and
+/// added a small per-call regression even though the body itself is cheaper.
+#[inline]
 pub fn classify_specifier_head(specifier: &str) -> SpecifierHead {
   let bytes = specifier.as_bytes();
   match bytes.first() {
