@@ -5,6 +5,15 @@
 //! `specifier/*` cases get a fresh, predictable instruction cache instead of
 //! competing with the much larger resolver bench code for cache lines. This
 //! keeps cold-start cache misses out of the per-case CodSpeed deltas.
+//!
+//! Each `bench_with_input` additionally runs a per-input `warm_parse` setup
+//! pass before `b.iter`. CodSpeed's `WARMUP_RUNS=5` happens inside `b.iter`
+//! and is intended to prime the harness, not absorb cold cache misses from
+//! a freshly-relayouted binary. The pre-`b.iter` warmup pages in parse code,
+//! lazy-inits the allocator, and trains the branch predictor on the actual
+//! input *before* CodSpeed flips on Callgrind instrumentation, so a single
+//! cold I-fetch miss (~105 estimated cycles) no longer dominates the short
+//! `specifier/realistic[*]` deltas.
 
 #[cfg(target_family = "wasm")]
 use std::alloc::System;
@@ -186,11 +195,26 @@ fn specifier_realistic_cases() -> Vec<(&'static str, &'static str)> {
   ]
 }
 
+// Number of pre-`b.iter` parse calls used to warm i-cache, branch predictor
+// and allocator state for the input under measurement. Sized to comfortably
+// exceed the parse hot-path instruction footprint (~few KB) and to dwarf
+// CodSpeed's internal `WARMUP_RUNS=5`, which alone is not enough to absorb
+// the single cold-fetch miss caused by binary-layout shifts.
+const WARM_PARSE_ITERS: usize = 32;
+
+#[inline(never)]
+fn warm_parse(s: &str) {
+  for _ in 0..WARM_PARSE_ITERS {
+    let _ = black_box(Specifier::parse(black_box(s)));
+  }
+}
+
 fn bench_specifier_branches(c: &mut Criterion) {
   let mut group = c.benchmark_group("specifier/branches");
   for (label, input) in specifier_branch_cases() {
     group.throughput(Throughput::Bytes(input.len() as u64));
     group.bench_with_input(BenchmarkId::from_parameter(label), &input, |b, s| {
+      warm_parse(s.as_str());
       b.iter(|| {
         let parsed = Specifier::parse(black_box(s.as_str())).unwrap();
         black_box(parsed);
@@ -208,6 +232,7 @@ fn bench_specifier_length_sweep(c: &mut Criterion) {
       let id = BenchmarkId::new(shape_label, len_label);
       group.throughput(Throughput::Bytes(input.len() as u64));
       group.bench_with_input(id, &input, |b, s| {
+        warm_parse(s.as_str());
         b.iter(|| {
           let parsed = Specifier::parse(black_box(s.as_str())).unwrap();
           black_box(parsed);
@@ -239,6 +264,7 @@ fn bench_specifier_escape_scaling(c: &mut Criterion) {
       BenchmarkId::from_parameter(format!("escapes_{n}")),
       &input,
       |b, s| {
+        warm_parse(s.as_str());
         b.iter(|| {
           let parsed = Specifier::parse(black_box(s.as_str())).unwrap();
           black_box(parsed);
@@ -254,6 +280,7 @@ fn bench_specifier_realistic(c: &mut Criterion) {
   for (label, input) in specifier_realistic_cases() {
     group.throughput(Throughput::Bytes(input.len() as u64));
     group.bench_with_input(BenchmarkId::from_parameter(label), input, |b, s| {
+      warm_parse(s);
       b.iter(|| {
         let parsed = Specifier::parse(black_box(s)).unwrap();
         black_box(parsed);
