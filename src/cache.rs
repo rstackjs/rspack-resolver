@@ -187,9 +187,7 @@ impl CachedPathImpl {
   fn package_json_dep_path(&self) -> ResolverPath {
     self
       .package_json_dep_path
-      .get_or_init(|| {
-        ResolverPath::new(Arc::from(self.path.join("package.json").into_boxed_path()))
-      })
+      .get_or_init(|| self.path.join("package.json").into())
       .clone()
   }
 
