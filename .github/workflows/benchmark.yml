@@ -29,7 +29,7 @@ jobs:
 
       - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6.0.5
         with:
-          version: 10.33.2
+          version: 11.3.0
 
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
@@ -37,7 +37,7 @@ jobs:
           cache: pnpm
 
       - name: Setup benchmark data
-        run: cd benches && pnpm install --ignore-workspace
+        run: cd benches && pnpm install --ignore-workspace --config.strict-dep-builds=false
 
       - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:
