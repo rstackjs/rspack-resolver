@@ -13,7 +13,10 @@ runs:
     - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
       with:
         node-version: ${{ inputs['node-version'] }}
-        cache: pnpm
+        # pnpm is installed in the next step; opt out of setup-node v6's
+        # auto-detection of the packageManager field so it does not try to
+        # call `pnpm` before that.
+        package-manager-cache: false
 
     - name: Install pnpm and corepack
       shell: bash
