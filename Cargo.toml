@@ -25,6 +25,16 @@ harness           = false
 name              = "resolver"
 required-features = ["__internal_bench"]
 
+# Specifier microbenchmarks are split into their own bench binary so they
+# don't share an instruction cache with the much larger `resolver` bench
+# code. Cases like `specifier/realistic[rw/hash-only]` only execute a few
+# hundred instructions per iteration; cold-start cache misses in a combined
+# binary previously surfaced as false-positive CodSpeed regressions.
+[[bench]]
+harness           = false
+name              = "specifier"
+required-features = ["__internal_bench"]
+
 [lints.clippy]
 all   = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }
