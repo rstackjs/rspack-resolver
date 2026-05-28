@@ -77,12 +77,6 @@ use dashmap::DashSet;
 use futures::future::{try_join_all, BoxFuture};
 use rustc_hash::FxHashSet;
 
-// Exposed for criterion micro-benchmarks only. Gated behind a feature so the
-// type stays out of the public API for normal consumers; benches opt in via
-// `--features __internal_bench` (see [[bench]] required-features in Cargo.toml).
-#[cfg(feature = "__internal_bench")]
-#[doc(hidden)]
-pub use crate::specifier::Specifier as __BenchSpecifier;
 use crate::{
   alias_trie::AliasTrie,
   cache::{Cache, CachedPath},
