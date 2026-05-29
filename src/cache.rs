@@ -159,6 +159,10 @@ pub struct CachedPathImpl {
   canonicalized: OnceLock<Option<PathBuf>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
+  /// Memoized `<self.path>/package.json` `ResolverPath` for the
+  /// `missing_dependencies` push that fires on every `package_json` cache-hit
+  /// `None` (~97% of `package_json` calls in dep-tracking workloads).
+  package_json_dep_path: std::sync::OnceLock<ResolverPath>,
 }
 
 impl From<&CachedPathImpl> for ResolverPath {
@@ -180,7 +184,17 @@ impl CachedPathImpl {
       canonicalized: OnceLock::new(),
       node_modules: OnceLock::new(),
       package_json: OnceLock::new(),
+      package_json_dep_path: std::sync::OnceLock::new(),
     }
+  }
+
+  /// Without this cache, each `None` cache-hit on `package_json` would
+  /// re-`join` + re-allocate the `Arc<Path>` + re-hash on every push.
+  fn package_json_dep_path(&self) -> ResolverPath {
+    self
+      .package_json_dep_path
+      .get_or_init(|| self.path.join("package.json").into())
+      .clone()
   }
 
   pub fn path(&self) -> &Path {
@@ -354,7 +368,7 @@ impl CachedPathImpl {
         Some(package_json) => ctx.add_file_dependency(&package_json.path),
         None => {
           if ctx.missing_dependencies.is_some() {
-            ctx.add_missing_dependency(self.path.join("package.json"));
+            ctx.add_missing_dependency(self.package_json_dep_path());
           }
         }
       }
@@ -416,7 +430,7 @@ impl CachedPathImpl {
       Ok(None) => {
         // Avoid an allocation by making this lazy
         if ctx.missing_dependencies.is_some() {
-          ctx.add_missing_dependency(self.path.join("package.json"));
+          ctx.add_missing_dependency(self.package_json_dep_path());
         }
       }
       Err(_) => {
