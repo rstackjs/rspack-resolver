@@ -14,10 +14,11 @@ use futures::future::BoxFuture;
 use rustc_hash::FxHasher;
 use tokio::sync::OnceCell as OnceLock;
 
+#[cfg(not(unix))]
+use crate::path::PathUtil;
 use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
-  path::PathUtil,
   resolver_path::{hash_path, ResolverPath},
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
 };
@@ -48,7 +49,12 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
-    let parent = path.parent().map(|p| self.value(p));
+    // Why: Cache::value is the recursive parent-walk root. `Path::parent` goes
+    // through `Components::next_back` / `parse_next_component_back`, which
+    // callgrind showed as the single largest non-allocator non-simd-json
+    // hotspot. On Unix the separator is always single-byte ASCII, so an
+    // `rposition(/)` over raw `OsStr` bytes is equivalent and far cheaper.
+    let parent = parent_path(path).map(|p| self.value(p));
     let data = CachedPath(Arc::new(CachedPathImpl::new(
       hash,
       path.to_path_buf().into_boxed_path(),
@@ -261,9 +267,16 @@ impl CachedPathImpl {
           }
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
-            return Ok(Some(
-              parent_path.normalize_with(self.path.strip_prefix(&parent.path).unwrap()),
-            ));
+            // Why: parent's `path` is a strict byte prefix of `self.path`
+            // (parents are produced by the byte-level `parent_path`), so
+            // `strip_prefix` is the path between them. Skipping
+            // `Path::strip_prefix` + `normalize_with` avoids another
+            // `Components` walk per realpath miss.
+            return Ok(Some(join_last_segment(
+              &parent_path,
+              &self.path,
+              &parent.path,
+            )));
           }
           Ok(None)
         })
@@ -428,6 +441,78 @@ impl CachedPathImpl {
     }
     result
   }
+}
+
+/// Join `base` with the last segment of `child`, where `child_parent` is the
+/// `parent_path()` of `child` (i.e. a strict byte prefix of `child`). Used by
+/// `realpath_uncached` to avoid walking `Path::strip_prefix` + `normalize_with`
+/// when we already know the suffix is a single normal segment.
+#[cfg(unix)]
+fn join_last_segment(base: &Path, child: &Path, child_parent: &Path) -> PathBuf {
+  use std::{
+    ffi::OsString,
+    os::unix::ffi::{OsStrExt, OsStringExt},
+  };
+
+  let child_bytes = child.as_os_str().as_bytes();
+  let parent_len = child_parent.as_os_str().len();
+
+  // Skip the `/` between parent and the trailing segment when applicable.
+  let suffix_start = if parent_len < child_bytes.len() && child_bytes[parent_len] == b'/' {
+    parent_len + 1
+  } else {
+    parent_len
+  };
+  let suffix = &child_bytes[suffix_start..];
+
+  let base_bytes = base.as_os_str().as_bytes();
+  let mut out = Vec::with_capacity(base_bytes.len() + 1 + suffix.len());
+  out.extend_from_slice(base_bytes);
+
+  if !suffix.is_empty() {
+    if !out.is_empty() && *out.last().unwrap() != b'/' {
+      out.push(b'/');
+    }
+    out.extend_from_slice(suffix);
+  }
+
+  PathBuf::from(OsString::from_vec(out))
+}
+
+#[cfg(not(unix))]
+fn join_last_segment(base: &Path, child: &Path, child_parent: &Path) -> PathBuf {
+  use crate::path::PathUtil;
+  base.normalize_with(child.strip_prefix(child_parent).unwrap())
+}
+
+/// Byte-level parent lookup for Unix. See `Cache::value` for why.
+#[cfg(unix)]
+fn parent_path(path: &Path) -> Option<&Path> {
+  use std::os::unix::ffi::OsStrExt;
+  let bytes = path.as_os_str().as_bytes();
+  // Trim a trailing `/` that isn't itself the root, mirroring std's
+  // `Components` ignoring redundant separators.
+  let trimmed_len = match bytes {
+    [.., b'/'] if bytes.len() > 1 => bytes.len() - 1,
+    _ => bytes.len(),
+  };
+  let trimmed = &bytes[..trimmed_len];
+  let last_slash = trimmed.iter().rposition(|&b| b == b'/')?;
+  if last_slash == 0 {
+    // Parent is the root "/".
+    if bytes.len() == 1 {
+      // Path was "/", no parent.
+      return None;
+    }
+    return Some(Path::new(std::ffi::OsStr::from_bytes(&bytes[..1])));
+  }
+  Some(Path::new(std::ffi::OsStr::from_bytes(&bytes[..last_slash])))
+}
+
+#[cfg(not(unix))]
+#[inline]
+fn parent_path(path: &Path) -> Option<&Path> {
+  path.parent()
 }
 
 /// Memoized cache key, code adapted from <https://stackoverflow.com/a/50478038>.
