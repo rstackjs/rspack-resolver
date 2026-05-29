@@ -2,8 +2,7 @@
 //!
 //! The huge imports field test cases are at the bottom of this file.
 
-use std::path::Path;
-
+use camino::Utf8Path;
 use simd_json::{json, prelude::*};
 
 use crate::{package_json::JSONValue, Ctx, PathUtil, ResolveError, ResolveOptions, Resolver};
@@ -1308,7 +1307,7 @@ async fn test_cases() {
       .package_imports_exports_resolve(
         case.request,
         case.imports_field.as_object().unwrap(),
-        Path::new(""),
+        Utf8Path::new(""),
         true,
         &case
           .condition_names
@@ -1331,7 +1330,7 @@ async fn test_cases() {
         for expect in expect {
           assert_eq!(
             resolved,
-            Ok(Some(Path::new(expect).normalize())),
+            Ok(Some(Utf8Path::new(expect).normalize())),
             "{}",
             &case.name
           );

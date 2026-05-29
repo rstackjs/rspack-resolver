@@ -5,10 +5,10 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
-  path::{Path, PathBuf},
   sync::Arc,
 };
 
+use camino::{Utf8Path, Utf8PathBuf};
 use dashmap::{DashMap, DashSet};
 use futures::future::BoxFuture;
 use rustc_hash::FxHasher;
@@ -26,7 +26,7 @@ use crate::{
 pub struct Cache<Fs> {
   pub(crate) fs: Fs,
   paths: DashSet<CachedPath, BuildHasherDefault<IdentityHasher>>,
-  tsconfigs: DashMap<PathBuf, Arc<TsConfig>, BuildHasherDefault<FxHasher>>,
+  tsconfigs: DashMap<Utf8PathBuf, Arc<TsConfig>, BuildHasherDefault<FxHasher>>,
 }
 
 impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
@@ -43,8 +43,8 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     self.tsconfigs.clear();
   }
 
-  pub fn value(&self, path: &Path) -> CachedPath {
-    let hash = hash_path(path);
+  pub fn value(&self, path: &Utf8Path) -> CachedPath {
+    let hash = hash_path(path.as_std_path());
     if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
       return cache_entry.clone();
     }
@@ -61,7 +61,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   pub async fn tsconfig<F, Fut>(
     &self,
     root: bool,
-    path: &Path,
+    path: &Utf8Path,
     callback: F, // callback for modifying tsconfig with `extends`
   ) -> Result<Arc<TsConfig>, ResolveError>
   where
@@ -71,25 +71,25 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     if let Some(tsconfig_ref) = self.tsconfigs.get(path) {
       return Ok(Arc::clone(tsconfig_ref.value()));
     }
-    let meta = self.fs.metadata(path).await.ok();
+    let meta = self.fs.metadata(path.as_std_path()).await.ok();
     let tsconfig_path = if meta.is_some_and(|m| m.is_file) {
       Cow::Borrowed(path)
     } else if meta.is_some_and(|m| m.is_dir) {
       Cow::Owned(path.join("tsconfig.json"))
     } else {
-      let mut os_string = path.to_path_buf().into_os_string();
-      os_string.push(".json");
-      Cow::Owned(PathBuf::from(os_string))
+      let mut string = path.as_str().to_string();
+      string.push_str(".json");
+      Cow::Owned(Utf8PathBuf::from(string))
     };
     let mut tsconfig_string = self
       .fs
-      .read_to_string(&tsconfig_path)
+      .read_to_string(tsconfig_path.as_std_path())
       .await
-      .map_err(|_| ResolveError::TsconfigNotFound(path.to_path_buf()))?;
+      .map_err(|_| ResolveError::TsconfigNotFound(path.as_std_path().to_path_buf()))?;
     let mut tsconfig =
       TsConfig::parse(root, &tsconfig_path, &mut tsconfig_string).map_err(|error| {
         ResolveError::from_serde_json_error(
-          tsconfig_path.to_path_buf(),
+          tsconfig_path.as_std_path().to_path_buf(),
           &error,
           Some(tsconfig_string),
         )
@@ -140,17 +140,17 @@ impl AsRef<CachedPathImpl> for CachedPath {
 }
 
 impl CacheKey for CachedPath {
-  fn tuple(&self) -> (u64, &Path) {
+  fn tuple(&self) -> (u64, &Utf8Path) {
     (self.hash, &self.path)
   }
 }
 
 pub struct CachedPathImpl {
   hash: u64,
-  path: Box<Path>,
+  path: Box<Utf8Path>,
   parent: Option<CachedPath>,
   meta: OnceLock<Option<FileMetadata>>,
-  canonicalized: OnceLock<Option<PathBuf>>,
+  canonicalized: OnceLock<Option<Utf8PathBuf>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
   /// Memoized `<self.path>/package.json` `ResolverPath` for the
@@ -164,12 +164,12 @@ impl From<&CachedPathImpl> for ResolverPath {
   /// only remaining work is one `Arc::from(&Path)` to materialize the shared
   /// path buffer for the `ResolveContext` sink.
   fn from(cached: &CachedPathImpl) -> Self {
-    Self::from_parts(cached.hash, Arc::from(&*cached.path))
+    Self::from_parts(cached.hash, Arc::from(cached.path.as_std_path()))
   }
 }
 
 impl CachedPathImpl {
-  fn new(hash: u64, path: Box<Path>, parent: Option<CachedPath>) -> Self {
+  fn new(hash: u64, path: Box<Utf8Path>, parent: Option<CachedPath>) -> Self {
     Self {
       hash,
       path,
@@ -191,11 +191,11 @@ impl CachedPathImpl {
       .clone()
   }
 
-  pub fn path(&self) -> &Path {
+  pub fn path(&self) -> &Utf8Path {
     &self.path
   }
 
-  pub fn to_path_buf(&self) -> PathBuf {
+  pub fn to_path_buf(&self) -> Utf8PathBuf {
     self.path.to_path_buf()
   }
 
@@ -211,7 +211,7 @@ impl CachedPathImpl {
     }
     *self
       .meta
-      .get_or_init(|| async { fs.metadata(&self.path).await.ok() })
+      .get_or_init(|| async { fs.metadata(self.path.as_std_path()).await.ok() })
       .await
   }
 
@@ -235,7 +235,7 @@ impl CachedPathImpl {
     )
   }
 
-  pub async fn realpath<Fs: FileSystem + Send + Sync>(&self, fs: &Fs) -> io::Result<PathBuf> {
+  pub async fn realpath<Fs: FileSystem + Send + Sync>(&self, fs: &Fs) -> io::Result<Utf8PathBuf> {
     // Cache hit: avoid the heap-allocated `Box::pin` for the cache-miss state machine
     // by returning before delegating to the boxed recursive helper.
     if let Some(cached) = self.canonicalized.get() {
@@ -247,22 +247,25 @@ impl CachedPathImpl {
   fn realpath_uncached<'a, Fs: FileSystem + Send + Sync>(
     &'a self,
     fs: &'a Fs,
-  ) -> BoxFuture<'a, io::Result<PathBuf>> {
+  ) -> BoxFuture<'a, io::Result<Utf8PathBuf>> {
     Box::pin(async move {
       self
         .canonicalized
         .get_or_try_init(|| async move {
           if fs
-            .symlink_metadata(&self.path)
+            .symlink_metadata(self.path.as_std_path())
             .await
             .is_ok_and(|m| m.is_symlink)
           {
-            return fs.canonicalize(&self.path).await.map(Some);
+            return fs
+              .canonicalize(self.path.as_std_path())
+              .await
+              .map(|path| Some(Utf8PathBuf::from_path_buf(path).expect("path should be UTF-8")));
           }
           if let Some(parent) = self.parent() {
             let parent_path = parent.realpath(fs).await?;
             return Ok(Some(
-              parent_path.normalize_with(self.path.strip_prefix(&parent.path).unwrap()),
+              parent_path.normalize_with(self.path.strip_prefix(parent.path()).unwrap()),
             ));
           }
           Ok(None)
@@ -311,7 +314,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path.display())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path)))]
   pub async fn find_package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -342,7 +345,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path.display())))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path)))]
   pub async fn package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -366,7 +369,7 @@ impl CachedPathImpl {
       .package_json
       .get_or_try_init(|| async {
         let package_json_path = self.path.join("package.json");
-        let Ok(package_json_string) = fs.read(&package_json_path).await else {
+        let Ok(package_json_string) = fs.read(package_json_path.as_std_path()).await else {
           return Ok(None);
         };
         let real_path = if options.symlinks {
@@ -374,11 +377,16 @@ impl CachedPathImpl {
         } else {
           package_json_path.clone()
         };
-        match PackageJson::parse(package_json_path.clone(), real_path, package_json_string) {
+        match PackageJson::parse(
+          package_json_path.clone().into_std_path_buf(),
+          real_path.into_std_path_buf(),
+          package_json_string,
+        ) {
           Ok(v) => Ok(Some(Arc::new(v))),
           Err(parse_err) => {
             let package_json_path = self.path.join("package.json");
-            let package_json_string = match fs.read_to_string(&package_json_path).await {
+            let package_json_string = match fs.read_to_string(package_json_path.as_std_path()).await
+            {
               Ok(c) => c,
               Err(io_err) => {
                 return Err(ResolveError::from(io_err));
@@ -388,7 +396,7 @@ impl CachedPathImpl {
 
             if let Some(err) = serde_err {
               Err(ResolveError::from_serde_json_error(
-                package_json_path,
+                package_json_path.into_std_path_buf(),
                 &err,
                 Some(package_json_string),
               ))
@@ -396,7 +404,7 @@ impl CachedPathImpl {
               let (line, column) = off_to_location(&package_json_string, parse_err.index());
 
               Err(ResolveError::JSON(JSONError {
-                path: package_json_path,
+                path: package_json_path.into_std_path_buf(),
                 message: parse_err.error().to_string(),
                 line,
                 column,
@@ -432,7 +440,7 @@ impl CachedPathImpl {
 
 /// Memoized cache key, code adapted from <https://stackoverflow.com/a/50478038>.
 trait CacheKey {
-  fn tuple(&self) -> (u64, &Path);
+  fn tuple(&self) -> (u64, &Utf8Path);
 }
 
 impl Hash for dyn CacheKey + '_ {
@@ -449,13 +457,13 @@ impl PartialEq for dyn CacheKey + '_ {
 
 impl Eq for dyn CacheKey + '_ {}
 
-impl CacheKey for (u64, &Path) {
-  fn tuple(&self) -> (u64, &Path) {
+impl CacheKey for (u64, &Utf8Path) {
+  fn tuple(&self) -> (u64, &Utf8Path) {
     (self.0, self.1)
   }
 }
 
-impl<'a> Borrow<dyn CacheKey + 'a> for (u64, &'a Path) {
+impl<'a> Borrow<dyn CacheKey + 'a> for (u64, &'a Utf8Path) {
   fn borrow(&self) -> &(dyn CacheKey + 'a) {
     self
   }
