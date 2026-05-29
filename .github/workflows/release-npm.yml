@@ -118,7 +118,7 @@ jobs:
           cp napi/{index,browser}.js  npm
           cp napi/index.d.ts          npm
           pnpm node scripts/x.mjs prepublish
-          pnpm node scripts/x.mjs    publish --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
+          pnpm --config.verify-deps-before-run=false node scripts/x.mjs    publish --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
         env:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}

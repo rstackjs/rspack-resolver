@@ -1,6 +1,6 @@
 {
   "name": "@rspack/resolver",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Rspack Resolver Node API",
   "main": "index.js",
   "browser": "browser.js",
