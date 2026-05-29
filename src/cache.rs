@@ -378,8 +378,8 @@ impl CachedPathImpl {
           package_json_path.clone()
         };
         match PackageJson::parse(
-          package_json_path.clone().into_std_path_buf(),
-          real_path.into_std_path_buf(),
+          package_json_path.clone().into(),
+          real_path.into(),
           package_json_string,
         ) {
           Ok(v) => Ok(Some(Arc::new(v))),
@@ -396,7 +396,7 @@ impl CachedPathImpl {
 
             if let Some(err) = serde_err {
               Err(ResolveError::from_serde_json_error(
-                package_json_path.into_std_path_buf(),
+                package_json_path.into(),
                 &err,
                 Some(package_json_string),
               ))
@@ -404,7 +404,7 @@ impl CachedPathImpl {
               let (line, column) = off_to_location(&package_json_string, parse_err.index());
 
               Err(ResolveError::JSON(JSONError {
-                path: package_json_path.into_std_path_buf(),
+                path: package_json_path.into(),
                 message: parse_err.error().to_string(),
                 line,
                 column,

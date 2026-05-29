@@ -301,7 +301,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .await?;
     if let Some(package_json) = &package_json {
       // path must be inside the package.
-      debug_assert!(path.as_std_path().starts_with(package_json.directory()));
+      debug_assert!(path.starts_with(package_json.directory()));
     }
     Ok(Resolution {
       path,
@@ -1337,7 +1337,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           }
           AliasValue::Ignore => {
             let path = cached_path.path().normalize_with(alias_key);
-            return Err(ResolveError::Ignored(path.into_std_path_buf()));
+            return Err(ResolveError::Ignored(path.into()));
           }
         }
       }
@@ -1595,7 +1595,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
               async move {
                 if reference_tsconfig.path == current_path {
                   return Err(ResolveError::TsconfigSelfReference(
-                    reference_tsconfig.path.clone().into_std_path_buf(),
+                    reference_tsconfig.path.clone().into(),
                   ));
                 }
                 // Cut the cycle: if this reference is already part of the
@@ -1807,7 +1807,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           without_dot = without_dot || !starts_with_dot_or_hash;
           if has_dot && without_dot {
             return Err(ResolveError::InvalidPackageConfig(
-              package_url.join("package.json").into_std_path_buf(),
+              package_url.join("package.json").into(),
             ));
           }
         }
@@ -1823,7 +1823,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           let fragment = ctx.fragment.clone().unwrap_or_default();
           return Err(ResolveError::PackagePathNotExported(
             format!("./{}{query}{fragment}", subpath.trim_start_matches('.')),
-            package_url.join("package.json").into_std_path_buf(),
+            package_url.join("package.json").into(),
           ));
         }
         // 1. Let mainExport be undefined.
@@ -1896,7 +1896,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       // 4. Throw a Package Path Not Exported error.
       Err(ResolveError::PackagePathNotExported(
         subpath.to_string(),
-        package_url.join("package.json").into_std_path_buf(),
+        package_url.join("package.json").into(),
       ))
     };
     Box::pin(fut)
@@ -2074,7 +2074,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
               Cow::Owned(format!("{target}{pattern_match}"))
             } else {
               return Err(ResolveError::InvalidPackageConfigDirectory(
-                package_url.join("package.json").into_std_path_buf(),
+                package_url.join("package.json").into(),
               ));
             }
           } else {
@@ -2097,7 +2097,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
               return Err(ResolveError::InvalidPackageTarget(
                 target.to_string(),
                 target_key.to_string(),
-                package_url.join("package.json").into_std_path_buf(),
+                package_url.join("package.json").into(),
               ));
             }
             // 2. If patternMatch is a String, then
@@ -2117,7 +2117,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             return Err(ResolveError::InvalidPackageTarget(
               target.to_string(),
               target_key.to_string(),
-              package_url.join("package.json").into_std_path_buf(),
+              package_url.join("package.json").into(),
             ));
           }
           let resolved_target = package_url.normalize_with(target.as_ref());
@@ -2164,7 +2164,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             // Note: return PackagePathNotExported has the same effect as return because there are no matches.
             return Err(ResolveError::PackagePathNotExported(
               pattern_match.unwrap_or(".").to_string(),
-              package_url.join("package.json").into_std_path_buf(),
+              package_url.join("package.json").into(),
             ));
           }
           // 2. For each item targetValue in target, do
