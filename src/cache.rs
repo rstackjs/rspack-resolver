@@ -114,12 +114,15 @@ impl Hash for CachedPath {
 
 impl PartialEq for CachedPath {
   fn eq(&self, other: &Self) -> bool {
-    // Compare raw bytes, not `Utf8Path == Utf8Path`. camino's `Utf8Path`
-    // equality walks path components (`self.components().eq(other.components())`)
-    // with no fast path, whereas `&str == &str` is a single `memcmp`. This is the
-    // hot cache-lookup equality and entries are already byte-keyed via the
-    // precomputed `hash_path`, so byte equality is both correct and faster.
-    self.0.path.as_str() == other.0.path.as_str()
+    // Compare through std `Path`, not camino's `Utf8Path`. std `Path`/`Components`
+    // equality has a raw-byte `memcmp` fast path (its own comment: "for hashmap
+    // lookups"), whereas camino's `Utf8Path` always walks components with no fast
+    // path — that regressed this hottest cache-lookup equality. `as_std_path()`
+    // also preserves the per-platform semantics that match `hash_path`
+    // (byte-wise on Unix; component-wise on Windows, so `pack1/foo` and
+    // `pack1\foo` stay the same entry). A plain `as_str()` byte compare would be
+    // inconsistent with the component-wise hash on Windows and break dedup there.
+    self.0.path.as_std_path() == other.0.path.as_std_path()
   }
 }
 impl Eq for CachedPath {}
@@ -456,9 +459,9 @@ impl Hash for dyn CacheKey + '_ {
 
 impl PartialEq for dyn CacheKey + '_ {
   fn eq(&self, other: &Self) -> bool {
-    // Byte comparison rather than camino's component-wise `Utf8Path` equality;
-    // see `CachedPath`'s `PartialEq` for the rationale.
-    self.tuple().1.as_str() == other.tuple().1.as_str()
+    // std `Path` equality (memcmp fast path + per-platform semantics matching
+    // `hash_path`); see `CachedPath`'s `PartialEq` for the full rationale.
+    self.tuple().1.as_std_path() == other.tuple().1.as_std_path()
   }
 }
 
