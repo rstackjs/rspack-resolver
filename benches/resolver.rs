@@ -170,6 +170,21 @@ fn resolver_with_many_extensions() -> rspack_resolver::Resolver {
   })
 }
 
+fn tsconfig_resolver() -> rspack_resolver::Resolver {
+  use rspack_resolver::{ResolveOptions, Resolver, TsconfigOptions, TsconfigReferences};
+  let config_dir = env::current_dir()
+    .unwrap()
+    .join("fixtures/tsconfig/cases/project_references");
+  Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into(), ".js".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: config_dir.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  })
+}
+
 fn create_async_resolve_task(
   rspack_resolver: Arc<rspack_resolver::Resolver>,
   path: PathBuf,
@@ -407,6 +422,62 @@ fn bench_resolver(c: &mut Criterion) {
                 .await;
             }
           });
+        },
+      );
+    },
+  );
+
+  // tsconfig `paths` + project-references resolution. Each resolve hits the
+  // warm `tsconfigs` cache once (a single key hash of the fixed config path),
+  // so looping the case set keeps that lookup hot — this is the scenario that
+  // exercises the `Utf8PathBuf` vs `PathBuf` map-key question.
+  let tsconfig_dir = env::current_dir()
+    .unwrap()
+    .join("fixtures/tsconfig/cases/project_references");
+  let tsconfig_data = vec![
+    (tsconfig_dir.join("app"), "@/index.ts"),
+    (tsconfig_dir.join("app"), "@/../index.ts"),
+    (tsconfig_dir.join("project_a"), "@/index.ts"),
+    (tsconfig_dir.join("project_b/src"), "@/index.ts"),
+    (tsconfig_dir.join("project_a"), "./index.ts"),
+    (tsconfig_dir.join("project_c"), "./index.ts"),
+  ];
+
+  // check validity
+  runtime::Builder::new_current_thread()
+    .enable_all()
+    .build()
+    .unwrap()
+    .block_on(async {
+      let resolver = tsconfig_resolver();
+      for (path, request) in &tsconfig_data {
+        assert!(
+          resolver.resolve(path, request).await.is_ok(),
+          "tsconfig resolve failed {path:?} {request}, fixtures/tsconfig/cases/project_references"
+        );
+      }
+    });
+
+  group.bench_with_input(
+    BenchmarkId::from_parameter("tsconfig resolve"),
+    &tsconfig_data,
+    |b, data| {
+      let runner = runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("failed to create tokio runtime");
+      let rspack_resolver = tsconfig_resolver();
+
+      b.to_async(runner).iter_with_setup(
+        || {
+          rspack_resolver.clear_cache();
+        },
+        |_| async {
+          for _ in 0..100 {
+            for (path, request) in data {
+              _ = rspack_resolver.resolve(path, request).await;
+            }
+          }
         },
       );
     },
