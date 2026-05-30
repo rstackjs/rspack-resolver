@@ -114,7 +114,12 @@ impl Hash for CachedPath {
 
 impl PartialEq for CachedPath {
   fn eq(&self, other: &Self) -> bool {
-    self.0.path == other.0.path
+    // Compare raw bytes, not `Utf8Path == Utf8Path`. camino's `Utf8Path`
+    // equality walks path components (`self.components().eq(other.components())`)
+    // with no fast path, whereas `&str == &str` is a single `memcmp`. This is the
+    // hot cache-lookup equality and entries are already byte-keyed via the
+    // precomputed `hash_path`, so byte equality is both correct and faster.
+    self.0.path.as_str() == other.0.path.as_str()
   }
 }
 impl Eq for CachedPath {}
@@ -451,7 +456,9 @@ impl Hash for dyn CacheKey + '_ {
 
 impl PartialEq for dyn CacheKey + '_ {
   fn eq(&self, other: &Self) -> bool {
-    self.tuple().1 == other.tuple().1
+    // Byte comparison rather than camino's component-wise `Utf8Path` equality;
+    // see `CachedPath`'s `PartialEq` for the rationale.
+    self.tuple().1.as_str() == other.tuple().1.as_str()
   }
 }
 
