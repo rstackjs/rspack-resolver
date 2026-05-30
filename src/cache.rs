@@ -5,6 +5,7 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
+  path::PathBuf,
   sync::Arc,
 };
 
@@ -26,7 +27,7 @@ use crate::{
 pub struct Cache<Fs> {
   pub(crate) fs: Fs,
   paths: DashSet<CachedPath, BuildHasherDefault<IdentityHasher>>,
-  tsconfigs: DashMap<Utf8PathBuf, Arc<TsConfig>, BuildHasherDefault<FxHasher>>,
+  tsconfigs: DashMap<PathBuf, Arc<TsConfig>, BuildHasherDefault<FxHasher>>,
 }
 
 impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
@@ -68,7 +69,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     F: FnOnce(TsConfig) -> Fut + Send,
     Fut: Send + Future<Output = Result<TsConfig, ResolveError>>,
   {
-    if let Some(tsconfig_ref) = self.tsconfigs.get(path) {
+    if let Some(tsconfig_ref) = self.tsconfigs.get(path.as_std_path()) {
       return Ok(Arc::clone(tsconfig_ref.value()));
     }
     let meta = self.fs.metadata(path.as_std_path()).await.ok();
@@ -98,7 +99,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     let tsconfig = Arc::new(tsconfig.build());
     self
       .tsconfigs
-      .insert(path.to_path_buf(), Arc::clone(&tsconfig));
+      .insert(path.as_std_path().to_path_buf(), Arc::clone(&tsconfig));
     Ok(tsconfig)
   }
 }
