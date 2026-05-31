@@ -198,7 +198,7 @@ fn bench_resolver(c: &mut Criterion) {
         for (path, request) in &data {
             let r = rspack_resolver(false).resolve(path, request).await;
             if !r.is_ok() {
-                panic!("resolve failed {path:?} {request},\n\nplease run `pnpm install --ignore-workspace` in `/benches` before running the benchmarks");
+                panic!("resolve failed {path:?} {request},\n\nplease run `pnpm install` in `/benches` before running the benchmarks");
             }
         }
     });
