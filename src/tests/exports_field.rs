@@ -2,8 +2,7 @@
 //!
 //! The huge exports field test cases are at the bottom of this file.
 
-use std::path::Path;
-
+use camino::Utf8Path;
 use simd_json::json;
 
 use crate::{package_json, Ctx, PathUtil, ResolveError, ResolveOptions, Resolver};
@@ -2604,7 +2603,7 @@ async fn test_cases() {
       ..ResolveOptions::default()
     })
     .package_exports_resolve(
-      Path::new(""),
+      "".into(),
       case.request,
       &case.exports_field,
       &mut Ctx::default(),
@@ -2623,7 +2622,7 @@ async fn test_cases() {
         for expect in expect {
           assert_eq!(
             resolved,
-            Ok(Some(Path::new(expect).normalize())),
+            Ok(Some(Utf8Path::new(expect).normalize())),
             "{}",
             &case.name
           );

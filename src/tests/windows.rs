@@ -2,6 +2,8 @@
 mod tests {
   use std::{collections::HashSet, path::Path};
 
+  use camino::Utf8Path;
+
   use crate::{path::PathUtil, tests::fixture, FileSystemOs, ResolverGeneric};
 
   #[tokio::test]
@@ -37,7 +39,7 @@ mod tests {
       .await
       .unwrap();
     let resolved_path_string = resolved
-      .path
+      .path()
       .to_str()
       .expect("path should be UTF-8")
       .to_string();
@@ -52,10 +54,9 @@ mod tests {
   }
 
   fn to_string<P: AsRef<Path>>(p: P) -> String {
-    p.as_ref()
-      .normalize()
-      .to_str()
+    Utf8Path::from_path(p.as_ref())
       .expect("path should be UTF-8")
+      .normalize()
       .to_string()
   }
 }

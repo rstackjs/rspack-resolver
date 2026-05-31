@@ -8,6 +8,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
+use camino::Utf8Path;
 use simd_json::{
   borrowed::Value, prelude::*, to_borrowed_value, BorrowedValue, Error as SimdParseError,
 };
@@ -308,7 +309,7 @@ impl PackageJson {
   /// * Returns [ResolveError::Ignored] for `"path": false` in `browser` field.
   pub(crate) fn resolve_browser_field<'a>(
     &'a self,
-    path: &Path,
+    path: &Utf8Path,
     request: Option<&str>,
     alias_fields: &'a [Vec<String>],
   ) -> Result<Option<&'a str>, ResolveError> {
@@ -318,7 +319,7 @@ impl PackageJson {
           return Self::alias_value(path, value);
         }
       } else {
-        let dir = self.path.parent().unwrap();
+        let dir = Utf8Path::from_path(self.path.parent().unwrap()).expect("path should be UTF-8");
         for (key, value) in object {
           let joined = dir.normalize_with(key.to_string());
           if joined == path {
@@ -330,12 +331,15 @@ impl PackageJson {
     Ok(None)
   }
 
-  fn alias_value<'a>(key: &Path, value: &'a JSONValue) -> Result<Option<&'a str>, ResolveError> {
+  fn alias_value<'a>(
+    key: &Utf8Path,
+    value: &'a JSONValue,
+  ) -> Result<Option<&'a str>, ResolveError> {
     match value {
       JSONValue::String(value) => Ok(Some(value)),
       JSONValue::Static(sn) => {
         if matches!(sn.as_bool(), Some(false)) {
-          Err(ResolveError::Ignored(key.to_path_buf()))
+          Err(ResolveError::Ignored(key.as_std_path().to_path_buf()))
         } else {
           Ok(None)
         }

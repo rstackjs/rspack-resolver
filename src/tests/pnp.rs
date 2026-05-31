@@ -3,6 +3,8 @@
 //! enhanced_resolve's test <https://github.com/webpack/enhanced-resolve/blob/main/test/pnp.test.js>
 //! cannot be ported over because it uses mocks on `pnpApi` provided by the runtime.
 
+use camino::Utf8Path;
+
 use crate::{
   path::PathUtil, ResolveContext, ResolveError::NotFound, ResolveOptions, Resolver, ResolverPath,
 };
@@ -154,12 +156,11 @@ async fn pnp_resolve_description_file() {
       .to_str()
       .expect("path should be UTF-8")
       .to_string(),
-    fixture
+    Utf8Path::from_path(&fixture)
+      .expect("path should be UTF-8")
       .join(".yarn/cache/preact-npm-10.25.4-2dd2c0aa44-33a009d614.zip/node_modules/preact")
       .join("package.json")
       .normalize()
-      .to_str()
-      .expect("path should be UTF-8")
       .to_string()
   );
 }
