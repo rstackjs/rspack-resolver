@@ -1307,7 +1307,7 @@ async fn test_cases() {
       .package_imports_exports_resolve(
         case.request,
         case.imports_field.as_object().unwrap(),
-        Utf8Path::new(""),
+        "".into(),
         true,
         &case
           .condition_names

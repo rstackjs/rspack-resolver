@@ -82,7 +82,7 @@ impl Resolution {
 #[tokio::test]
 async fn test() {
   let resolution = Resolution {
-    path: Utf8PathBuf::from("foo"),
+    path: "foo".into(),
     query: Some("?query".to_string()),
     fragment: Some("#fragment".to_string()),
     package_json: None,

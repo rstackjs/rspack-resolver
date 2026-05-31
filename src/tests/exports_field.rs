@@ -2603,7 +2603,7 @@ async fn test_cases() {
       ..ResolveOptions::default()
     })
     .package_exports_resolve(
-      Utf8Path::new(""),
+      "".into(),
       case.request,
       &case.exports_field,
       &mut Ctx::default(),

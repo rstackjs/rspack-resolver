@@ -2,7 +2,7 @@
 //!
 //! Fixtures copied from <https://github.com/parcel-bundler/parcel/tree/v2/packages/utils/node-resolver-core/test/fixture/tsconfig>.
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 
 use crate::{
   JSONError, ResolveError, ResolveOptions, Resolver, TsConfig, TsconfigOptions, TsconfigReferences,
@@ -138,7 +138,7 @@ async fn empty() {
 // <https://github.com/parcel-bundler/parcel/blob/c8f5c97a01f643b4d5c333c02d019ef2618b44a5/packages/utils/node-resolver-rs/src/tsconfig.rs#L193C12-L193C12>
 #[tokio::test]
 async fn test_paths() {
-  let path = Utf8Path::new("/foo/tsconfig.json");
+  let path = "/foo/tsconfig.json".into();
   let mut tsconfig_json = serde_json::json!({
       "compilerOptions": {
           "paths": {
@@ -178,7 +178,7 @@ async fn test_paths() {
 // <https://github.com/parcel-bundler/parcel/blob/c8f5c97a01f643b4d5c333c02d019ef2618b44a5/packages/utils/node-resolver-rs/src/tsconfig.rs#L233C6-L233C19>
 #[tokio::test]
 async fn test_base_url() {
-  let path = Utf8Path::new("/foo/tsconfig.json");
+  let path = "/foo/tsconfig.json".into();
   let mut tsconfig_json = serde_json::json!({
       "compilerOptions": {
           "baseUrl": "./src"
@@ -206,7 +206,7 @@ async fn test_base_url() {
 // <https://github.com/parcel-bundler/parcel/blob/c8f5c97a01f643b4d5c333c02d019ef2618b44a5/packages/utils/node-resolver-rs/src/tsconfig.rs#L252>
 #[tokio::test]
 async fn test_paths_and_base_url() {
-  let path = Utf8Path::new("/foo/tsconfig.json");
+  let path = "/foo/tsconfig.json".into();
   let mut tsconfig_json = serde_json::json!({
       "compilerOptions": {
           "baseUrl": "./src",
