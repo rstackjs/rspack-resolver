@@ -2,7 +2,7 @@
 //!
 //! Fixtures copied from <https://github.com/parcel-bundler/parcel/tree/v2/packages/utils/node-resolver-core/test/fixture/tsconfig>.
 
-use camino::Utf8PathBuf;
+use std::path::PathBuf;
 
 use crate::{
   JSONError, ResolveError, ResolveOptions, Resolver, TsConfig, TsconfigOptions, TsconfigReferences,
@@ -167,10 +167,7 @@ async fn test_paths() {
 
   for (specifier, expected) in data {
     let paths = tsconfig.resolve_path_alias(specifier);
-    let expected = expected
-      .into_iter()
-      .map(Utf8PathBuf::from)
-      .collect::<Vec<_>>();
+    let expected = expected.into_iter().map(PathBuf::from).collect::<Vec<_>>();
     assert_eq!(paths, expected, "{specifier}");
   }
 }
@@ -195,10 +192,7 @@ async fn test_base_url() {
 
   for (specifier, expected) in data {
     let paths = tsconfig.resolve_path_alias(specifier);
-    let expected = expected
-      .into_iter()
-      .map(Utf8PathBuf::from)
-      .collect::<Vec<_>>();
+    let expected = expected.into_iter().map(PathBuf::from).collect::<Vec<_>>();
     assert_eq!(paths, expected, "{specifier}");
   }
 }
@@ -241,10 +235,7 @@ async fn test_paths_and_base_url() {
 
   for (specifier, expected) in data {
     let paths = tsconfig.resolve_path_alias(specifier);
-    let expected = expected
-      .into_iter()
-      .map(Utf8PathBuf::from)
-      .collect::<Vec<_>>();
+    let expected = expected.into_iter().map(PathBuf::from).collect::<Vec<_>>();
     assert_eq!(paths, expected, "{specifier}");
   }
 }
