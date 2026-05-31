@@ -38,7 +38,11 @@ mod tests {
       .resolve_with_context(&file, &specifier, &mut ctx)
       .await
       .unwrap();
-    let resolved_path_string = resolved.path.as_str().to_string();
+    let resolved_path_string = resolved
+      .path()
+      .to_str()
+      .expect("path should be UTF-8")
+      .to_string();
     let actual_file_deps = ctx
       .file_dependencies
       .iter()
@@ -53,7 +57,6 @@ mod tests {
     Utf8Path::from_path(p.as_ref())
       .expect("path should be UTF-8")
       .normalize()
-      .as_str()
       .to_string()
   }
 }

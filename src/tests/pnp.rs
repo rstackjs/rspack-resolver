@@ -156,15 +156,12 @@ async fn pnp_resolve_description_file() {
       .to_str()
       .expect("path should be UTF-8")
       .to_string(),
-    Utf8Path::from_path(
-      &fixture
-        .join(".yarn/cache/preact-npm-10.25.4-2dd2c0aa44-33a009d614.zip/node_modules/preact")
-        .join("package.json"),
-    )
-    .expect("path should be UTF-8")
-    .normalize()
-    .as_str()
-    .to_string()
+    Utf8Path::from_path(&fixture)
+      .expect("path should be UTF-8")
+      .join(".yarn/cache/preact-npm-10.25.4-2dd2c0aa44-33a009d614.zip/node_modules/preact")
+      .join("package.json")
+      .normalize()
+      .to_string()
   );
 }
 
