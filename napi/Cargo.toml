@@ -13,9 +13,9 @@ test       = false
 napi               = { version = "3.9.0", default-features = false, features = ["napi3", "serde-json", "async"] }
 napi-build         = { version = "2.3.2", default-features = false }
 napi-derive        = { version = "3.5.6" }
-regex              = "1.11.1"
+regex              = "1.12.3"
 rspack_resolver    = { path = "..", package = "rspack_resolver" }
-tracing-subscriber = { version = "0.3.18", default-features = false, features = ["std", "fmt", "ansi"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["std", "fmt", "ansi"] }
 
 [build-dependencies]
 napi-build = "2.3.2"
