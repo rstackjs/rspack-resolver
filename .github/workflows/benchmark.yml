@@ -37,7 +37,10 @@ jobs:
           cache: pnpm
 
       - name: Setup benchmark data
-        run: cd benches && pnpm install --ignore-workspace --config.strict-dep-builds=false
+        # Lifecycle scripts are disabled via benches/pnpm-workspace.yaml (ignoreScripts),
+        # so no dependency postinstall runs. Do NOT add --ignore-workspace: it would
+        # bypass that config file.
+        run: cd benches && pnpm install
 
       - uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
         with:

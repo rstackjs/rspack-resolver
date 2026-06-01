@@ -21,7 +21,6 @@
   "devDependencies": {
     "@actions/core": "^3.0.0",
     "@rstest/core": "^0.9.0",
-    "@continuous-auth/client": "^2.3.2",
     "@emnapi/core": "1.10.0",
     "@emnapi/runtime": "1.10.0",
     "@napi-rs/cli": "3.6.2",
