@@ -1,14 +1,11 @@
-use std::{
-  hash::BuildHasherDefault,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{hash::BuildHasherDefault, sync::Arc};
 
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 use rustc_hash::FxHasher;
 use serde::Deserialize;
 
-use crate::path::{path_to_str, PathUtil};
+use crate::path::PathUtil;
 
 pub type CompilerOptionsPathsMap = IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>;
 
@@ -31,10 +28,10 @@ pub struct TsConfig {
 
   /// Path to `tsconfig.json`. Contains the `tsconfig.json` filename.
   #[serde(skip)]
-  pub(crate) path: PathBuf,
+  pub(crate) path: Utf8PathBuf,
 
   #[serde(skip)]
-  pub(crate) file_dependencies: Vec<PathBuf>,
+  pub(crate) file_dependencies: Vec<Utf8PathBuf>,
 
   #[serde(default)]
   pub extends: Option<ExtendsField>,
@@ -53,14 +50,14 @@ pub struct TsConfig {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CompilerOptions {
-  base_url: Option<PathBuf>,
+  base_url: Option<Utf8PathBuf>,
 
   /// Path aliases
   paths: Option<CompilerOptionsPathsMap>,
 
   /// The actual base for where path aliases are resolved from.
   #[serde(skip)]
-  paths_base: PathBuf,
+  paths_base: Utf8PathBuf,
 }
 
 /// Project Reference
@@ -70,7 +67,7 @@ pub struct CompilerOptions {
 pub struct ProjectReference {
   /// The path property of each reference can point to a directory containing a tsconfig.json file,
   /// or to the config file itself (which may have any name).
-  pub path: PathBuf,
+  pub path: Utf8PathBuf,
 
   /// Reference to the resolved tsconfig
   #[serde(skip)]
@@ -78,8 +75,8 @@ pub struct ProjectReference {
 }
 
 impl TsConfig {
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path_to_str(path))))]
-  pub fn parse(root: bool, path: &Path, json: &mut str) -> Result<Self, serde_json::Error> {
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path.as_str())))]
+  pub fn parse(root: bool, path: &Utf8Path, json: &mut str) -> Result<Self, serde_json::Error> {
     _ = json_strip_comments::strip(json);
     if json.trim().is_empty() {
       let mut tsconfig: Self = serde_json::from_str("{}")?;
@@ -121,12 +118,12 @@ impl TsConfig {
         }
       }
 
-      let mut p = path_to_str(&self.compiler_options.paths_base).to_string();
+      let mut p = self.compiler_options.paths_base.as_str().to_string();
       Self::substitute_template_variable(&dir, &mut p);
       self.compiler_options.paths_base = p.into();
 
       if let Some(base_url) = self.compiler_options.base_url.as_mut() {
-        let mut p = path_to_str(base_url).to_string();
+        let mut p = base_url.as_str().to_string();
         Self::substitute_template_variable(&dir, &mut p);
         *base_url = p.into();
       }
@@ -139,7 +136,7 @@ impl TsConfig {
   /// # Panics
   ///
   /// * When the `tsconfig.json` path is misconfigured.
-  pub fn directory(&self) -> &Path {
+  pub fn directory(&self) -> &Utf8Path {
     debug_assert!(self.path.file_name().is_some());
     self.path.parent().unwrap()
   }
@@ -165,7 +162,7 @@ impl TsConfig {
       .extend(other_config.file_dependencies.iter().cloned());
   }
 
-  pub fn resolve(&self, path: &Path, specifier: &str) -> Vec<PathBuf> {
+  pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
     if let Some(matched) = self.find_reference_paths(path, specifier) {
       return matched;
     }
@@ -177,7 +174,7 @@ impl TsConfig {
   // (A → B → C): a file inside C should resolve via C's own `paths` even
   // when the entry tsconfig is A and only B is listed directly in A's
   // references. Matches `tsc`'s "nearest tsconfig wins" semantics.
-  fn find_reference_paths(&self, path: &Path, specifier: &str) -> Option<Vec<PathBuf>> {
+  fn find_reference_paths(&self, path: &Utf8Path, specifier: &str) -> Option<Vec<Utf8PathBuf>> {
     for tsconfig in self
       .references
       .iter()
@@ -195,7 +192,7 @@ impl TsConfig {
 
   // Copied from parcel
   // <https://github.com/parcel-bundler/parcel/blob/b6224fd519f95e68d8b93ba90376fd94c8b76e69/packages/utils/node-resolver-rs/src/tsconfig.rs#L93>
-  pub fn resolve_path_alias(&self, specifier: &str) -> Vec<PathBuf> {
+  pub fn resolve_path_alias(&self, specifier: &str) -> Vec<Utf8PathBuf> {
     if specifier.starts_with(['/', '.']) {
       return vec![];
     }
@@ -256,7 +253,7 @@ impl TsConfig {
       .collect()
   }
 
-  fn base_path(&self) -> &Path {
+  fn base_path(&self) -> &Utf8Path {
     self
       .compiler_options
       .base_url
@@ -269,12 +266,12 @@ impl TsConfig {
   /// NOTE: All tests cases are just a head replacement of `${configDir}`, so we are constrained as such.
   ///
   /// See <https://github.com/microsoft/TypeScript/pull/58042>
-  fn substitute_template_variable(directory: &Path, path: &mut String) {
+  fn substitute_template_variable(directory: &Utf8Path, path: &mut String) {
     if let Some(stripped_path) = path.strip_prefix(TEMPLATE_VARIABLE) {
       if let Some(unleashed_path) = stripped_path.strip_prefix("/") {
-        *path = path_to_str(&directory.join(unleashed_path)).to_string();
+        *path = directory.join(unleashed_path).into_string();
       } else {
-        *path = path_to_str(&directory.join(stripped_path)).to_string();
+        *path = directory.join(stripped_path).into_string();
       }
     }
   }

@@ -4,12 +4,14 @@ use std::{
   sync::Arc,
 };
 
+use camino::Utf8PathBuf;
+
 use crate::package_json::PackageJson;
 
 /// The final path resolution with optional `?query` and `#fragment`
 #[derive(Clone)]
 pub struct Resolution {
-  pub(crate) path: PathBuf,
+  pub(crate) path: Utf8PathBuf,
 
   /// path query `?query`, contains `?`.
   pub(crate) query: Option<String>,
@@ -41,12 +43,12 @@ impl Eq for Resolution {}
 impl Resolution {
   /// Returns the path without query and fragment
   pub fn path(&self) -> &Path {
-    &self.path
+    self.path.as_std_path()
   }
 
   /// Returns the path without query and fragment
   pub fn into_path_buf(self) -> PathBuf {
-    self.path
+    self.path.into_std_path_buf()
   }
 
   /// Returns the path query `?query`, contains the leading `?`
@@ -66,12 +68,12 @@ impl Resolution {
 
   /// Returns the full path with query and fragment
   pub fn full_path(&self) -> PathBuf {
-    let mut path = self.path.clone().into_os_string();
+    let mut path = self.path.clone().into_string();
     if let Some(query) = &self.query {
-      path.push(query);
+      path.push_str(query);
     }
     if let Some(fragment) = &self.fragment {
-      path.push(fragment);
+      path.push_str(fragment);
     }
     PathBuf::from(path)
   }
@@ -80,7 +82,7 @@ impl Resolution {
 #[tokio::test]
 async fn test() {
   let resolution = Resolution {
-    path: PathBuf::from("foo"),
+    path: "foo".into(),
     query: Some("?query".to_string()),
     fragment: Some("#fragment".to_string()),
     package_json: None,

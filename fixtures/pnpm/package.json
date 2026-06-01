@@ -5,9 +5,9 @@
   "devDependencies": {
     "axios": "1.16.0",
     "ipaddr.js": "2.2.0",
-    "postcss": "8.4.33",
+    "postcss": "8.5.10",
     "styled-components": "6.1.1",
-    "mathjs": "13.2.0",
+    "mathjs": "15.2.0",
     "decimal.js": "10.4.3"
   }
 }

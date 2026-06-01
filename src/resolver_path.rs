@@ -8,6 +8,7 @@ use std::{
   sync::Arc,
 };
 
+use camino::{Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHasher;
 
 /// A path returned in [`crate::ResolveContext`] dependencies, paired with a
@@ -147,6 +148,21 @@ impl From<&PathBuf> for ResolverPath {
 impl From<Arc<Path>> for ResolverPath {
   fn from(path: Arc<Path>) -> Self {
     Self::new(path)
+  }
+}
+
+// The resolver stores paths internally as UTF-8 (`camino`); these accept the
+// internal representation directly while keeping the stored buffer an
+// `Arc<Path>` so the `as_arc`/`into_arc` output contract stays unchanged.
+impl From<Utf8PathBuf> for ResolverPath {
+  fn from(path: Utf8PathBuf) -> Self {
+    Self::new(Arc::from(path.into_std_path_buf()))
+  }
+}
+
+impl From<&Utf8Path> for ResolverPath {
+  fn from(path: &Utf8Path) -> Self {
+    Self::new(Arc::from(path.as_std_path()))
   }
 }
 
