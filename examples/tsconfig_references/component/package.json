@@ -11,6 +11,6 @@
   "license": "MIT",
   "packageManager": "pnpm@11.3.0",
   "devDependencies": {
-    "typescript": "^6.0.0"
+    "typescript": "^6.0.3"
   }
 }
