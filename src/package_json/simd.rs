@@ -33,20 +33,7 @@ impl JSONCell {
   pub fn try_new(mut buf: Vec<u8>) -> Result<Self, SimdParseError> {
     let value = to_borrowed_value(&mut buf)?;
     // SAFETY: This is safe because `buf` is owned by the `JSONCell` struct,
-    #[allow(unused_mut)]
-    let mut value =
-      unsafe { std::mem::transmute::<BorrowedValue<'_>, BorrowedValue<'static>>(value) };
-
-    #[cfg(feature = "package_json_raw_json_api")]
-    if let Some(json_object) = value.as_object_mut() {
-      json_object.remove("description");
-      json_object.remove("keywords");
-      json_object.remove("scripts");
-      json_object.remove("dependencies");
-      json_object.remove("devDependencies");
-      json_object.remove("peerDependencies");
-      json_object.remove("optionalDependencies");
-    }
+    let value = unsafe { std::mem::transmute::<BorrowedValue<'_>, BorrowedValue<'static>>(value) };
 
     Ok(Self {
       value,
@@ -209,9 +196,7 @@ impl PackageJson {
   /// * getting the `sideEffects` field
   /// * query in <https://www.rspack.dev/config/module.html#ruledescriptiondata> - search on GitHub indicates query on the `type` field.
   ///
-  /// To reduce overall memory consumption, large fields that useless for pragmatic use are removed.
-  /// They are: `description`, `keywords`, `scripts`,
-  /// `dependencies` and `devDependencies`, `peerDependencies`, `optionalDependencies`.
+  /// The full `package.json` is retained; no fields are stripped.
   #[cfg(feature = "package_json_raw_json_api")]
   pub fn raw_json(&self) -> &std::sync::Arc<serde_json::Value> {
     &self.serde_json
