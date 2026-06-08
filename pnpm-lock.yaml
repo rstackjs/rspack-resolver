@@ -39,8 +39,8 @@ importers:
         specifier: 1.10.0
         version: 1.10.0
       enhanced-resolve:
-        specifier: ^5.17.1
-        version: 5.21.1
+        specifier: ^5.23.0
+        version: 5.23.0
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -901,6 +901,10 @@ packages:
 
   enhanced-resolve@5.21.1:
     resolution: {integrity: sha512-8p7DUVq6XJnZEz9W4oSwiwycxBIjHjRzYb3Je3zVN+geKTRQKzAkR/K4PBExlS0090d9nshak6phMUxr3PDjmQ==}
+    engines: {node: '>=10.13.0'}
+
+  enhanced-resolve@5.23.0:
+    resolution: {integrity: sha512-yJN/BOOLxcOW2aQgeif9mSnaUB8KtvmMMp56oA1kx1CRfBKbhZm2pJ+NBY+3eOboHxix8lfjWpHE0Ei5U8RbSA==}
     engines: {node: '>=10.13.0'}
 
   environment@1.1.0:
@@ -1900,6 +1904,11 @@ snapshots:
   emoji-regex@10.3.0: {}
 
   enhanced-resolve@5.21.1:
+    dependencies:
+      graceful-fs: 4.2.11
+      tapable: 2.3.3
+
+  enhanced-resolve@5.23.0:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
