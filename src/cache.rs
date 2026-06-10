@@ -18,7 +18,6 @@ use tokio::sync::OnceCell as OnceLock;
 use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
-  path::PathUtil,
   resolver_path::{hash_path, ResolverPath},
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
 };
@@ -272,10 +271,15 @@ impl CachedPathImpl {
               .map(|path| Some(Utf8PathBuf::from_path_buf(path).expect("path should be UTF-8")));
           }
           if let Some(parent) = self.parent() {
-            let parent_path = parent.realpath(fs).await?;
-            return Ok(Some(
-              parent_path.normalize_with(self.path.strip_prefix(parent.path()).unwrap()),
-            ));
+            let mut real_path = parent.realpath(fs).await?;
+            // The cache parent is `self.path`'s lexical parent, so its realpath is
+            // just the parent's realpath with `self.path`'s final segment appended.
+            // Reusing the owned `real_path` avoids re-copying the parent buffer and
+            // re-walking components that `strip_prefix` + `normalize_with` would do.
+            if let Some(segment) = self.path.file_name() {
+              real_path.push(segment);
+            }
+            return Ok(Some(real_path));
           }
           Ok(None)
         })
