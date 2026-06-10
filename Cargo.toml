@@ -100,7 +100,7 @@ document-features = { version = "0.2.12", optional = true }
 futures           = "0.3.32"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1.52.3", default-features = false, features = ["sync", "rt-multi-thread", "macros", "fs"] }
+tokio = { version = "1.52.3", default-features = false, features = ["sync", "rt-multi-thread", "macros"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { version = "1.52.3", default-features = false, features = ["sync", "rt", "macros"] }
 
