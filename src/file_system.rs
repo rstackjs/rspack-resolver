@@ -153,13 +153,13 @@ impl FileSystem for FileSystemOs {
         if self.options.enable_pnp {
             return match VPath::from(path)? {
                 VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
-                VPath::Virtual(info) => tokio::fs::read(info.physical_base_path()).await,
-                VPath::Native(path) => tokio::fs::read(&path).await,
+                VPath::Virtual(info) => fs::read(info.physical_base_path()),
+                VPath::Native(path) => fs::read(&path),
             }
         }
     }}
 
-    tokio::fs::read(path).await
+    fs::read(path)
   }
 
   async fn read_to_string(&self, path: &Path) -> io::Result<String> {
@@ -168,13 +168,13 @@ impl FileSystem for FileSystemOs {
         if self.options.enable_pnp {
             return match VPath::from(path)? {
                 VPath::Zip(info) => self.pnp_lru.read_to_string(info.physical_base_path(), info.zip_path),
-                VPath::Virtual(info) => tokio::fs::read_to_string(info.physical_base_path()).await,
-                VPath::Native(path) => tokio::fs::read_to_string(&path).await,
+                VPath::Virtual(info) => fs::read_to_string(info.physical_base_path()),
+                VPath::Native(path) => fs::read_to_string(&path),
                 }
             }
         }
     }
-    tokio::fs::read_to_string(path).await
+    fs::read_to_string(path)
   }
 
   async fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
@@ -187,23 +187,19 @@ impl FileSystem for FileSystemOs {
                         .file_type(info.physical_base_path(), info.zip_path)
                         .map(FileMetadata::from),
                     VPath::Virtual(info) => {
-                        tokio::fs::metadata(info.physical_base_path())
-                            .await
-                            .map(FileMetadata::from)
+                        fs::metadata(info.physical_base_path()).map(FileMetadata::from)
                     }
-                    VPath::Native(path) => tokio::fs::metadata(path).await.map(FileMetadata::from),
+                    VPath::Native(path) => fs::metadata(path).map(FileMetadata::from),
                 }
             }
         }
     }
 
-    tokio::fs::metadata(path).await.map(FileMetadata::from)
+    fs::metadata(path).map(FileMetadata::from)
   }
 
   async fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
-    tokio::fs::symlink_metadata(path)
-      .await
-      .map(FileMetadata::from)
+    fs::symlink_metadata(path).map(FileMetadata::from)
   }
 
   async fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
