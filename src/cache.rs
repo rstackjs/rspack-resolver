@@ -9,7 +9,7 @@ use std::{
   sync::Arc,
 };
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 use dashmap::{DashMap, DashSet};
 use futures::future::BoxFuture;
 use rustc_hash::FxHasher;
@@ -272,12 +272,15 @@ impl CachedPathImpl {
           }
           if let Some(parent) = self.parent() {
             let mut real_path = parent.realpath(fs).await?;
-            // The cache parent is `self.path`'s lexical parent, so its realpath is
-            // just the parent's realpath with `self.path`'s final segment appended.
-            // Reusing the owned `real_path` avoids re-copying the parent buffer and
-            // re-walking components that `strip_prefix` + `normalize_with` would do.
-            if let Some(segment) = self.path.file_name() {
-              real_path.push(segment);
+            // Unnormalized paths (e.g. from alias values or absolute specifiers) can
+            // end in `..`, where `file_name()` returns `None` and would silently drop
+            // the component; POSIX semantics pop it after the parent is resolved.
+            match self.path.components().next_back() {
+              Some(Utf8Component::Normal(segment)) => real_path.push(segment),
+              Some(Utf8Component::ParentDir) => {
+                real_path.pop();
+              }
+              _ => {}
             }
             return Ok(Some(real_path));
           }
