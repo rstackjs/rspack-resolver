@@ -157,3 +157,27 @@ async fn test() -> io::Result<()> {
 
   Ok(())
 }
+
+// With `symlinks` enabled, realpath must apply `..` components after resolving
+// the parent, not drop them. Unnormalized paths reach the resolver from user
+// input: absolute specifiers (kept verbatim on non-Windows), exact-match alias
+// values, and the `directory` argument of `resolve`.
+#[tokio::test]
+async fn dotdot_in_unnormalized_input() {
+  let root = super::fixture_root().join("enhanced_resolve");
+  let expected = Ok(root.join("lib/index.js"));
+  let resolver = Resolver::default();
+
+  let specifier = root.join("test/../lib/index.js");
+  let resolution = resolver
+    .resolve(root.join("test"), specifier.to_str().unwrap())
+    .await
+    .map(|r| r.full_path());
+  assert_eq!(resolution, expected, "absolute specifier containing `..`");
+
+  let resolution = resolver
+    .resolve(root.join("test/.."), "./lib/index.js")
+    .await
+    .map(|r| r.full_path());
+  assert_eq!(resolution, expected, "directory ending in `..`");
+}
