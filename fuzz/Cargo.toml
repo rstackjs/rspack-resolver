@@ -19,5 +19,5 @@ doc = false
 bench = false
 
 [dependencies]
-libfuzzer-sys = "0.4.12"
+libfuzzer-sys = "0.4.13"
 rspack_resolver = { path = ".." }
