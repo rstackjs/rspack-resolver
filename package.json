@@ -23,7 +23,7 @@
     "@rstest/core": "^0.9.0",
     "@emnapi/core": "1.10.0",
     "@emnapi/runtime": "1.10.0",
-    "@napi-rs/cli": "3.6.2",
+    "@napi-rs/cli": "3.7.1",
     "@napi-rs/wasm-runtime": "^1.0.7",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^24.13.1",
