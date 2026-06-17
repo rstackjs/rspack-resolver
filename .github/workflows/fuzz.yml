@@ -42,8 +42,9 @@ jobs:
           toolchain: nightly
           cache-key: fuzz
 
-      - uses: cargo-bins/cargo-binstall@d125de8b4538541574fd9357b6feb61c8486464b # main
-      - run: cargo binstall --no-confirm cargo-fuzz
+      # Build from source: the binstall musl binary of cargo-fuzz defaults its
+      # build target to musl, whose std isn't installed on the gnu runner.
+      - run: cargo install cargo-fuzz
 
       # Carry the corpus across runs so nightly fuzzing keeps making progress
       # instead of starting cold every night.
