@@ -9,7 +9,7 @@ use std::{
   sync::Arc,
 };
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 use dashmap::{DashMap, DashSet};
 use futures::future::BoxFuture;
 use rustc_hash::FxHasher;
@@ -18,7 +18,6 @@ use tokio::sync::OnceCell as OnceLock;
 use crate::{
   context::ResolveContext as Ctx,
   package_json::{off_to_location, PackageJson},
-  path::PathUtil,
   resolver_path::{hash_path, ResolverPath},
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
 };
@@ -272,10 +271,18 @@ impl CachedPathImpl {
               .map(|path| Some(Utf8PathBuf::from_path_buf(path).expect("path should be UTF-8")));
           }
           if let Some(parent) = self.parent() {
-            let parent_path = parent.realpath(fs).await?;
-            return Ok(Some(
-              parent_path.normalize_with(self.path.strip_prefix(parent.path()).unwrap()),
-            ));
+            let mut real_path = parent.realpath(fs).await?;
+            // Unnormalized paths (e.g. from alias values or absolute specifiers) can
+            // end in `..`, where `file_name()` returns `None` and would silently drop
+            // the component; POSIX semantics pop it after the parent is resolved.
+            match self.path.components().next_back() {
+              Some(Utf8Component::Normal(segment)) => real_path.push(segment),
+              Some(Utf8Component::ParentDir) => {
+                real_path.pop();
+              }
+              _ => {}
+            }
+            return Ok(Some(real_path));
           }
           Ok(None)
         })
