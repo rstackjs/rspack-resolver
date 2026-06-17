@@ -49,8 +49,9 @@ jobs:
           key: fuzz-corpus-${{ github.run_id }}
           restore-keys: fuzz-corpus-
 
+      # Run from the repo root so the harness's current_dir() is the real
+      # package tree (package.json, src, fixtures), not the near-empty fuzz crate.
       - name: Run fuzzer
-        working-directory: fuzz
         run: cargo +nightly fuzz run --sanitizer none resolver -- -only_ascii=1 -max_total_time=${{ inputs.max_total_time || '300' }}
 
       - name: Upload crash artifacts
