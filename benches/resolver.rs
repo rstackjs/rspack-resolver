@@ -404,18 +404,23 @@ fn bench_resolver(c: &mut Criterion) {
 
         let symlink_test_dir = symlink_test_dir.clone();
 
-        b.to_async(runner).iter(|| async {
-          let mut join_set = JoinSet::new();
+        b.to_async(runner).iter_with_setup(
+          || {
+            rspack_resolver.clear_cache();
+          },
+          |_| async {
+            let mut join_set = JoinSet::new();
 
-          data.clone().for_each(|i| {
-            join_set.spawn(create_async_resolve_task(
-              rspack_resolver.clone(),
-              symlink_test_dir.clone(),
-              format!("./file{i}").to_string(),
-            ));
-          });
-          join_set.join_all().await;
-        });
+            data.clone().for_each(|i| {
+              join_set.spawn(create_async_resolve_task(
+                rspack_resolver.clone(),
+                symlink_test_dir.clone(),
+                format!("./file{i}").to_string(),
+              ));
+            });
+            join_set.join_all().await;
+          },
+        );
       },
     );
   }

@@ -9,8 +9,12 @@ use std::{
 };
 
 use camino::Utf8Path;
+use serde::de::{Deserialize, Deserializer, IgnoredAny, MapAccess, Visitor};
 use simd_json::{
-  borrowed::Value, prelude::*, to_borrowed_value, BorrowedValue, Error as SimdParseError,
+  borrowed::{Object, Value},
+  prelude::*,
+  serde::from_slice,
+  to_borrowed_value, BorrowedValue, Error as SimdParseError, ObjectHasher,
 };
 
 use crate::{path::PathUtil, ResolveError};
@@ -23,6 +27,60 @@ pub use simd_json::BorrowedValue as JSONValue;
 
 use crate::package_json::{ModuleType, SideEffects};
 
+/// Top-level `package.json` fields the resolver never reads. They are skipped
+/// while deserializing so their (often large) sub-trees are never built into the
+/// retained DOM. This is the same set the `package_json_raw_json_api` path used
+/// to strip after parsing — only now they are never allocated in the first place.
+const SKIPPED_FIELDS: [&str; 7] = [
+  "dependencies",
+  "devDependencies",
+  "peerDependencies",
+  "optionalDependencies",
+  "scripts",
+  "description",
+  "keywords",
+];
+
+/// A `package.json` object with [`SKIPPED_FIELDS`] dropped during deserialization.
+/// Built exactly like simd-json's own object visitor (borrowed keys + values),
+/// only short-circuiting the skipped keys to `IgnoredAny` so their values are
+/// drained without allocating any container.
+struct FilteredObject<'a>(Object<'a>);
+
+impl<'de> Deserialize<'de> for FilteredObject<'de> {
+  fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    struct ObjectVisitor;
+
+    impl<'de> Visitor<'de> for ObjectVisitor {
+      type Value = FilteredObject<'de>;
+
+      fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+        formatter.write_str("a package.json object")
+      }
+
+      fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+        let size = map.size_hint().unwrap_or_default();
+        let mut object = Object::with_capacity_and_hasher(size, ObjectHasher::default());
+        while let Some(key) = map.next_key::<&str>()? {
+          if SKIPPED_FIELDS.contains(&key) {
+            map.next_value::<IgnoredAny>()?;
+          } else {
+            object.insert(key.into(), map.next_value::<Value>()?);
+          }
+        }
+        Ok(FilteredObject(object))
+      }
+    }
+
+    deserializer.deserialize_map(ObjectVisitor)
+  }
+}
+
+/// Whether the first non-whitespace byte is `{`, i.e. the JSON root is an object.
+fn is_object_root(buf: &[u8]) -> bool {
+  buf.iter().find(|b| !b.is_ascii_whitespace()) == Some(&b'{')
+}
+
 pub struct JSONCell {
   value: BorrowedValue<'static>,
   buf: Vec<u8>,
@@ -31,22 +89,18 @@ pub struct JSONCell {
 
 impl JSONCell {
   pub fn try_new(mut buf: Vec<u8>) -> Result<Self, SimdParseError> {
-    let value = to_borrowed_value(&mut buf)?;
-    // SAFETY: This is safe because `buf` is owned by the `JSONCell` struct,
-    #[allow(unused_mut)]
-    let mut value =
-      unsafe { std::mem::transmute::<BorrowedValue<'_>, BorrowedValue<'static>>(value) };
+    // Every real package.json is a JSON object; parse those field-by-field so the
+    // skipped fields never allocate. Non-object roots keep the generic parse so
+    // behavior (e.g. an empty `PackageJson` for a malformed file) is unchanged.
+    let value = if is_object_root(&buf) {
+      Value::Object(Box::new(from_slice::<FilteredObject>(&mut buf)?.0))
+    } else {
+      to_borrowed_value(&mut buf)?
+    };
 
-    #[cfg(feature = "package_json_raw_json_api")]
-    if let Some(json_object) = value.as_object_mut() {
-      json_object.remove("description");
-      json_object.remove("keywords");
-      json_object.remove("scripts");
-      json_object.remove("dependencies");
-      json_object.remove("devDependencies");
-      json_object.remove("peerDependencies");
-      json_object.remove("optionalDependencies");
-    }
+    // SAFETY: `value` only borrows from `buf`, which is moved into and owned by the
+    // returned `JSONCell`, so the borrowed data outlives every `borrow_dependent`.
+    let value = unsafe { std::mem::transmute::<BorrowedValue<'_>, BorrowedValue<'static>>(value) };
 
     Ok(Self {
       value,
