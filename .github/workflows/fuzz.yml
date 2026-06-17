@@ -25,6 +25,9 @@ jobs:
   fuzz:
     name: Nightly Fuzz
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # open an issue when a scheduled run finds a crash
     steps:
       - uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
@@ -56,3 +59,21 @@ jobs:
           name: fuzz-artifacts
           path: fuzz/artifacts
           if-no-files-found: ignore
+
+      # Only scheduled runs file an issue; manual workflow_dispatch failures don't.
+      - name: Open issue on scheduled crash
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Skip if a crash issue is already open, so a persisting crash isn't re-filed nightly.
+          if [ "$(gh issue list --state open --search 'Nightly fuzz crash in:title' --json number --jq 'length')" -gt 0 ]; then
+            echo "An open fuzz crash issue already exists; skipping."
+            exit 0
+          fi
+          gh issue create \
+            --title "Nightly fuzz crash ($(date -u +%F))" \
+            --body "The nightly fuzz run found a crash. Download the reproducing input from the **fuzz-artifacts** artifact on the failed run.
+
+          Run: $RUN_URL"
