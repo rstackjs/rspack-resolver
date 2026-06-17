@@ -67,13 +67,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # Idempotent: creates the label, or updates it if it already exists.
+          gh label create fuzz-crash --force --color B60205 \
+            --description "Crash found by the nightly fuzz run"
           # Skip if a crash issue is already open, so a persisting crash isn't re-filed nightly.
-          if [ "$(gh issue list --state open --search 'Nightly fuzz crash in:title' --json number --jq 'length')" -gt 0 ]; then
+          if [ "$(gh issue list --state open --label fuzz-crash --json number --jq 'length')" -gt 0 ]; then
             echo "An open fuzz crash issue already exists; skipping."
             exit 0
           fi
           gh issue create \
             --title "Nightly fuzz crash ($(date -u +%F))" \
+            --label fuzz-crash \
             --body "The nightly fuzz run found a crash. Download the reproducing input from the **fuzz-artifacts** artifact on the failed run.
 
           Run: $RUN_URL"
