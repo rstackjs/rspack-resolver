@@ -9,11 +9,6 @@ on:
       max_total_time:
         description: "Seconds to run the fuzzer"
         default: "300"
-  # TEMP: validate the workflow on this PR; remove before merge to keep it nightly-only.
-  pull_request:
-    paths:
-      - ".github/workflows/fuzz.yml"
-      - "fuzz/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
