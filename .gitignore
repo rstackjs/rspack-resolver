@@ -2,4 +2,3 @@ target/
 node_modules
 fuzz/Cargo.lock
 artifacts
-bindings

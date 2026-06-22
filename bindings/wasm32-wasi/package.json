@@ -1,0 +1,35 @@
+{
+  "name": "@rspack/resolver-binding-wasm32-wasi",
+  "version": "0.5.3",
+  "cpu": [
+    "wasm32"
+  ],
+  "main": "resolver.wasi.cjs",
+  "files": [
+    "resolver.wasm32-wasi.wasm",
+    "resolver.wasi.cjs",
+    "resolver.wasi-browser.js",
+    "wasi-worker.mjs",
+    "wasi-worker-browser.mjs"
+  ],
+  "description": "Rspack Resolver Node API",
+  "homepage": "https://github.com/rstackjs/rspack-resolver",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rstackjs/rspack-resolver.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "browser": "resolver.wasi-browser.js",
+  "dependencies": {
+    "@napi-rs/wasm-runtime": "^1.1.5",
+    "@emnapi/core": "1.10.0",
+    "@emnapi/runtime": "1.10.0"
+  }
+}

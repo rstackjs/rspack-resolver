@@ -1,0 +1,25 @@
+{
+  "name": "@rspack/resolver-binding-win32-ia32-msvc",
+  "version": "0.5.3",
+  "cpu": [
+    "ia32"
+  ],
+  "main": "resolver.win32-ia32-msvc.node",
+  "files": [
+    "resolver.win32-ia32-msvc.node"
+  ],
+  "description": "Rspack Resolver Node API",
+  "homepage": "https://github.com/rstackjs/rspack-resolver",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rstackjs/rspack-resolver.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "os": [
+    "win32"
+  ]
+}
