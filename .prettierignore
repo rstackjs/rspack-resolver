@@ -4,3 +4,4 @@ fixtures/enhanced_resolve/test/fixtures/tsconfig-paths/malformed-json/tsconfig.j
 pnpm-lock.yaml
 **/.pnp.cjs
 .claude/worktrees
+bindings

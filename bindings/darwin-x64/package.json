@@ -1,0 +1,25 @@
+{
+  "name": "@rspack/resolver-binding-darwin-x64",
+  "version": "0.5.3",
+  "cpu": [
+    "x64"
+  ],
+  "main": "resolver.darwin-x64.node",
+  "files": [
+    "resolver.darwin-x64.node"
+  ],
+  "description": "Rspack Resolver Node API",
+  "homepage": "https://github.com/rstackjs/rspack-resolver",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rstackjs/rspack-resolver.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "os": [
+    "darwin"
+  ]
+}
