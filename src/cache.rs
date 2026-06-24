@@ -103,7 +103,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
   }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CachedPath(Arc<CachedPathImpl>);
 
 impl Hash for CachedPath {
@@ -173,6 +173,12 @@ impl From<&CachedPathImpl> for ResolverPath {
   /// path buffer for the `ResolveContext` sink.
   fn from(cached: &CachedPathImpl) -> Self {
     Self::from_parts(cached.hash, Arc::from(cached.path.as_std_path()))
+  }
+}
+
+impl std::fmt::Debug for CachedPathImpl {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.path.fmt(f)
   }
 }
 
