@@ -1270,8 +1270,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       // Complete when resolving to self `{"./a.js": "./a.js"}`
       if new_specifier
         .strip_prefix("./")
-        .filter(|s| path.ends_with(s))
-        .is_some()
+        .is_some_and(|s| path.ends_with(s))
       {
         return if cached_path.is_file(&self.cache.fs, ctx).await {
           if self.check_restrictions(cached_path.path()) {

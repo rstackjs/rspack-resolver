@@ -8,7 +8,7 @@ use serde::Deserialize;
 use crate::path::PathUtil;
 
 pub type CompilerOptionsPathsMap = IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>;
-pub(crate) type FileDependencies = IndexSet<Utf8PathBuf, BuildHasherDefault<FxHasher>>;
+pub type FileDependencies = IndexSet<Utf8PathBuf, BuildHasherDefault<FxHasher>>;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
 #[serde(untagged)]
@@ -46,7 +46,7 @@ pub struct TsConfig {
 
   /// Flattened transitive project references in resolution order.
   #[serde(skip)]
-  pub(crate) flattened_references: Vec<Arc<TsConfig>>,
+  pub(crate) flattened_references: Vec<Arc<Self>>,
 }
 
 /// Compiler Options
