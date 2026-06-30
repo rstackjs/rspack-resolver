@@ -1578,6 +1578,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
       let directory = tsconfig.directory().to_path_buf();
       let current_path = tsconfig.path.clone();
+      let mut flattened_reference_paths = FxHashSet::default();
       visited.insert(current_path.clone());
       for reference in &mut tsconfig.references {
         let reference_tsconfig_path = directory.normalize_with(&reference.path);
@@ -1618,10 +1619,19 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             },
           )
           .await?;
-        TsConfig::extend_file_dependencies(
-          &mut tsconfig.file_dependencies,
-          &reference_tsconfig.file_dependencies,
-        );
+        tsconfig
+          .file_dependencies
+          .extend(reference_tsconfig.file_dependencies.iter().cloned());
+        for nested in &reference_tsconfig.flattened_references {
+          if flattened_reference_paths.insert(nested.path.clone()) {
+            tsconfig.flattened_references.push(Arc::clone(nested));
+          }
+        }
+        if flattened_reference_paths.insert(reference_tsconfig.path.clone()) {
+          tsconfig
+            .flattened_references
+            .push(Arc::clone(&reference_tsconfig));
+        }
         reference.tsconfig.replace(reference_tsconfig);
       }
       Ok(())

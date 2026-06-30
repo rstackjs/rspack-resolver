@@ -2,7 +2,7 @@
 
 use crate::{
   tsconfig::FileDependencies, ResolveContext, ResolveError, ResolveOptions, Resolver, ResolverPath,
-  TsConfig, TsconfigOptions, TsconfigReferences,
+  TsconfigOptions, TsconfigReferences,
 };
 
 #[test]
@@ -11,7 +11,7 @@ fn file_dependencies_are_deduplicated() {
   file_dependencies.insert("/repo/app/tsconfig.json".into());
   file_dependencies.insert("/repo/base.json".into());
 
-  let dependencies = [
+  let dependencies: FileDependencies = [
     "/repo/base.json".into(),
     "/repo/shared/tsconfig.json".into(),
     "/repo/shared/tsconfig.json".into(),
@@ -19,7 +19,7 @@ fn file_dependencies_are_deduplicated() {
   .into_iter()
   .collect();
 
-  TsConfig::extend_file_dependencies(&mut file_dependencies, &dependencies);
+  file_dependencies.extend(dependencies.iter().cloned());
 
   assert_eq!(
     file_dependencies

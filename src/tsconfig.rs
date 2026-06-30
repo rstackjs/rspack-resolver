@@ -2,7 +2,7 @@ use std::{hash::BuildHasherDefault, sync::Arc};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
-use rustc_hash::{FxHashSet, FxHasher};
+use rustc_hash::FxHasher;
 use serde::Deserialize;
 
 use crate::path::PathUtil;
@@ -43,6 +43,10 @@ pub struct TsConfig {
   /// Bubbled up project references with a reference to their tsconfig.
   #[serde(default)]
   pub references: Vec<ProjectReference>,
+
+  /// Flattened transitive project references in resolution order.
+  #[serde(skip)]
+  pub(crate) flattened_references: Vec<Arc<TsConfig>>,
 }
 
 /// Compiler Options
@@ -158,52 +162,18 @@ impl TsConfig {
         .base_url
         .clone_from(&other_config.compiler_options.base_url);
     }
-    Self::extend_file_dependencies(&mut self.file_dependencies, &other_config.file_dependencies);
-  }
-
-  pub(crate) fn extend_file_dependencies(
-    file_dependencies: &mut FileDependencies,
-    dependencies: &FileDependencies,
-  ) {
-    file_dependencies.extend(dependencies.iter().cloned());
+    self
+      .file_dependencies
+      .extend(other_config.file_dependencies.iter().cloned());
   }
 
   pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
-    let mut visited = FxHashSet::default();
-    if let Some(matched) = self.find_reference_paths(path, specifier, &mut visited) {
-      return matched;
+    for tsconfig in &self.flattened_references {
+      if path.starts_with(tsconfig.base_path()) {
+        return tsconfig.resolve_path_alias(specifier);
+      }
     }
     self.resolve_path_alias(specifier)
-  }
-
-  // Walks `references` recursively, returning the nearest reference whose
-  // `base_path` contains `path`. Used to honor transitive project references
-  // (A → B → C): a file inside C should resolve via C's own `paths` even
-  // when the entry tsconfig is A and only B is listed directly in A's
-  // references. Matches `tsc`'s "nearest tsconfig wins" semantics.
-  fn find_reference_paths<'a>(
-    &'a self,
-    path: &Utf8Path,
-    specifier: &str,
-    visited: &mut FxHashSet<&'a Utf8Path>,
-  ) -> Option<Vec<Utf8PathBuf>> {
-    if !visited.insert(self.path.as_path()) {
-      return None;
-    }
-
-    for tsconfig in self
-      .references
-      .iter()
-      .filter_map(|reference| reference.tsconfig.as_ref())
-    {
-      if let Some(nested) = tsconfig.find_reference_paths(path, specifier, visited) {
-        return Some(nested);
-      }
-      if path.starts_with(tsconfig.base_path()) {
-        return Some(tsconfig.resolve_path_alias(specifier));
-      }
-    }
-    None
   }
 
   // Copied from parcel
