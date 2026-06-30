@@ -1,9 +1,38 @@
 //! Tests for tsconfig project references
 
 use crate::{
-  ResolveContext, ResolveError, ResolveOptions, Resolver, ResolverPath, TsconfigOptions,
-  TsconfigReferences,
+  tsconfig::FileDependencies, ResolveContext, ResolveError, ResolveOptions, Resolver, ResolverPath,
+  TsConfig, TsconfigOptions, TsconfigReferences,
 };
+
+#[test]
+fn file_dependencies_are_deduplicated() {
+  let mut file_dependencies = FileDependencies::default();
+  file_dependencies.insert("/repo/app/tsconfig.json".into());
+  file_dependencies.insert("/repo/base.json".into());
+
+  let dependencies = [
+    "/repo/base.json".into(),
+    "/repo/shared/tsconfig.json".into(),
+    "/repo/shared/tsconfig.json".into(),
+  ]
+  .into_iter()
+  .collect();
+
+  TsConfig::extend_file_dependencies(&mut file_dependencies, &dependencies);
+
+  assert_eq!(
+    file_dependencies
+      .iter()
+      .map(|dependency| dependency.as_str())
+      .collect::<Vec<_>>(),
+    [
+      "/repo/app/tsconfig.json",
+      "/repo/base.json",
+      "/repo/shared/tsconfig.json"
+    ]
+  );
+}
 
 #[tokio::test]
 async fn auto() {

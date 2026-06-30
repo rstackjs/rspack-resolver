@@ -1618,9 +1618,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             },
           )
           .await?;
-        tsconfig
-          .file_dependencies
-          .extend(reference_tsconfig.file_dependencies.iter().cloned());
+        TsConfig::extend_file_dependencies(
+          &mut tsconfig.file_dependencies,
+          &reference_tsconfig.file_dependencies,
+        );
         reference.tsconfig.replace(reference_tsconfig);
       }
       Ok(())

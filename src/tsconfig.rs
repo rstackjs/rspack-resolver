@@ -1,13 +1,14 @@
 use std::{hash::BuildHasherDefault, sync::Arc};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use indexmap::IndexMap;
-use rustc_hash::FxHasher;
+use indexmap::{IndexMap, IndexSet};
+use rustc_hash::{FxHashSet, FxHasher};
 use serde::Deserialize;
 
 use crate::path::PathUtil;
 
 pub type CompilerOptionsPathsMap = IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>;
+pub(crate) type FileDependencies = IndexSet<Utf8PathBuf, BuildHasherDefault<FxHasher>>;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
 #[serde(untagged)]
@@ -31,7 +32,7 @@ pub struct TsConfig {
   pub(crate) path: Utf8PathBuf,
 
   #[serde(skip)]
-  pub(crate) file_dependencies: Vec<Utf8PathBuf>,
+  pub(crate) file_dependencies: FileDependencies,
 
   #[serde(default)]
   pub extends: Option<ExtendsField>,
@@ -82,13 +83,13 @@ impl TsConfig {
       let mut tsconfig: Self = serde_json::from_str("{}")?;
       tsconfig.root = root;
       tsconfig.path = path.to_path_buf();
-      tsconfig.file_dependencies.push(path.to_path_buf());
+      tsconfig.file_dependencies.insert(path.to_path_buf());
       return Ok(tsconfig);
     }
     let mut tsconfig: Self = serde_json::from_str(json)?;
     tsconfig.root = root;
     tsconfig.path = path.to_path_buf();
-    tsconfig.file_dependencies.push(path.to_path_buf());
+    tsconfig.file_dependencies.insert(path.to_path_buf());
     let directory = tsconfig.directory().to_path_buf();
     if let Some(base_url) = &tsconfig.compiler_options.base_url {
       // keep the `${configDir}` template variable in the baseUrl
@@ -157,13 +158,19 @@ impl TsConfig {
         .base_url
         .clone_from(&other_config.compiler_options.base_url);
     }
-    self
-      .file_dependencies
-      .extend(other_config.file_dependencies.iter().cloned());
+    Self::extend_file_dependencies(&mut self.file_dependencies, &other_config.file_dependencies);
+  }
+
+  pub(crate) fn extend_file_dependencies(
+    file_dependencies: &mut FileDependencies,
+    dependencies: &FileDependencies,
+  ) {
+    file_dependencies.extend(dependencies.iter().cloned());
   }
 
   pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
-    if let Some(matched) = self.find_reference_paths(path, specifier) {
+    let mut visited = FxHashSet::default();
+    if let Some(matched) = self.find_reference_paths(path, specifier, &mut visited) {
       return matched;
     }
     self.resolve_path_alias(specifier)
@@ -174,13 +181,22 @@ impl TsConfig {
   // (A → B → C): a file inside C should resolve via C's own `paths` even
   // when the entry tsconfig is A and only B is listed directly in A's
   // references. Matches `tsc`'s "nearest tsconfig wins" semantics.
-  fn find_reference_paths(&self, path: &Utf8Path, specifier: &str) -> Option<Vec<Utf8PathBuf>> {
+  fn find_reference_paths<'a>(
+    &'a self,
+    path: &Utf8Path,
+    specifier: &str,
+    visited: &mut FxHashSet<&'a Utf8Path>,
+  ) -> Option<Vec<Utf8PathBuf>> {
+    if !visited.insert(self.path.as_path()) {
+      return None;
+    }
+
     for tsconfig in self
       .references
       .iter()
       .filter_map(|reference| reference.tsconfig.as_ref())
     {
-      if let Some(nested) = tsconfig.find_reference_paths(path, specifier) {
+      if let Some(nested) = tsconfig.find_reference_paths(path, specifier, visited) {
         return Some(nested);
       }
       if path.starts_with(tsconfig.base_path()) {
