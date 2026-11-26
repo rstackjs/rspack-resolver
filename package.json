@@ -28,12 +28,12 @@
     "commander": "^14.0.3",
     "emnapi": "1.10.0",
     "enhanced-resolve": "^5.23.0",
-    "rstack": "^0.7.2",
+    "rstack": "^0.9.5",
     "semver": "^7.7.1",
     "typescript": "^6.0.3",
     "zx": "^8.8.5"
   },
-  "packageManager": "pnpm@11.3.0",
+  "packageManager": "pnpm@12.18.0",
   "repository": {
     "type": "git",
     "url": "git+https://rstackjs/rspack-resolver.git"
